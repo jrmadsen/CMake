@@ -946,6 +946,10 @@ set_property(GLOBAL PROPERTY CTEST_PROJECT_LIBRARIES ${_CTEST_LIBRARIES})
 
 ################################################################################
 
+option(CMake_BUILD_CPACK "Build CPack" OFF)
+
+if(CMake_BUILD_CPACK)
+
 #
 # CPack
 #
@@ -1109,6 +1113,8 @@ if(APPLE)
   target_link_libraries(OSXScriptLauncher "-framework CoreFoundation")
 endif()
 
+endif(CMake_BUILD_CPACK)
+
 # Build CMake executable
 add_executable(cmake cmakemain.cxx cmcmd.cxx cmcmd.h ${MANIFEST_FILE})
 list(APPEND _tools cmake)
@@ -1131,9 +1137,11 @@ list(APPEND _tools ctest)
 target_link_libraries(ctest CTestLib)
 
 # Build CPack executable
-add_executable(cpack CPack/cpack.cxx ${MANIFEST_FILE})
-list(APPEND _tools cpack)
-target_link_libraries(cpack CPackLib)
+if(CMake_BUILD_CPACK)
+    add_executable(cpack CPack/cpack.cxx ${MANIFEST_FILE})
+    list(APPEND _tools cpack)
+    target_link_libraries(cpack CPackLib)
+endif(CMake_BUILD_CPACK)
 
 # Curses GUI
 if(BUILD_CursesDialog)
