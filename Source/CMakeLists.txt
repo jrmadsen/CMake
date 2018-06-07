@@ -1136,6 +1136,10 @@ add_executable(ctest ctest.cxx ${MANIFEST_FILE})
 list(APPEND _tools ctest)
 target_link_libraries(ctest CTestLib)
 
+install(TARGETS cmake ctest
+    DESTINATION ${PYCTEST_INSTALL_BINDIR}
+    COMPONENT development)
+
 # Build CPack executable
 if(CMake_BUILD_CPACK)
     add_executable(cpack CPack/cpack.cxx ${MANIFEST_FILE})
