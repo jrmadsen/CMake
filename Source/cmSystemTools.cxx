@@ -2136,7 +2136,7 @@ void cmSystemTools::FindCMakeResources(const char* argv0)
     realPath = path;
   }
   exe_dir = cmSystemTools::GetFilenamePath(realPath);
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) && defined(DSAHSDFFHADSF)
   (void)argv0; // ignore this on OS X
 #  define CM_EXE_PATH_LOCAL_SIZE 16384
   char exe_path_local[CM_EXE_PATH_LOCAL_SIZE];
