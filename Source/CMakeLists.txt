@@ -775,43 +775,6 @@ target_link_libraries(CMakeLib cmsys
   ${CMAKE_THREAD_LIBS_INIT}
   )
 
-################################################################################
-#
-#   Customization -- J. Madsen
-#
-################################################################################
-
-set(_CMAKE_LIBRARIES
-    CMakeLib
-    cmsys
-    ${CMAKE_EXPAT_LIBRARIES}
-    ${CMAKE_ZLIB_LIBRARIES}
-    ${CMAKE_TAR_LIBRARIES}
-    ${CMAKE_COMPRESS_LIBRARIES}
-    ${CMAKE_CURL_LIBRARIES}
-    ${CMAKE_JSONCPP_LIBRARIES}
-    ${CMAKE_LIBUV_LIBRARIES}
-    ${CMAKE_LIBRHASH_LIBRARIES}
-    ${CMake_KWIML_LIBRARIES})
-set(_CMAKE_LIBRARY_UTILITIES
-    BZIP2 CURL EXPAT FORM JSONCPP LIBARCHIVE LIBLZMA LIBRHASH LIBUV ZLIB)
-
-foreach(_PACKAGE ${_CMAKE_LIBRARY_UTILITIES})
-    #message(STATUS "${_PACKAGE}: ${${_PACKAGE}_LIBRARY}")
-    if(NOT CMAKE_USE_SYSTEM_${_PACKAGE} AND ${_PACKAGE}_LIBRARY)
-        list(APPEND _CMAKE_LIBRARIES ${${_PACKAGE}_LIBRARY})
-    endif(NOT CMAKE_USE_SYSTEM_${_PACKAGE} AND ${_PACKAGE}_LIBRARY)
-endforeach(_PACKAGE ${_CMAKE_LIBRARY_UTILITIES})
-
-list(REMOVE_DUPLICATES _CMAKE_LIBRARIES)
-
-export(TARGETS ${_CMAKE_LIBRARIES}
-    FILE ${CMAKE_BINARY_DIR}/CMakeLibBuild.cmake)
-
-set_property(GLOBAL PROPERTY CMAKE_PROJECT_LIBRARIES ${_CMAKE_LIBRARIES})
-
-################################################################################
-
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "sparc")
   # the atomic instructions are implemented using libatomic on some platforms,
   # so linking to that may be required
@@ -906,49 +869,6 @@ set(CTEST_SRCS cmCTest.cxx
 # Build CTestLib
 add_library(CTestLib ${CTEST_SRCS})
 target_link_libraries(CTestLib CMakeLib ${CMAKE_CURL_LIBRARIES} ${CMAKE_XMLRPC_LIBRARIES})
-
-################################################################################
-#
-#   Customization -- J. Madsen
-#
-################################################################################
-
-set(_CTEST_LIBRARIES
-    CTestLib
-    ${CMAKE_CURL_LIBRARIES}
-    ${CMAKE_XMLRPC_LIBRARIES}
-    #cmsys
-    #${CMAKE_EXPAT_LIBRARIES}
-    #${CMAKE_ZLIB_LIBRARIES}
-    #${CMAKE_TAR_LIBRARIES}
-    #${CMAKE_COMPRESS_LIBRARIES}
-    #${CMAKE_JSONCPP_LIBRARIES}
-    #${CMAKE_LIBUV_LIBRARIES}
-    #${CMAKE_LIBRHASH_LIBRARIES}
-    #${CMake_KWIML_LIBRARIES}
-    )
-set(_CTEST_LIBRARY_UTILITIES
-    BZIP2 CURL EXPAT FORM JSONCPP LIBARCHIVE LIBLZMA LIBRHASH LIBUV ZLIB)
-
-foreach(_PACKAGE ${_CTEST_LIBRARY_UTILITIES})
-    #message(STATUS "${_PACKAGE}: ${${_PACKAGE}_LIBRARY}")
-    if(NOT CMAKE_USE_SYSTEM_${_PACKAGE} AND ${_PACKAGE}_LIBRARY)
-        list(APPEND _CTEST_LIBRARIES ${${_PACKAGE}_LIBRARY})
-    endif(NOT CMAKE_USE_SYSTEM_${_PACKAGE} AND ${_PACKAGE}_LIBRARY)
-endforeach(_PACKAGE ${_CTEST_LIBRARY_UTILITIES})
-
-list(REMOVE_DUPLICATES _CTEST_LIBRARIES)
-
-export(TARGETS ${_CTEST_LIBRARIES}
-    FILE ${CMAKE_BINARY_DIR}/CTestLibBuild.cmake)
-
-set_property(GLOBAL PROPERTY CTEST_PROJECT_LIBRARIES ${_CTEST_LIBRARIES})
-
-################################################################################
-
-option(CMake_BUILD_CPACK "Build CPack" OFF)
-
-if(CMake_BUILD_CPACK)
 
 #
 # CPack
@@ -1113,8 +1033,6 @@ if(APPLE)
   target_link_libraries(OSXScriptLauncher "-framework CoreFoundation")
 endif()
 
-endif(CMake_BUILD_CPACK)
-
 # Build CMake executable
 add_executable(cmake cmakemain.cxx cmcmd.cxx cmcmd.h ${MANIFEST_FILE})
 list(APPEND _tools cmake)
@@ -1137,15 +1055,12 @@ list(APPEND _tools ctest)
 target_link_libraries(ctest CTestLib)
 
 install(TARGETS cmake ctest
-    DESTINATION ${PYCTEST_INSTALL_BINDIR}
-    COMPONENT development)
+    DESTINATION ${CMAKE_BIN_DIR})
 
 # Build CPack executable
-if(CMake_BUILD_CPACK)
-    add_executable(cpack CPack/cpack.cxx ${MANIFEST_FILE})
-    list(APPEND _tools cpack)
-    target_link_libraries(cpack CPackLib)
-endif(CMake_BUILD_CPACK)
+add_executable(cpack CPack/cpack.cxx ${MANIFEST_FILE})
+list(APPEND _tools cpack)
+target_link_libraries(cpack CPackLib)
 
 # Curses GUI
 if(BUILD_CursesDialog)
