@@ -31,6 +31,7 @@
 #     message(STATUS "No Fortran support")
 #   endif()
 
+include(CheckIncludeGuard)
 include_guard(GLOBAL)
 
 macro(check_language lang)

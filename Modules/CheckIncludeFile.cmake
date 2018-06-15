@@ -36,6 +36,7 @@
 # at once.  See the :module:`CheckIncludeFileCXX` module to check for headers
 # using the ``CXX`` language.
 
+include(CheckIncludeGuard)
 include_guard(GLOBAL)
 
 macro(CHECK_INCLUDE_FILE INCLUDE VARIABLE)

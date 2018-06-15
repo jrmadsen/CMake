@@ -41,6 +41,7 @@
 # See modules :module:`CheckIncludeFile` and :module:`CheckIncludeFileCXX`
 # to check for a single header file in ``C`` or ``CXX`` languages.
 
+include(CheckIncludeGuard)
 include_guard(GLOBAL)
 
 macro(CHECK_INCLUDE_FILES INCLUDE VARIABLE)

@@ -24,6 +24,7 @@
 #
 #   CMAKE_REQUIRED_LIBRARIES = list of libraries to link
 
+include(CheckIncludeGuard)
 include_guard(GLOBAL)
 
 macro(CHECK_FORTRAN_FUNCTION_EXISTS FUNCTION VARIABLE)

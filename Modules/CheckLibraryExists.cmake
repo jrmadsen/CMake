@@ -29,6 +29,7 @@
 #   CMAKE_REQUIRED_LIBRARIES = list of libraries to link
 #   CMAKE_REQUIRED_QUIET = execute quietly without messages
 
+include(CheckIncludeGuard)
 include_guard(GLOBAL)
 
 macro(CHECK_LIBRARY_EXISTS LIBRARY FUNCTION LOCATION VARIABLE)

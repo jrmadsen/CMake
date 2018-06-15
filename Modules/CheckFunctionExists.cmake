@@ -38,6 +38,7 @@
 #   * ``check_function_exists()`` only verifies linking, it does not verify
 #     that the function is declared in system headers.
 
+include(CheckIncludeGuard)
 include_guard(GLOBAL)
 
 macro(CHECK_FUNCTION_EXISTS FUNCTION VARIABLE)

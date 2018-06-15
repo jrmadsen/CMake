@@ -60,6 +60,7 @@ subsequently be run.
 
 #]=======================================================================]
 
+include(CheckIncludeGuard)
 include_guard(GLOBAL)
 
 macro(CHECK_CXX_SOURCE_RUNS SOURCE VAR)

@@ -41,6 +41,7 @@
 
 #
 
+include(CheckIncludeGuard)
 get_filename_component(__check_proto_def_dir "${CMAKE_CURRENT_LIST_FILE}" PATH)
 
 include_guard(GLOBAL)

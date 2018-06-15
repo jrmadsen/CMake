@@ -35,6 +35,7 @@
 # See modules :module:`CheckIncludeFile` and :module:`CheckIncludeFiles`
 # to check for one or more ``C`` headers.
 
+include(CheckIncludeGuard)
 include_guard(GLOBAL)
 
 macro(CHECK_INCLUDE_FILE_CXX INCLUDE VARIABLE)

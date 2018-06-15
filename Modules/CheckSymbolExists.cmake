@@ -43,6 +43,7 @@ the way the check is run:
   execute quietly without messages
 #]=======================================================================]
 
+include(CheckIncludeGuard)
 include_guard(GLOBAL)
 
 cmake_policy(PUSH)
