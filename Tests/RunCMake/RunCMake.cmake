@@ -65,6 +65,13 @@ function(run_cmake test)
   else()
     set(maybe_timeout "")
   endif()
+  if(RunCMake-stdin-file AND EXISTS ${top_src}/${RunCMake-stdin-file})
+    set(maybe_input_file INPUT_FILE ${top_src}/${RunCMake-stdin-file})
+  elseif(EXISTS ${top_src}/${test}-stdin.txt)
+    set(maybe_input_file INPUT_FILE ${top_src}/${test}-stdin.txt)
+  else()
+    set(maybe_input_file "")
+  endif()
   if(RunCMake_TEST_COMMAND)
     execute_process(
       COMMAND ${RunCMake_TEST_COMMAND}
@@ -74,6 +81,7 @@ function(run_cmake test)
       RESULT_VARIABLE actual_result
       ENCODING UTF8
       ${maybe_timeout}
+      ${maybe_input_file}
       )
   else()
     if(RunCMake_GENERATOR_INSTANCE)
@@ -96,6 +104,7 @@ function(run_cmake test)
       RESULT_VARIABLE actual_result
       ENCODING UTF8
       ${maybe_timeout}
+      ${maybe_input_file}
       )
   endif()
   set(msg "")
@@ -109,6 +118,7 @@ function(run_cmake test)
     "|clang[^:]*: warning: the object size sanitizer has no effect at -O0, but is explicitly enabled:"
     "|Error kstat returned"
     "|Hit xcodebuild bug"
+    "|[^\n]*xcodebuild[^\n]*warning: file type[^\n]*is based on missing file type"
     "|ld: 0711-224 WARNING: Duplicate symbol: .__init_aix_libgcc_cxa_atexit"
     "|ld: 0711-345 Use the -bloadmap or -bnoquiet option to obtain more information"
     "|[^\n]*is a member of multiple groups"

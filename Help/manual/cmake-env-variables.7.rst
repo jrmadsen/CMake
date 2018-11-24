@@ -20,6 +20,7 @@ Environment Variables that Control the Build
    /envvar/DESTDIR
    /envvar/LDFLAGS
    /envvar/MACOSX_DEPLOYMENT_TARGET
+   /envvar/PackageName_ROOT
 
 Environment Variables for Languages
 ===================================
@@ -52,5 +53,6 @@ Environment Variables for CTest
    /envvar/CTEST_INTERACTIVE_DEBUG_MODE
    /envvar/CTEST_OUTPUT_ON_FAILURE
    /envvar/CTEST_PARALLEL_LEVEL
+   /envvar/CTEST_PROGRESS_OUTPUT
    /envvar/CTEST_USE_LAUNCHERS_DEFAULT
    /envvar/DASHBOARD_TEST_FROM_CTEST

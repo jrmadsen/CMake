@@ -263,25 +263,32 @@ bool cmGlobalVisualStudio10Generator::SetGeneratorToolset(
       this->GeneratorToolsetVersion.clear();
     }
 
-    std::string const toolsetPath = this->GetAuxiliaryToolset();
-    if (!toolsetPath.empty() && !cmSystemTools::FileExists(toolsetPath)) {
-
-      std::ostringstream e;
-      /* clang-format off */
-      e <<
-        "Generator\n"
-        "  " << this->GetName() << "\n"
-        "given toolset and version specification\n"
-        "  " << this->GetPlatformToolsetString() << ",version=" <<
-        this->GeneratorToolsetVersion << "\n"
-        "does not seem to be installed at\n" <<
-        "  " << toolsetPath;
-      ;
-      /* clang-format on */
-      mf->IssueMessage(cmake::FATAL_ERROR, e.str());
-
-      // Clear the configured tool-set
+    bool const isDefaultToolset =
+      this->IsDefaultToolset(this->GeneratorToolsetVersion);
+    if (isDefaultToolset) {
+      // If the given version is the default toolset, remove the setting
       this->GeneratorToolsetVersion.clear();
+    } else {
+      std::string const toolsetPath = this->GetAuxiliaryToolset();
+      if (!toolsetPath.empty() && !cmSystemTools::FileExists(toolsetPath)) {
+
+        std::ostringstream e;
+        /* clang-format off */
+        e <<
+          "Generator\n"
+          "  " << this->GetName() << "\n"
+          "given toolset and version specification\n"
+          "  " << this->GetPlatformToolsetString() << ",version=" <<
+          this->GeneratorToolsetVersion << "\n"
+          "does not seem to be installed at\n" <<
+          "  " << toolsetPath;
+        ;
+        /* clang-format on */
+        mf->IssueMessage(cmake::FATAL_ERROR, e.str());
+
+        // Clear the configured tool-set
+        this->GeneratorToolsetVersion.clear();
+      }
     }
   }
 
@@ -615,6 +622,12 @@ cmGlobalVisualStudio10Generator::GetPlatformToolsetCudaString() const
   return this->GeneratorToolsetCuda;
 }
 
+bool cmGlobalVisualStudio10Generator::IsDefaultToolset(
+  const std::string&) const
+{
+  return true;
+}
+
 std::string cmGlobalVisualStudio10Generator::GetAuxiliaryToolset() const
 {
   return {};
@@ -925,6 +938,7 @@ void cmGlobalVisualStudio10Generator::GenerateBuildCommand(
     configArg += "Debug";
   }
   makeCommand.push_back(configArg);
+  makeCommand.push_back("/p:Platform=" + this->GetPlatformName());
   makeCommand.push_back(std::string("/p:VisualStudioVersion=") +
                         this->GetIDEVersion());
 
@@ -1001,7 +1015,7 @@ void cmGlobalVisualStudio10Generator::PathTooLong(cmGeneratorTarget* target,
                                                   std::string const& sfRel)
 {
   size_t len =
-    (strlen(target->GetLocalGenerator()->GetCurrentBinaryDirectory()) + 1 +
+    (target->GetLocalGenerator()->GetCurrentBinaryDirectory().length() + 1 +
      sfRel.length());
   if (len > this->LongestSource.Length) {
     this->LongestSource.Length = len;

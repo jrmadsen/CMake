@@ -32,6 +32,7 @@ public:
 
   bool GetVSInstance(std::string& dir) const;
 
+  bool IsDefaultToolset(const std::string& version) const override;
   std::string GetAuxiliaryToolset() const override;
 
 protected:
@@ -50,6 +51,8 @@ protected:
 
   // Check for a Win 8 SDK known to the registry or VS installer tool.
   bool IsWin81SDKInstalled() const;
+
+  std::string GetWindows10SDKMaxVersion() const override;
 
   std::string FindMSBuildCommand() override;
   std::string FindDevEnvCommand() override;

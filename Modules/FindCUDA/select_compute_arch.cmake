@@ -18,8 +18,9 @@
 #
 
 if(CMAKE_CUDA_COMPILER_LOADED) # CUDA as a language
-  if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
-    set(CUDA_VERSION "${CMAKE_CUDA_COMPILER_VERSION}")
+  if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA"
+      AND CMAKE_CUDA_COMPILER_VERSION MATCHES "^([0-9]+\\.[0-9]+)")
+    set(CUDA_VERSION "${CMAKE_MATCH_1}")
   endif()
 endif()
 
@@ -107,6 +108,9 @@ function(CUDA_DETECT_INSTALLED_GPUS OUT_VARIABLE)
               LINK_LIBRARIES ${CUDA_LIBRARIES}
               RUN_OUTPUT_VARIABLE compute_capabilities)
     endif()
+
+    # Filter unrelated content out of the output.
+    string(REGEX MATCHALL "[0-9]+\\.[0-9]+" compute_capabilities "${compute_capabilities}")
 
     if(run_result EQUAL 0)
       string(REPLACE "2.1" "2.1(2.0)" compute_capabilities "${compute_capabilities}")

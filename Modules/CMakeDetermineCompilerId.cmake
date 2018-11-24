@@ -121,7 +121,7 @@ function(CMAKE_DETERMINE_COMPILER_ID lang flagvar src)
   set(CMAKE_${lang}_COMPILER_ARCHITECTURE_ID "${CMAKE_${lang}_COMPILER_ARCHITECTURE_ID}" PARENT_SCOPE)
   set(MSVC_${lang}_ARCHITECTURE_ID "${MSVC_${lang}_ARCHITECTURE_ID}"
     PARENT_SCOPE)
-  set(CMAKE_${lang}_XCODE_CURRENT_ARCH "${CMAKE_${lang}_XCODE_CURRENT_ARCH}" PARENT_SCOPE)
+  set(CMAKE_${lang}_XCODE_ARCHS "${CMAKE_${lang}_XCODE_ARCHS}" PARENT_SCOPE)
   set(CMAKE_${lang}_CL_SHOWINCLUDES_PREFIX "${CMAKE_${lang}_CL_SHOWINCLUDES_PREFIX}" PARENT_SCOPE)
   set(CMAKE_${lang}_COMPILER_VERSION "${CMAKE_${lang}_COMPILER_VERSION}" PARENT_SCOPE)
   set(CMAKE_${lang}_COMPILER_VERSION_INTERNAL "${CMAKE_${lang}_COMPILER_VERSION_INTERNAL}" PARENT_SCOPE)
@@ -355,6 +355,12 @@ Id flags: ${testflags} ${CMAKE_${lang}_COMPILER_ID_FLAGS_ALWAYS}
     else()
       set(id_development_team "")
     endif()
+    if(DEFINED CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY)
+      set(id_code_sign_identity
+        "CODE_SIGN_IDENTITY = \"${CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY}\";")
+    else()
+      set(id_code_sign_identity "")
+    endif()
     configure_file(${CMAKE_ROOT}/Modules/CompilerId/Xcode-3.pbxproj.in
       ${id_dir}/CompilerId${lang}.xcodeproj/project.pbxproj @ONLY)
     unset(_ENV_MACOSX_DEPLOYMENT_TARGET)
@@ -380,8 +386,10 @@ Id flags: ${testflags} ${CMAKE_${lang}_COMPILER_ID_FLAGS_ALWAYS}
         endif()
       endif()
     endif()
-    if("${CMAKE_${lang}_COMPILER_ID_OUTPUT}" MATCHES "CURRENT_ARCH=([^%\r\n]+)[\r\n]")
-      set(CMAKE_${lang}_XCODE_CURRENT_ARCH "${CMAKE_MATCH_1}" PARENT_SCOPE)
+    if("${CMAKE_${lang}_COMPILER_ID_OUTPUT}" MATCHES "ARCHS=([^%\r\n]+)[\r\n]")
+      set(CMAKE_${lang}_XCODE_ARCHS "${CMAKE_MATCH_1}")
+      separate_arguments(CMAKE_${lang}_XCODE_ARCHS)
+      set(CMAKE_${lang}_XCODE_ARCHS "${CMAKE_${lang}_XCODE_ARCHS}" PARENT_SCOPE)
     endif()
   else()
     execute_process(
@@ -517,6 +525,9 @@ function(CMAKE_DETERMINE_COMPILER_ID_CHECK lang file)
       ${CMAKE_${lang}_COMPILER_ID_STRINGS_PARAMETERS}
       REGEX "INFO:[A-Za-z0-9_]+\\[[^]]*\\]")
     set(COMPILER_ID_TWICE)
+    # With the IAR Compiler, some strings are found twice, first time as incomplete
+    # list like "?<Constant "INFO:compiler[IAR]">".  Remove the incomplete copies.
+    list(FILTER CMAKE_${lang}_COMPILER_ID_STRINGS EXCLUDE REGEX "\\?<Constant \\\"")
     # In C# binaries, some strings are found more than once.
     list(REMOVE_DUPLICATES CMAKE_${lang}_COMPILER_ID_STRINGS)
     foreach(info ${CMAKE_${lang}_COMPILER_ID_STRINGS})

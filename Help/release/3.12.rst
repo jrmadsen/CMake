@@ -34,7 +34,8 @@ Commands
 * The :command:`cmake_minimum_required` and :command:`cmake_policy(VERSION)`
   commands now accept a version range using the form ``<min>[...<max>]``.
   The ``<min>`` version is required but policies are set based on the
-  ``<max>`` version.  This allows projects to specify a range of versions
+  older of the running CMake version and the version specified by
+  ``<max>``.  This allows projects to specify a range of versions
   for which they have been updated and avoid explicit policy settings.
 
 * The :command:`file(GLOB)` and :command:`file(GLOB_RECURSE)` commands
@@ -45,8 +46,9 @@ Commands
   were added to expose ``TOUCH`` functionality without having to use
   CMake's command-line tool mode with :command:`execute_process`.
 
-* The :command:`find_package` command now searches a prefix specified by
-  a ``PackageName_ROOT`` CMake or environment variable.  Package roots are
+* The :command:`find_package` command now searches prefixes specified by
+  the :variable:`<PackageName>_ROOT` CMake variable and the
+  :envvar:`<PackageName>_ROOT` environment variable.  Package roots are
   maintained as a stack so nested calls to all ``find_*`` commands inside
   find modules also search the roots as prefixes.
   See policy :policy:`CMP0074`.
@@ -80,9 +82,6 @@ Commands
 * The :command:`target_link_libraries` command now supports
   :ref:`Object Libraries`.  Linking to an object library uses its object
   files in direct dependents and also propagates usage requirements.
-
-* The :command:`target_link_libraries` command may now be called
-  to modify targets created outside the current directory.
 
 Variables
 ---------
@@ -170,6 +169,9 @@ Modules
 
 * The :module:`FindLibXml2` module now provides imported targets.
 
+* The :module:`FindMatlab` module now supports the Matlab Runtime
+  Compiler (MCR) for compiling and linking matlab extensions.
+
 * A :module:`FindODBC` module was added to find an Open Database Connectivity
   (ODBC) library.
 
@@ -188,6 +190,9 @@ Modules
 * The :module:`UseSWIG` module learned to manage multiple behaviors through
   ``UseSWIG_MODULE_VERSION`` variable to ensure legacy support as well as more
   robust handling of ``SWIG`` advanced features (like ``%template``).
+
+* The :module:`UseSWIG` module learned to support CSHARP variant
+  wrapper files.
 
 * The :module:`WriteCompilerDetectionHeader` module gained a ``BARE_FEATURES``
   option to add a compatibility define for the exact keyword of a new language
@@ -234,8 +239,8 @@ CPack
   :variable:`CMAKE_PROJECT_VERSION_PATCH`
   to initialize corresponding CPack variables.
 
-* :manual:`cpack(1)` gained basic support for `NuGet`_.
-  See the :module:`CPackNuGet` module.
+* A :cpack_gen:`CPack NuGet Generator` was was added with basic
+  support for `NuGet`_.
 
 .. _NuGet: https://docs.microsoft.com/en-us/nuget/what-is-nuget
 
