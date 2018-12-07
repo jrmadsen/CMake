@@ -713,26 +713,33 @@ int cmCTestCoverageHandler::HandleCoberturaCoverage(
   // check for the COBERTURADIR environment variable,
   // if it doesn't exist or is empty, assume the
   // binary directory is used.
-  std::string coverageXMLFile;
-  if (!cmSystemTools::GetEnv("COBERTURADIR", coverageXMLFile) ||
-      coverageXMLFile.empty()) {
-    coverageXMLFile = this->CTest->GetBinaryDir();
-  }
-  // build the find file string with the directory from above
-  coverageXMLFile += "/coverage.xml";
+  std::vector<std::string> fnames;
+  fnames.push_back("/coverage.xml");
+  fnames.push_back("/.coverage.xml");
+  fnames.push_back("/.coverage");
+  for(unsigned i = 0; i < fnames.size(); ++i)
+  {
+      std::string coverageXMLFile;
+      if (!cmSystemTools::GetEnv("COBERTURADIR", coverageXMLFile) ||
+          coverageXMLFile.empty()) {
+        coverageXMLFile = this->CTest->GetBinaryDir();
+      }
+      // build the find file string with the directory from above
+      coverageXMLFile += fnames[i];
 
-  if (cmSystemTools::FileExists(coverageXMLFile)) {
-    // If file exists, parse it
-    cmCTestOptionalLog(this->CTest, HANDLER_VERBOSE_OUTPUT,
-                       "Parsing Cobertura XML file: " << coverageXMLFile
-                                                      << std::endl,
-                       this->Quiet);
-    cov.ReadCoverageXML(coverageXMLFile.c_str());
-  } else {
-    cmCTestOptionalLog(this->CTest, HANDLER_VERBOSE_OUTPUT,
-                       " Cannot find Cobertura XML file: " << coverageXMLFile
-                                                           << std::endl,
-                       this->Quiet);
+      if (cmSystemTools::FileExists(coverageXMLFile)) {
+        // If file exists, parse it
+        cmCTestOptionalLog(this->CTest, HANDLER_VERBOSE_OUTPUT,
+                           "Parsing Cobertura XML file: " << coverageXMLFile
+                                                          << std::endl,
+                           this->Quiet);
+        cov.ReadCoverageXML(coverageXMLFile.c_str());
+      } else {
+        cmCTestOptionalLog(this->CTest, HANDLER_VERBOSE_OUTPUT,
+                           " Cannot find Cobertura XML file: " << coverageXMLFile
+                                                               << std::endl,
+                           this->Quiet);
+      }
   }
   return static_cast<int>(cont->TotalCoverage.size());
 }
