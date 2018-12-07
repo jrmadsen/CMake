@@ -3,7 +3,7 @@
 #ifndef cmGeneratorExpressionLexer_h
 #define cmGeneratorExpressionLexer_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <stddef.h>
 #include <string>
@@ -11,23 +11,22 @@
 
 struct cmGeneratorExpressionToken
 {
-  cmGeneratorExpressionToken(unsigned type, const char* c, size_t l)
+    cmGeneratorExpressionToken(unsigned type, const char* c, size_t l)
     : TokenType(type)
     , Content(c)
     , Length(l)
-  {
-  }
-  enum
-  {
-    Text,
-    BeginExpression,
-    EndExpression,
-    ColonSeparator,
-    CommaSeparator
-  };
-  unsigned TokenType;
-  const char* Content;
-  size_t Length;
+    {}
+    enum
+    {
+        Text,
+        BeginExpression,
+        EndExpression,
+        ColonSeparator,
+        CommaSeparator
+    };
+    unsigned    TokenType;
+    const char* Content;
+    size_t      Length;
 };
 
 /** \class cmGeneratorExpressionLexer
@@ -36,18 +35,18 @@ struct cmGeneratorExpressionToken
 class cmGeneratorExpressionLexer
 {
 public:
-  cmGeneratorExpressionLexer();
+    cmGeneratorExpressionLexer();
 
-  std::vector<cmGeneratorExpressionToken> Tokenize(const std::string& input);
+    std::vector<cmGeneratorExpressionToken> Tokenize(const std::string& input);
 
-  bool GetSawGeneratorExpression() const
-  {
-    return this->SawGeneratorExpression;
-  }
+    bool GetSawGeneratorExpression() const
+    {
+        return this->SawGeneratorExpression;
+    }
 
 private:
-  bool SawBeginExpression;
-  bool SawGeneratorExpression;
+    bool SawBeginExpression;
+    bool SawGeneratorExpression;
 };
 
 #endif

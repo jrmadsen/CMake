@@ -3,7 +3,7 @@
 #ifndef cmMakefileUtilityTargetGenerator_h
 #define cmMakefileUtilityTargetGenerator_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmMakefileTargetGenerator.h"
 
@@ -12,12 +12,12 @@ class cmGeneratorTarget;
 class cmMakefileUtilityTargetGenerator : public cmMakefileTargetGenerator
 {
 public:
-  cmMakefileUtilityTargetGenerator(cmGeneratorTarget* target);
-  ~cmMakefileUtilityTargetGenerator() override;
+    cmMakefileUtilityTargetGenerator(cmGeneratorTarget* target);
+    ~cmMakefileUtilityTargetGenerator() override;
 
-  /* the main entry point for this class. Writes the Makefiles associated
-     with this target */
-  void WriteRuleFiles() override;
+    /* the main entry point for this class. Writes the Makefiles associated
+       with this target */
+    void WriteRuleFiles() override;
 
 protected:
 };

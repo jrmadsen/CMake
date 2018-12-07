@@ -5,10 +5,7 @@
 class cmake;
 
 cmGlobalCommonGenerator::cmGlobalCommonGenerator(cmake* cm)
-  : cmGlobalGenerator(cm)
-{
-}
+: cmGlobalGenerator(cm)
+{}
 
-cmGlobalCommonGenerator::~cmGlobalCommonGenerator()
-{
-}
+cmGlobalCommonGenerator::~cmGlobalCommonGenerator() {}

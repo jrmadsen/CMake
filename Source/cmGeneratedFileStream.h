@@ -3,7 +3,7 @@
 #ifndef cmGeneratedFileStream_h
 #define cmGeneratedFileStream_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cm_codecvt.hxx"
 #include "cmsys/FStream.hxx"
@@ -15,46 +15,46 @@
 class cmGeneratedFileStreamBase
 {
 protected:
-  // This constructor does not prepare the temporary file.  The open
-  // method must be used.
-  cmGeneratedFileStreamBase();
+    // This constructor does not prepare the temporary file.  The open
+    // method must be used.
+    cmGeneratedFileStreamBase();
 
-  // This constructor prepares the temporary output file.
-  cmGeneratedFileStreamBase(std::string const& name);
+    // This constructor prepares the temporary output file.
+    cmGeneratedFileStreamBase(std::string const& name);
 
-  // The destructor renames the temporary output file to the real name.
-  ~cmGeneratedFileStreamBase();
+    // The destructor renames the temporary output file to the real name.
+    ~cmGeneratedFileStreamBase();
 
-  // Internal methods to handle the temporary file.  Open is always
-  // called before the real stream is opened.  Close is always called
-  // after the real stream is closed and Okay is set to whether the
-  // real stream was still valid for writing when it was closed.
-  void Open(std::string const& name);
-  bool Close();
+    // Internal methods to handle the temporary file.  Open is always
+    // called before the real stream is opened.  Close is always called
+    // after the real stream is closed and Okay is set to whether the
+    // real stream was still valid for writing when it was closed.
+    void Open(std::string const& name);
+    bool Close();
 
-  // Internal file replacement implementation.
-  int RenameFile(std::string const& oldname, std::string const& newname);
+    // Internal file replacement implementation.
+    int RenameFile(std::string const& oldname, std::string const& newname);
 
-  // Internal file compression implementation.
-  int CompressFile(std::string const& oldname, std::string const& newname);
+    // Internal file compression implementation.
+    int CompressFile(std::string const& oldname, std::string const& newname);
 
-  // The name of the final destination file for the output.
-  std::string Name;
+    // The name of the final destination file for the output.
+    std::string Name;
 
-  // The name of the temporary file.
-  std::string TempName;
+    // The name of the temporary file.
+    std::string TempName;
 
-  // Whether to do a copy-if-different.
-  bool CopyIfDifferent;
+    // Whether to do a copy-if-different.
+    bool CopyIfDifferent;
 
-  // Whether the real file stream was valid when it was closed.
-  bool Okay;
+    // Whether the real file stream was valid when it was closed.
+    bool Okay;
 
-  // Whether the destination file is compressed
-  bool Compress;
+    // Whether the destination file is compressed
+    bool Compress;
 
-  // Whether the destination file is compressed
-  bool CompressExtraExtension;
+    // Whether the destination file is compressed
+    bool CompressExtraExtension;
 };
 
 /** \class cmGeneratedFileStream
@@ -68,75 +68,75 @@ protected:
  * being updated.
  */
 class cmGeneratedFileStream
-  : private cmGeneratedFileStreamBase
-  , public cmsys::ofstream
+: private cmGeneratedFileStreamBase
+, public cmsys::ofstream
 {
 public:
-  typedef cmsys::ofstream Stream;
-  typedef codecvt::Encoding Encoding;
+    typedef cmsys::ofstream   Stream;
+    typedef codecvt::Encoding Encoding;
 
-  /**
-   * This constructor prepares a default stream.  The open method must
-   * be used before writing to the stream.
-   */
-  cmGeneratedFileStream(Encoding encoding = codecvt::None);
+    /**
+     * This constructor prepares a default stream.  The open method must
+     * be used before writing to the stream.
+     */
+    cmGeneratedFileStream(Encoding encoding = codecvt::None);
 
-  /**
-   * This constructor takes the name of the file to be generated.  It
-   * automatically generates a name for the temporary file.  If the
-   * file cannot be opened an error message is produced unless the
-   * second argument is set to true.
-   */
-  cmGeneratedFileStream(std::string const& name, bool quiet = false,
-                        Encoding encoding = codecvt::None);
+    /**
+     * This constructor takes the name of the file to be generated.  It
+     * automatically generates a name for the temporary file.  If the
+     * file cannot be opened an error message is produced unless the
+     * second argument is set to true.
+     */
+    cmGeneratedFileStream(std::string const& name, bool quiet = false,
+                          Encoding encoding = codecvt::None);
 
-  /**
-   * The destructor checks the stream status to be sure the temporary
-   * file was successfully written before allowing the original to be
-   * replaced.
-   */
-  ~cmGeneratedFileStream() override;
+    /**
+     * The destructor checks the stream status to be sure the temporary
+     * file was successfully written before allowing the original to be
+     * replaced.
+     */
+    ~cmGeneratedFileStream() override;
 
-  /**
-   * Open an output file by name.  This should be used only with a
-   * non-open stream.  It automatically generates a name for the
-   * temporary file.  If the file cannot be opened an error message is
-   * produced unless the second argument is set to true.
-   */
-  cmGeneratedFileStream& Open(std::string const& name, bool quiet = false,
-                              bool binaryFlag = false);
+    /**
+     * Open an output file by name.  This should be used only with a
+     * non-open stream.  It automatically generates a name for the
+     * temporary file.  If the file cannot be opened an error message is
+     * produced unless the second argument is set to true.
+     */
+    cmGeneratedFileStream& Open(std::string const& name, bool quiet = false,
+                                bool binaryFlag = false);
 
-  /**
-   * Close the output file.  This should be used only with an open
-   * stream.  The temporary file is atomically renamed to the
-   * destination file if the stream is still valid when this method
-   * is called.
-   */
-  bool Close();
+    /**
+     * Close the output file.  This should be used only with an open
+     * stream.  The temporary file is atomically renamed to the
+     * destination file if the stream is still valid when this method
+     * is called.
+     */
+    bool Close();
 
-  /**
-   * Set whether copy-if-different is done.
-   */
-  void SetCopyIfDifferent(bool copy_if_different);
+    /**
+     * Set whether copy-if-different is done.
+     */
+    void SetCopyIfDifferent(bool copy_if_different);
 
-  /**
-   * Set whether compression is done.
-   */
-  void SetCompression(bool compression);
+    /**
+     * Set whether compression is done.
+     */
+    void SetCompression(bool compression);
 
-  /**
-   * Set whether compression has extra extension
-   */
-  void SetCompressionExtraExtension(bool ext);
+    /**
+     * Set whether compression has extra extension
+     */
+    void SetCompressionExtraExtension(bool ext);
 
-  /**
-   * Set name of the file that will hold the actual output. This method allows
-   * the output file to be changed during the use of cmGeneratedFileStream.
-   */
-  void SetName(const std::string& fname);
+    /**
+     * Set name of the file that will hold the actual output. This method allows
+     * the output file to be changed during the use of cmGeneratedFileStream.
+     */
+    void SetName(const std::string& fname);
 
 private:
-  cmGeneratedFileStream(cmGeneratedFileStream const&); // not implemented
+    cmGeneratedFileStream(cmGeneratedFileStream const&);  // not implemented
 };
 
 #endif

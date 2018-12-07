@@ -3,7 +3,7 @@
 #ifndef cmDefinitions_h
 #define cmDefinitions_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <unordered_map>
@@ -20,61 +20,58 @@
  */
 class cmDefinitions
 {
-  typedef cmLinkedTree<cmDefinitions>::iterator StackIter;
+    typedef cmLinkedTree<cmDefinitions>::iterator StackIter;
 
 public:
-  static const std::string* Get(const std::string& key, StackIter begin,
-                                StackIter end);
+    static const std::string* Get(const std::string& key, StackIter begin,
+                                  StackIter end);
 
-  static void Raise(const std::string& key, StackIter begin, StackIter end);
+    static void Raise(const std::string& key, StackIter begin, StackIter end);
 
-  static bool HasKey(const std::string& key, StackIter begin, StackIter end);
+    static bool HasKey(const std::string& key, StackIter begin, StackIter end);
 
-  /** Set (or unset if null) a value associated with a key.  */
-  void Set(const std::string& key, const char* value);
+    /** Set (or unset if null) a value associated with a key.  */
+    void Set(const std::string& key, const char* value);
 
-  std::vector<std::string> UnusedKeys() const;
+    std::vector<std::string> UnusedKeys() const;
 
-  static std::vector<std::string> ClosureKeys(StackIter begin, StackIter end);
+    static std::vector<std::string> ClosureKeys(StackIter begin, StackIter end);
 
-  static cmDefinitions MakeClosure(StackIter begin, StackIter end);
+    static cmDefinitions MakeClosure(StackIter begin, StackIter end);
 
 private:
-  // String with existence boolean.
-  struct Def : public std::string
-  {
-  private:
-    typedef std::string std_string;
-
-  public:
-    Def()
-      : std_string()
-      , Exists(false)
-      , Used(false)
+    // String with existence boolean.
+    struct Def : public std::string
     {
-    }
-    Def(const char* v)
-      : std_string(v ? v : "")
-      , Exists(v ? true : false)
-      , Used(false)
-    {
-    }
-    Def(const std_string& v)
-      : std_string(v)
-      , Exists(true)
-      , Used(false)
-    {
-    }
-    bool Exists;
-    bool Used;
-  };
-  static Def NoDef;
+    private:
+        typedef std::string std_string;
 
-  typedef std::unordered_map<std::string, Def> MapType;
-  MapType Map;
+    public:
+        Def()
+        : std_string()
+        , Exists(false)
+        , Used(false)
+        {}
+        Def(const char* v)
+        : std_string(v ? v : "")
+        , Exists(v ? true : false)
+        , Used(false)
+        {}
+        Def(const std_string& v)
+        : std_string(v)
+        , Exists(true)
+        , Used(false)
+        {}
+        bool Exists;
+        bool Used;
+    };
+    static Def NoDef;
 
-  static Def const& GetInternal(const std::string& key, StackIter begin,
-                                StackIter end, bool raise);
+    typedef std::unordered_map<std::string, Def> MapType;
+    MapType                                      Map;
+
+    static Def const& GetInternal(const std::string& key, StackIter begin,
+                                  StackIter end, bool raise);
 };
 
 #endif

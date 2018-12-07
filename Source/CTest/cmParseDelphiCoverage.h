@@ -3,7 +3,7 @@
 #ifndef cmParseDelphiCoverage_h
 #define cmParseDelphiCoverage_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <vector>
@@ -23,16 +23,17 @@ class cmCTestCoverageHandlerContainer;
 class cmParseDelphiCoverage
 {
 public:
-  cmParseDelphiCoverage(cmCTestCoverageHandlerContainer& cont, cmCTest* ctest);
-  bool LoadCoverageData(std::vector<std::string> const& files);
-  bool ReadDelphiHTML(const char* file);
-  // Read a single HTML file from output
-  bool ReadHTMLFile(const char* f);
+    cmParseDelphiCoverage(cmCTestCoverageHandlerContainer& cont,
+                          cmCTest*                         ctest);
+    bool LoadCoverageData(std::vector<std::string> const& files);
+    bool ReadDelphiHTML(const char* file);
+    // Read a single HTML file from output
+    bool ReadHTMLFile(const char* f);
 
 protected:
-  class HTMLParser;
+    class HTMLParser;
 
-  cmCTestCoverageHandlerContainer& Coverage;
-  cmCTest* CTest;
+    cmCTestCoverageHandlerContainer& Coverage;
+    cmCTest*                         CTest;
 };
 #endif

@@ -7,121 +7,133 @@
 #include "cmSystemTools.h"
 
 cmWIXAccessControlList::cmWIXAccessControlList(
-  cmCPackLog* logger, cmInstalledFile const& installedFile,
-  cmWIXSourceWriter& sourceWriter)
-  : Logger(logger)
-  , InstalledFile(installedFile)
-  , SourceWriter(sourceWriter)
+    cmCPackLog* logger, cmInstalledFile const& installedFile,
+    cmWIXSourceWriter& sourceWriter)
+: Logger(logger)
+, InstalledFile(installedFile)
+, SourceWriter(sourceWriter)
+{}
+
+bool
+cmWIXAccessControlList::Apply()
 {
+    std::vector<std::string> entries;
+    this->InstalledFile.GetPropertyAsList("CPACK_WIX_ACL", entries);
+
+    for(std::string const& entry : entries)
+    {
+        this->CreatePermissionElement(entry);
+    }
+
+    return true;
 }
 
-bool cmWIXAccessControlList::Apply()
+void
+cmWIXAccessControlList::CreatePermissionElement(std::string const& entry)
 {
-  std::vector<std::string> entries;
-  this->InstalledFile.GetPropertyAsList("CPACK_WIX_ACL", entries);
+    std::string::size_type pos = entry.find('=');
+    if(pos == std::string::npos)
+    {
+        this->ReportError(entry, "Did not find mandatory '='");
+        return;
+    }
 
-  for (std::string const& entry : entries) {
-    this->CreatePermissionElement(entry);
-  }
+    std::string user_and_domain   = entry.substr(0, pos);
+    std::string permission_string = entry.substr(pos + 1);
 
-  return true;
+    pos = user_and_domain.find('@');
+    std::string user;
+    std::string domain;
+    if(pos != std::string::npos)
+    {
+        user   = user_and_domain.substr(0, pos);
+        domain = user_and_domain.substr(pos + 1);
+    } else
+    {
+        user = user_and_domain;
+    }
+
+    std::vector<std::string> permissions =
+        cmSystemTools::tokenize(permission_string, ",");
+
+    this->SourceWriter.BeginElement("Permission");
+    this->SourceWriter.AddAttribute("User", user);
+    if(!domain.empty())
+    {
+        this->SourceWriter.AddAttribute("Domain", domain);
+    }
+    for(std::string const& permission : permissions)
+    {
+        this->EmitBooleanAttribute(entry,
+                                   cmSystemTools::TrimWhitespace(permission));
+    }
+    this->SourceWriter.EndElement("Permission");
 }
 
-void cmWIXAccessControlList::CreatePermissionElement(std::string const& entry)
+void
+cmWIXAccessControlList::ReportError(std::string const& entry,
+                                    std::string const& message)
 {
-  std::string::size_type pos = entry.find('=');
-  if (pos == std::string::npos) {
-    this->ReportError(entry, "Did not find mandatory '='");
-    return;
-  }
-
-  std::string user_and_domain = entry.substr(0, pos);
-  std::string permission_string = entry.substr(pos + 1);
-
-  pos = user_and_domain.find('@');
-  std::string user;
-  std::string domain;
-  if (pos != std::string::npos) {
-    user = user_and_domain.substr(0, pos);
-    domain = user_and_domain.substr(pos + 1);
-  } else {
-    user = user_and_domain;
-  }
-
-  std::vector<std::string> permissions =
-    cmSystemTools::tokenize(permission_string, ",");
-
-  this->SourceWriter.BeginElement("Permission");
-  this->SourceWriter.AddAttribute("User", user);
-  if (!domain.empty()) {
-    this->SourceWriter.AddAttribute("Domain", domain);
-  }
-  for (std::string const& permission : permissions) {
-    this->EmitBooleanAttribute(entry,
-                               cmSystemTools::TrimWhitespace(permission));
-  }
-  this->SourceWriter.EndElement("Permission");
+    cmCPackLogger(cmCPackLog::LOG_ERROR, "Failed processing ACL entry '"
+                                             << entry << "': " << message
+                                             << std::endl);
 }
 
-void cmWIXAccessControlList::ReportError(std::string const& entry,
-                                         std::string const& message)
+bool
+cmWIXAccessControlList::IsBooleanAttribute(std::string const& name)
 {
-  cmCPackLogger(cmCPackLog::LOG_ERROR,
-                "Failed processing ACL entry '" << entry << "': " << message
-                                                << std::endl);
+    static const char* validAttributes[] = {
+        /* clang-format needs this comment to break after the opening brace */
+        "Append",
+        "ChangePermission",
+        "CreateChild",
+        "CreateFile",
+        "CreateLink",
+        "CreateSubkeys",
+        "Delete",
+        "DeleteChild",
+        "EnumerateSubkeys",
+        "Execute",
+        "FileAllRights",
+        "GenericAll",
+        "GenericExecute",
+        "GenericRead",
+        "GenericWrite",
+        "Notify",
+        "Read",
+        "ReadAttributes",
+        "ReadExtendedAttributes",
+        "ReadPermission",
+        "SpecificRightsAll",
+        "Synchronize",
+        "TakeOwnership",
+        "Traverse",
+        "Write",
+        "WriteAttributes",
+        "WriteExtendedAttributes",
+        0
+    };
+
+    size_t i = 0;
+    while(validAttributes[i])
+    {
+        if(name == validAttributes[i++])
+            return true;
+    }
+
+    return false;
 }
 
-bool cmWIXAccessControlList::IsBooleanAttribute(std::string const& name)
+void
+cmWIXAccessControlList::EmitBooleanAttribute(std::string const& entry,
+                                             std::string const& name)
 {
-  static const char* validAttributes[] = {
-    /* clang-format needs this comment to break after the opening brace */
-    "Append",
-    "ChangePermission",
-    "CreateChild",
-    "CreateFile",
-    "CreateLink",
-    "CreateSubkeys",
-    "Delete",
-    "DeleteChild",
-    "EnumerateSubkeys",
-    "Execute",
-    "FileAllRights",
-    "GenericAll",
-    "GenericExecute",
-    "GenericRead",
-    "GenericWrite",
-    "Notify",
-    "Read",
-    "ReadAttributes",
-    "ReadExtendedAttributes",
-    "ReadPermission",
-    "SpecificRightsAll",
-    "Synchronize",
-    "TakeOwnership",
-    "Traverse",
-    "Write",
-    "WriteAttributes",
-    "WriteExtendedAttributes",
-    0
-  };
+    if(!this->IsBooleanAttribute(name))
+    {
+        std::ostringstream message;
+        message << "Unknown boolean attribute '" << name << "'";
+        this->ReportError(entry, message.str());
+    }
 
-  size_t i = 0;
-  while (validAttributes[i]) {
-    if (name == validAttributes[i++])
-      return true;
-  }
-
-  return false;
-}
-
-void cmWIXAccessControlList::EmitBooleanAttribute(std::string const& entry,
-                                                  std::string const& name)
-{
-  if (!this->IsBooleanAttribute(name)) {
-    std::ostringstream message;
-    message << "Unknown boolean attribute '" << name << "'";
-    this->ReportError(entry, message.str());
-  }
-
-  this->SourceWriter.AddAttribute(name, "yes");
+    this->SourceWriter.AddAttribute(name, "yes");
 }

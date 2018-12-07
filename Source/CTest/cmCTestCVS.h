@@ -3,7 +3,7 @@
 #ifndef cmCTestCVS_h
 #define cmCTestCVS_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCTestVC.h"
 
@@ -22,34 +22,33 @@ class cmXMLWriter;
 class cmCTestCVS : public cmCTestVC
 {
 public:
-  /** Construct with a CTest instance and update log stream.  */
-  cmCTestCVS(cmCTest* ctest, std::ostream& log);
+    /** Construct with a CTest instance and update log stream.  */
+    cmCTestCVS(cmCTest* ctest, std::ostream& log);
 
-  ~cmCTestCVS() override;
+    ~cmCTestCVS() override;
 
 private:
-  // Implement cmCTestVC internal API.
-  bool UpdateImpl() override;
-  bool WriteXMLUpdates(cmXMLWriter& xml) override;
+    // Implement cmCTestVC internal API.
+    bool UpdateImpl() override;
+    bool WriteXMLUpdates(cmXMLWriter& xml) override;
 
-  // Update status for files in each directory.
-  class Directory : public std::map<std::string, PathStatus>
-  {
-  };
-  std::map<std::string, Directory> Dirs;
+    // Update status for files in each directory.
+    class Directory : public std::map<std::string, PathStatus>
+    {};
+    std::map<std::string, Directory> Dirs;
 
-  std::string ComputeBranchFlag(std::string const& dir);
-  void LoadRevisions(std::string const& file, const char* branchFlag,
-                     std::vector<Revision>& revisions);
-  void WriteXMLDirectory(cmXMLWriter& xml, std::string const& path,
-                         Directory const& dir);
+    std::string ComputeBranchFlag(std::string const& dir);
+    void        LoadRevisions(std::string const& file, const char* branchFlag,
+                              std::vector<Revision>& revisions);
+    void        WriteXMLDirectory(cmXMLWriter& xml, std::string const& path,
+                                  Directory const& dir);
 
-  // Parsing helper classes.
-  class LogParser;
-  class UpdateParser;
+    // Parsing helper classes.
+    class LogParser;
+    class UpdateParser;
 
-  friend class LogParser;
-  friend class UpdateParser;
+    friend class LogParser;
+    friend class UpdateParser;
 };
 
 #endif

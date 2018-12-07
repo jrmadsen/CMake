@@ -8,20 +8,23 @@
 
 class cmExecutionStatus;
 
-bool cmCTestEmptyBinaryDirectoryCommand::InitialPass(
-  std::vector<std::string> const& args, cmExecutionStatus& /*unused*/)
+bool
+cmCTestEmptyBinaryDirectoryCommand::InitialPass(
+    std::vector<std::string> const& args, cmExecutionStatus& /*unused*/)
 {
-  if (args.size() != 1) {
-    this->SetError("called with incorrect number of arguments");
-    return false;
-  }
+    if(args.size() != 1)
+    {
+        this->SetError("called with incorrect number of arguments");
+        return false;
+    }
 
-  if (!cmCTestScriptHandler::EmptyBinaryDirectory(args[0].c_str())) {
-    std::ostringstream ostr;
-    ostr << "problem removing the binary directory: " << args[0];
-    this->SetError(ostr.str());
-    return false;
-  }
+    if(!cmCTestScriptHandler::EmptyBinaryDirectory(args[0].c_str()))
+    {
+        std::ostringstream ostr;
+        ostr << "problem removing the binary directory: " << args[0];
+        this->SetError(ostr.str());
+        return false;
+    }
 
-  return true;
+    return true;
 }

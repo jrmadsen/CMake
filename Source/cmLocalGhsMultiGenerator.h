@@ -16,14 +16,14 @@ class cmGeneratedFileStream;
 class cmLocalGhsMultiGenerator : public cmLocalGenerator
 {
 public:
-  cmLocalGhsMultiGenerator(cmGlobalGenerator* gg, cmMakefile* mf);
+    cmLocalGhsMultiGenerator(cmGlobalGenerator* gg, cmMakefile* mf);
 
-  virtual ~cmLocalGhsMultiGenerator();
+    virtual ~cmLocalGhsMultiGenerator();
 
-  /**
-   * Generate the makefile for this directory.
-   */
-  virtual void Generate();
+    /**
+     * Generate the makefile for this directory.
+     */
+    virtual void Generate();
 };
 
 #endif

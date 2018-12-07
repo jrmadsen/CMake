@@ -3,7 +3,7 @@
 #ifndef cmSearchPath_h
 #define cmSearchPath_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <set>
 #include <string>
@@ -20,33 +20,33 @@ class cmFindCommon;
 class cmSearchPath
 {
 public:
-  // cmSearchPath must be initialized from a valid pointer.  The only reason
-  // for the default is to allow it to be easily used in stl containers.
-  // Attempting to initialize with a NULL value will fail an assertion
-  cmSearchPath(cmFindCommon* findCmd = nullptr);
-  ~cmSearchPath();
+    // cmSearchPath must be initialized from a valid pointer.  The only reason
+    // for the default is to allow it to be easily used in stl containers.
+    // Attempting to initialize with a NULL value will fail an assertion
+    cmSearchPath(cmFindCommon* findCmd = nullptr);
+    ~cmSearchPath();
 
-  const std::vector<std::string>& GetPaths() const { return this->Paths; }
+    const std::vector<std::string>& GetPaths() const { return this->Paths; }
 
-  void ExtractWithout(const std::set<std::string>& ignore,
-                      std::vector<std::string>& outPaths,
-                      bool clear = false) const;
+    void ExtractWithout(const std::set<std::string>& ignore,
+                        std::vector<std::string>&    outPaths,
+                        bool                         clear = false) const;
 
-  void AddPath(const std::string& path);
-  void AddUserPath(const std::string& path);
-  void AddCMakePath(const std::string& variable);
-  void AddEnvPath(const std::string& variable);
-  void AddCMakePrefixPath(const std::string& variable);
-  void AddEnvPrefixPath(const std::string& variable, bool stripBin = false);
-  void AddSuffixes(const std::vector<std::string>& suffixes);
-  void AddPrefixPaths(const std::vector<std::string>& paths,
-                      const char* base = nullptr);
+    void AddPath(const std::string& path);
+    void AddUserPath(const std::string& path);
+    void AddCMakePath(const std::string& variable);
+    void AddEnvPath(const std::string& variable);
+    void AddCMakePrefixPath(const std::string& variable);
+    void AddEnvPrefixPath(const std::string& variable, bool stripBin = false);
+    void AddSuffixes(const std::vector<std::string>& suffixes);
+    void AddPrefixPaths(const std::vector<std::string>& paths,
+                        const char*                     base = nullptr);
 
 protected:
-  void AddPathInternal(const std::string& path, const char* base = nullptr);
+    void AddPathInternal(const std::string& path, const char* base = nullptr);
 
-  cmFindCommon* FC;
-  std::vector<std::string> Paths;
+    cmFindCommon*            FC;
+    std::vector<std::string> Paths;
 };
 
 #endif

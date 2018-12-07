@@ -9,100 +9,115 @@
 #include "cmSystemTools.h"
 #include "cmake.h"
 
-namespace {
-
+namespace
+{
 enum IncludeGuardScope
 {
-  VARIABLE,
-  DIRECTORY,
-  GLOBAL
+    VARIABLE,
+    DIRECTORY,
+    GLOBAL
 };
 
-std::string GetIncludeGuardVariableName(std::string const& filePath)
+std::string
+GetIncludeGuardVariableName(std::string const& filePath)
 {
-  std::string result = "__INCGUARD_";
+    std::string result = "__INCGUARD_";
 #ifdef CMAKE_BUILD_WITH_CMAKE
-  result += cmSystemTools::ComputeStringMD5(filePath);
+    result += cmSystemTools::ComputeStringMD5(filePath);
 #else
-  result += cmSystemTools::MakeCidentifier(filePath);
+    result += cmSystemTools::MakeCidentifier(filePath);
 #endif
-  result += "__";
-  return result;
+    result += "__";
+    return result;
 }
 
-bool CheckIncludeGuardIsSet(cmMakefile* mf, std::string const& includeGuardVar)
+bool
+CheckIncludeGuardIsSet(cmMakefile* mf, std::string const& includeGuardVar)
 {
-  if (mf->GetProperty(includeGuardVar)) {
-    return true;
-  }
-  cmStateSnapshot dirSnapshot =
-    mf->GetStateSnapshot().GetBuildsystemDirectoryParent();
-  while (dirSnapshot.GetState()) {
-    cmStateDirectory stateDir = dirSnapshot.GetDirectory();
-    if (stateDir.GetProperty(includeGuardVar)) {
-      return true;
+    if(mf->GetProperty(includeGuardVar))
+    {
+        return true;
     }
-    dirSnapshot = dirSnapshot.GetBuildsystemDirectoryParent();
-  }
-  return false;
+    cmStateSnapshot dirSnapshot =
+        mf->GetStateSnapshot().GetBuildsystemDirectoryParent();
+    while(dirSnapshot.GetState())
+    {
+        cmStateDirectory stateDir = dirSnapshot.GetDirectory();
+        if(stateDir.GetProperty(includeGuardVar))
+        {
+            return true;
+        }
+        dirSnapshot = dirSnapshot.GetBuildsystemDirectoryParent();
+    }
+    return false;
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
 // cmIncludeGuardCommand
-bool cmIncludeGuardCommand::InitialPass(std::vector<std::string> const& args,
-                                        cmExecutionStatus& status)
+bool
+cmIncludeGuardCommand::InitialPass(std::vector<std::string> const& args,
+                                   cmExecutionStatus&              status)
 {
-  if (args.size() > 1) {
-    this->SetError(
-      "given an invalid number of arguments. The command takes at "
-      "most 1 argument.");
-    return false;
-  }
-
-  IncludeGuardScope scope = VARIABLE;
-
-  if (!args.empty()) {
-    std::string const& arg = args[0];
-    if (arg == "DIRECTORY") {
-      scope = DIRECTORY;
-    } else if (arg == "GLOBAL") {
-      scope = GLOBAL;
-    } else {
-      this->SetError("given an invalid scope: " + arg);
-      return false;
+    if(args.size() > 1)
+    {
+        this->SetError(
+            "given an invalid number of arguments. The command takes at "
+            "most 1 argument.");
+        return false;
     }
-  }
 
-  std::string includeGuardVar = GetIncludeGuardVariableName(
-    this->Makefile->GetDefinition("CMAKE_CURRENT_LIST_FILE"));
+    IncludeGuardScope scope = VARIABLE;
 
-  cmMakefile* const mf = this->Makefile;
+    if(!args.empty())
+    {
+        std::string const& arg = args[0];
+        if(arg == "DIRECTORY")
+        {
+            scope = DIRECTORY;
+        } else if(arg == "GLOBAL")
+        {
+            scope = GLOBAL;
+        } else
+        {
+            this->SetError("given an invalid scope: " + arg);
+            return false;
+        }
+    }
 
-  switch (scope) {
-    case VARIABLE:
-      if (mf->IsDefinitionSet(includeGuardVar)) {
-        status.SetReturnInvoked();
-        return true;
-      }
-      mf->AddDefinition(includeGuardVar, true);
-      break;
-    case DIRECTORY:
-      if (CheckIncludeGuardIsSet(mf, includeGuardVar)) {
-        status.SetReturnInvoked();
-        return true;
-      }
-      mf->SetProperty(includeGuardVar, "TRUE");
-      break;
-    case GLOBAL:
-      cmake* const cm = mf->GetCMakeInstance();
-      if (cm->GetProperty(includeGuardVar)) {
-        status.SetReturnInvoked();
-        return true;
-      }
-      cm->SetProperty(includeGuardVar, "TRUE");
-      break;
-  }
+    std::string includeGuardVar = GetIncludeGuardVariableName(
+        this->Makefile->GetDefinition("CMAKE_CURRENT_LIST_FILE"));
 
-  return true;
+    cmMakefile* const mf = this->Makefile;
+
+    switch(scope)
+    {
+        case VARIABLE:
+            if(mf->IsDefinitionSet(includeGuardVar))
+            {
+                status.SetReturnInvoked();
+                return true;
+            }
+            mf->AddDefinition(includeGuardVar, true);
+            break;
+        case DIRECTORY:
+            if(CheckIncludeGuardIsSet(mf, includeGuardVar))
+            {
+                status.SetReturnInvoked();
+                return true;
+            }
+            mf->SetProperty(includeGuardVar, "TRUE");
+            break;
+        case GLOBAL:
+            cmake* const cm = mf->GetCMakeInstance();
+            if(cm->GetProperty(includeGuardVar))
+            {
+                status.SetReturnInvoked();
+                return true;
+            }
+            cm->SetProperty(includeGuardVar, "TRUE");
+            break;
+    }
+
+    return true;
 }

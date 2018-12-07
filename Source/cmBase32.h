@@ -3,7 +3,7 @@
 #ifndef cmBase32_h
 #define cmBase32_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <stddef.h>
 #include <string>
@@ -16,18 +16,18 @@
 class cmBase32Encoder
 {
 public:
-  static const char paddingChar = '=';
+    static const char paddingChar = '=';
 
 public:
-  cmBase32Encoder();
-  ~cmBase32Encoder();
+    cmBase32Encoder();
+    ~cmBase32Encoder();
 
-  // Encodes the given input byte sequence into a string
-  // @arg input Input data pointer
-  // @arg len Input data size
-  // @arg padding Flag to append "=" on demand
-  std::string encodeString(const unsigned char* input, size_t len,
-                           bool padding = true);
+    // Encodes the given input byte sequence into a string
+    // @arg input Input data pointer
+    // @arg len Input data size
+    // @arg padding Flag to append "=" on demand
+    std::string encodeString(const unsigned char* input, size_t len,
+                             bool padding = true);
 };
 
 #endif

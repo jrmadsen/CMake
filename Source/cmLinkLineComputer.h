@@ -4,7 +4,7 @@
 #ifndef cmLinkLineComputer_h
 #define cmLinkLineComputer_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 
@@ -16,45 +16,45 @@ class cmOutputConverter;
 
 class cmLinkLineComputer
 {
-  CM_DISABLE_COPY(cmLinkLineComputer)
+    CM_DISABLE_COPY(cmLinkLineComputer)
 
 public:
-  cmLinkLineComputer(cmOutputConverter* outputConverter,
-                     cmStateDirectory const& stateDir);
-  virtual ~cmLinkLineComputer();
+    cmLinkLineComputer(cmOutputConverter*      outputConverter,
+                       cmStateDirectory const& stateDir);
+    virtual ~cmLinkLineComputer();
 
-  void SetUseWatcomQuote(bool useWatcomQuote);
-  void SetForResponse(bool forResponse);
-  void SetRelink(bool relink);
+    void SetUseWatcomQuote(bool useWatcomQuote);
+    void SetForResponse(bool forResponse);
+    void SetRelink(bool relink);
 
-  virtual std::string ConvertToLinkReference(std::string const& input) const;
+    virtual std::string ConvertToLinkReference(std::string const& input) const;
 
-  std::string ComputeLinkPath(cmComputeLinkInformation& cli,
-                              std::string const& libPathFlag,
-                              std::string const& libPathTerminator);
+    std::string ComputeLinkPath(cmComputeLinkInformation& cli,
+                                std::string const&        libPathFlag,
+                                std::string const&        libPathTerminator);
 
-  std::string ComputeFrameworkPath(cmComputeLinkInformation& cli,
-                                   std::string const& fwSearchFlag);
+    std::string ComputeFrameworkPath(cmComputeLinkInformation& cli,
+                                     std::string const&        fwSearchFlag);
 
-  virtual std::string ComputeLinkLibraries(cmComputeLinkInformation& cli,
-                                           std::string const& stdLibString);
+    virtual std::string ComputeLinkLibraries(cmComputeLinkInformation& cli,
+                                             std::string const& stdLibString);
 
-  virtual std::string GetLinkerLanguage(cmGeneratorTarget* target,
-                                        std::string const& config);
+    virtual std::string GetLinkerLanguage(cmGeneratorTarget* target,
+                                          std::string const& config);
 
 protected:
-  std::string ComputeLinkLibs(cmComputeLinkInformation& cli);
-  std::string ComputeRPath(cmComputeLinkInformation& cli);
+    std::string ComputeLinkLibs(cmComputeLinkInformation& cli);
+    std::string ComputeRPath(cmComputeLinkInformation& cli);
 
-  std::string ConvertToOutputFormat(std::string const& input);
-  std::string ConvertToOutputForExisting(std::string const& input);
+    std::string ConvertToOutputFormat(std::string const& input);
+    std::string ConvertToOutputForExisting(std::string const& input);
 
-  cmStateDirectory StateDir;
-  cmOutputConverter* OutputConverter;
+    cmStateDirectory   StateDir;
+    cmOutputConverter* OutputConverter;
 
-  bool ForResponse;
-  bool UseWatcomQuote;
-  bool Relink;
+    bool ForResponse;
+    bool UseWatcomQuote;
+    bool Relink;
 };
 
 #endif

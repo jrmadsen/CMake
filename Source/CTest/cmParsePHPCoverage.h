@@ -3,7 +3,7 @@
 #ifndef cmParsePHPCoverage_h
 #define cmParsePHPCoverage_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <iosfwd>
 #include <string>
@@ -21,19 +21,19 @@ class cmCTestCoverageHandlerContainer;
 class cmParsePHPCoverage
 {
 public:
-  cmParsePHPCoverage(cmCTestCoverageHandlerContainer& cont, cmCTest* ctest);
-  bool ReadPHPCoverageDirectory(const char* dir);
-  void PrintCoverage();
+    cmParsePHPCoverage(cmCTestCoverageHandlerContainer& cont, cmCTest* ctest);
+    bool ReadPHPCoverageDirectory(const char* dir);
+    void PrintCoverage();
 
 private:
-  bool ReadPHPData(const char* file);
-  bool ReadArraySize(std::istream& in, int& size);
-  bool ReadFileInformation(std::istream& in);
-  bool ReadInt(std::istream& in, int& v);
-  bool ReadCoverageArray(std::istream& in, std::string const&);
-  bool ReadUntil(std::istream& in, char until);
-  cmCTestCoverageHandlerContainer& Coverage;
-  cmCTest* CTest;
+    bool ReadPHPData(const char* file);
+    bool ReadArraySize(std::istream& in, int& size);
+    bool ReadFileInformation(std::istream& in);
+    bool ReadInt(std::istream& in, int& v);
+    bool ReadCoverageArray(std::istream& in, std::string const&);
+    bool ReadUntil(std::istream& in, char until);
+    cmCTestCoverageHandlerContainer& Coverage;
+    cmCTest*                         CTest;
 };
 
 #endif

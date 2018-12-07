@@ -6,15 +6,18 @@
 
 class cmExecutionStatus;
 
-bool cmAddLinkOptionsCommand::InitialPass(std::vector<std::string> const& args,
-                                          cmExecutionStatus&)
+bool
+cmAddLinkOptionsCommand::InitialPass(std::vector<std::string> const& args,
+                                     cmExecutionStatus&)
 {
-  if (args.empty()) {
-    return true;
-  }
+    if(args.empty())
+    {
+        return true;
+    }
 
-  for (std::string const& i : args) {
-    this->Makefile->AddLinkOption(i);
-  }
-  return true;
+    for(std::string const& i : args)
+    {
+        this->Makefile->AddLinkOption(i);
+    }
+    return true;
 }

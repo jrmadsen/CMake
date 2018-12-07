@@ -9,90 +9,100 @@
 class cmDynamicLoaderCache
 {
 public:
-  ~cmDynamicLoaderCache();
-  void CacheFile(const char* path, cmsys::DynamicLoader::LibraryHandle /*p*/);
-  bool GetCacheFile(const char* path,
-                    cmsys::DynamicLoader::LibraryHandle& /*p*/);
-  bool FlushCache(const char* path);
-  void FlushCache();
-  static cmDynamicLoaderCache* GetInstance();
+    ~cmDynamicLoaderCache();
+    void CacheFile(const char* path, cmsys::DynamicLoader::LibraryHandle /*p*/);
+    bool GetCacheFile(const char* path,
+                      cmsys::DynamicLoader::LibraryHandle& /*p*/);
+    bool FlushCache(const char* path);
+    void FlushCache();
+    static cmDynamicLoaderCache* GetInstance();
 
 private:
-  std::map<std::string, cmsys::DynamicLoader::LibraryHandle> CacheMap;
-  static cmDynamicLoaderCache* Instance;
+    std::map<std::string, cmsys::DynamicLoader::LibraryHandle> CacheMap;
+    static cmDynamicLoaderCache*                               Instance;
 };
 
 cmDynamicLoaderCache* cmDynamicLoaderCache::Instance = nullptr;
 
-cmDynamicLoaderCache::~cmDynamicLoaderCache()
+cmDynamicLoaderCache::~cmDynamicLoaderCache() {}
+
+void
+cmDynamicLoaderCache::CacheFile(const char*                         path,
+                                cmsys::DynamicLoader::LibraryHandle p)
 {
+    cmsys::DynamicLoader::LibraryHandle h;
+    if(this->GetCacheFile(path, h))
+    {
+        this->FlushCache(path);
+    }
+    this->CacheMap[path] = p;
 }
 
-void cmDynamicLoaderCache::CacheFile(const char* path,
-                                     cmsys::DynamicLoader::LibraryHandle p)
+bool
+cmDynamicLoaderCache::GetCacheFile(const char*                          path,
+                                   cmsys::DynamicLoader::LibraryHandle& p)
 {
-  cmsys::DynamicLoader::LibraryHandle h;
-  if (this->GetCacheFile(path, h)) {
-    this->FlushCache(path);
-  }
-  this->CacheMap[path] = p;
+    std::map<std::string, cmsys::DynamicLoader::LibraryHandle>::iterator it =
+        this->CacheMap.find(path);
+    if(it != this->CacheMap.end())
+    {
+        p = it->second;
+        return true;
+    }
+    return false;
 }
 
-bool cmDynamicLoaderCache::GetCacheFile(const char* path,
-                                        cmsys::DynamicLoader::LibraryHandle& p)
+bool
+cmDynamicLoaderCache::FlushCache(const char* path)
 {
-  std::map<std::string, cmsys::DynamicLoader::LibraryHandle>::iterator it =
-    this->CacheMap.find(path);
-  if (it != this->CacheMap.end()) {
-    p = it->second;
-    return true;
-  }
-  return false;
+    std::map<std::string, cmsys::DynamicLoader::LibraryHandle>::iterator it =
+        this->CacheMap.find(path);
+    bool ret = false;
+    if(it != this->CacheMap.end())
+    {
+        cmsys::DynamicLoader::CloseLibrary(it->second);
+        this->CacheMap.erase(it);
+        ret = true;
+    }
+    return ret;
 }
 
-bool cmDynamicLoaderCache::FlushCache(const char* path)
+void
+cmDynamicLoaderCache::FlushCache()
 {
-  std::map<std::string, cmsys::DynamicLoader::LibraryHandle>::iterator it =
-    this->CacheMap.find(path);
-  bool ret = false;
-  if (it != this->CacheMap.end()) {
-    cmsys::DynamicLoader::CloseLibrary(it->second);
-    this->CacheMap.erase(it);
-    ret = true;
-  }
-  return ret;
+    for(auto const& it : this->CacheMap)
+    {
+        cmsys::DynamicLoader::CloseLibrary(it.second);
+    }
+    delete cmDynamicLoaderCache::Instance;
+    cmDynamicLoaderCache::Instance = nullptr;
 }
 
-void cmDynamicLoaderCache::FlushCache()
+cmDynamicLoaderCache*
+cmDynamicLoaderCache::GetInstance()
 {
-  for (auto const& it : this->CacheMap) {
-    cmsys::DynamicLoader::CloseLibrary(it.second);
-  }
-  delete cmDynamicLoaderCache::Instance;
-  cmDynamicLoaderCache::Instance = nullptr;
+    if(!cmDynamicLoaderCache::Instance)
+    {
+        cmDynamicLoaderCache::Instance = new cmDynamicLoaderCache;
+    }
+    return cmDynamicLoaderCache::Instance;
 }
 
-cmDynamicLoaderCache* cmDynamicLoaderCache::GetInstance()
+cmsys::DynamicLoader::LibraryHandle
+cmDynamicLoader::OpenLibrary(const char* libname)
 {
-  if (!cmDynamicLoaderCache::Instance) {
-    cmDynamicLoaderCache::Instance = new cmDynamicLoaderCache;
-  }
-  return cmDynamicLoaderCache::Instance;
-}
-
-cmsys::DynamicLoader::LibraryHandle cmDynamicLoader::OpenLibrary(
-  const char* libname)
-{
-  cmsys::DynamicLoader::LibraryHandle lh;
-  if (cmDynamicLoaderCache::GetInstance()->GetCacheFile(libname, lh)) {
+    cmsys::DynamicLoader::LibraryHandle lh;
+    if(cmDynamicLoaderCache::GetInstance()->GetCacheFile(libname, lh))
+    {
+        return lh;
+    }
+    lh = cmsys::DynamicLoader::OpenLibrary(libname);
+    cmDynamicLoaderCache::GetInstance()->CacheFile(libname, lh);
     return lh;
-  }
-  lh = cmsys::DynamicLoader::OpenLibrary(libname);
-  cmDynamicLoaderCache::GetInstance()->CacheFile(libname, lh);
-  return lh;
 }
 
-void cmDynamicLoader::FlushCache()
+void
+cmDynamicLoader::FlushCache()
 {
-  cmDynamicLoaderCache::GetInstance()->FlushCache();
+    cmDynamicLoaderCache::GetInstance()->FlushCache();
 }

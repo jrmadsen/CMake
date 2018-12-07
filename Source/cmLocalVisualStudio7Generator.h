@@ -3,7 +3,7 @@
 #ifndef cmLocalVisualStudio7Generator_h
 #define cmLocalVisualStudio7Generator_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <iosfwd>
 #include <string>
@@ -24,14 +24,13 @@ class cmSourceGroup;
 class cmVS7GeneratorOptions : public cmVisualStudioGeneratorOptions
 {
 public:
-  cmVS7GeneratorOptions(cmLocalVisualStudioGenerator* lg, Tool tool,
-                        cmVS7FlagTable const* table = nullptr,
-                        cmVS7FlagTable const* extraTable = nullptr)
+    cmVS7GeneratorOptions(cmLocalVisualStudioGenerator* lg, Tool tool,
+                          cmVS7FlagTable const* table      = nullptr,
+                          cmVS7FlagTable const* extraTable = nullptr)
     : cmVisualStudioGeneratorOptions(lg, tool, table, extraTable)
-  {
-  }
-  void OutputFlag(std::ostream& fout, int indent, const char* tag,
-                  const std::string& content) override;
+    {}
+    void OutputFlag(std::ostream& fout, int indent, const char* tag,
+                    const std::string& content) override;
 };
 
 /** \class cmLocalVisualStudio7Generator
@@ -43,108 +42,110 @@ public:
 class cmLocalVisualStudio7Generator : public cmLocalVisualStudioGenerator
 {
 public:
-  ///! Set cache only and recurse to false by default.
-  cmLocalVisualStudio7Generator(cmGlobalGenerator* gg, cmMakefile* mf);
+    ///! Set cache only and recurse to false by default.
+    cmLocalVisualStudio7Generator(cmGlobalGenerator* gg, cmMakefile* mf);
 
-  virtual ~cmLocalVisualStudio7Generator();
+    virtual ~cmLocalVisualStudio7Generator();
 
-  void AddHelperCommands() override;
+    void AddHelperCommands() override;
 
-  /**
-   * Generate the makefile for this directory.
-   */
-  void Generate() override;
+    /**
+     * Generate the makefile for this directory.
+     */
+    void Generate() override;
 
-  enum BuildType
-  {
-    STATIC_LIBRARY,
-    DLL,
-    EXECUTABLE,
-    WIN32_EXECUTABLE,
-    UTILITY
-  };
+    enum BuildType
+    {
+        STATIC_LIBRARY,
+        DLL,
+        EXECUTABLE,
+        WIN32_EXECUTABLE,
+        UTILITY
+    };
 
-  /**
-   * Specify the type of the build: static, dll, or executable.
-   */
-  void SetBuildType(BuildType, const std::string& name);
+    /**
+     * Specify the type of the build: static, dll, or executable.
+     */
+    void SetBuildType(BuildType, const std::string& name);
 
-  std::string GetTargetDirectory(
-    cmGeneratorTarget const* target) const override;
-  cmSourceFile* CreateVCProjBuildRule();
-  void WriteStampFiles();
-  std::string ComputeLongestObjectDirectory(
-    cmGeneratorTarget const*) const override;
+    std::string GetTargetDirectory(
+        cmGeneratorTarget const* target) const override;
+    cmSourceFile* CreateVCProjBuildRule();
+    void          WriteStampFiles();
+    std::string   ComputeLongestObjectDirectory(
+          cmGeneratorTarget const*) const override;
 
-  virtual void ReadAndStoreExternalGUID(const std::string& name,
-                                        const char* path);
+    virtual void ReadAndStoreExternalGUID(const std::string& name,
+                                          const char*        path);
 
 protected:
-  void CreateSingleVCProj(const std::string& lname, cmGeneratorTarget* tgt);
+    void CreateSingleVCProj(const std::string& lname, cmGeneratorTarget* tgt);
 
 private:
-  typedef cmVS7GeneratorOptions Options;
-  typedef cmLocalVisualStudio7GeneratorFCInfo FCInfo;
-  std::string GetBuildTypeLinkerFlags(std::string rootLinkerFlags,
-                                      const std::string& configName);
-  void FixGlobalTargets();
-  void WriteProjectFiles();
-  void WriteVCProjHeader(std::ostream& fout, const std::string& libName,
-                         cmGeneratorTarget* tgt,
-                         std::vector<cmSourceGroup>& sgs);
-  void WriteVCProjFooter(std::ostream& fout, cmGeneratorTarget* target);
-  void WriteVCProjFile(std::ostream& fout, const std::string& libName,
-                       cmGeneratorTarget* tgt);
-  void WriteConfigurations(std::ostream& fout,
-                           std::vector<std::string> const& configs,
-                           const std::string& libName, cmGeneratorTarget* tgt);
-  void WriteConfiguration(std::ostream& fout, const std::string& configName,
-                          const std::string& libName, cmGeneratorTarget* tgt);
-  std::string EscapeForXML(const std::string& s);
-  std::string ConvertToXMLOutputPath(const char* path);
-  std::string ConvertToXMLOutputPathSingle(const char* path);
-  void OutputTargetRules(std::ostream& fout, const std::string& configName,
-                         cmGeneratorTarget* target,
-                         const std::string& libName);
-  void OutputBuildTool(std::ostream& fout, const std::string& configName,
-                       cmGeneratorTarget* t, const Options& targetOptions);
-  void OutputDeploymentDebuggerTool(std::ostream& fout,
-                                    std::string const& config,
-                                    cmGeneratorTarget* target);
-  void OutputLibraryDirectories(std::ostream& fout,
-                                std::vector<std::string> const& dirs);
-  void WriteProjectSCC(std::ostream& fout, cmGeneratorTarget* target);
-  void WriteProjectStart(std::ostream& fout, const std::string& libName,
-                         cmGeneratorTarget* tgt,
-                         std::vector<cmSourceGroup>& sgs);
-  void WriteProjectStartFortran(std::ostream& fout, const std::string& libName,
-                                cmGeneratorTarget* tgt);
-  void WriteVCProjBeginGroup(std::ostream& fout, const char* group,
-                             const char* filter);
-  void WriteVCProjEndGroup(std::ostream& fout);
+    typedef cmVS7GeneratorOptions               Options;
+    typedef cmLocalVisualStudio7GeneratorFCInfo FCInfo;
+    std::string GetBuildTypeLinkerFlags(std::string        rootLinkerFlags,
+                                        const std::string& configName);
+    void        FixGlobalTargets();
+    void        WriteProjectFiles();
+    void WriteVCProjHeader(std::ostream& fout, const std::string& libName,
+                           cmGeneratorTarget*          tgt,
+                           std::vector<cmSourceGroup>& sgs);
+    void WriteVCProjFooter(std::ostream& fout, cmGeneratorTarget* target);
+    void WriteVCProjFile(std::ostream& fout, const std::string& libName,
+                         cmGeneratorTarget* tgt);
+    void WriteConfigurations(std::ostream&                   fout,
+                             std::vector<std::string> const& configs,
+                             const std::string&              libName,
+                             cmGeneratorTarget*              tgt);
+    void WriteConfiguration(std::ostream& fout, const std::string& configName,
+                            const std::string& libName, cmGeneratorTarget* tgt);
+    std::string EscapeForXML(const std::string& s);
+    std::string ConvertToXMLOutputPath(const char* path);
+    std::string ConvertToXMLOutputPathSingle(const char* path);
+    void OutputTargetRules(std::ostream& fout, const std::string& configName,
+                           cmGeneratorTarget* target,
+                           const std::string& libName);
+    void OutputBuildTool(std::ostream& fout, const std::string& configName,
+                         cmGeneratorTarget* t, const Options& targetOptions);
+    void OutputDeploymentDebuggerTool(std::ostream&      fout,
+                                      std::string const& config,
+                                      cmGeneratorTarget* target);
+    void OutputLibraryDirectories(std::ostream&                   fout,
+                                  std::vector<std::string> const& dirs);
+    void WriteProjectSCC(std::ostream& fout, cmGeneratorTarget* target);
+    void WriteProjectStart(std::ostream& fout, const std::string& libName,
+                           cmGeneratorTarget*          tgt,
+                           std::vector<cmSourceGroup>& sgs);
+    void WriteProjectStartFortran(std::ostream&      fout,
+                                  const std::string& libName,
+                                  cmGeneratorTarget* tgt);
+    void WriteVCProjBeginGroup(std::ostream& fout, const char* group,
+                               const char* filter);
+    void WriteVCProjEndGroup(std::ostream& fout);
 
-  void WriteCustomRule(std::ostream& fout,
-                       std::vector<std::string> const& configs,
-                       const char* source, const cmCustomCommand& command,
-                       FCInfo& fcinfo);
-  void WriteTargetVersionAttribute(std::ostream& fout, cmGeneratorTarget* gt);
+    void WriteCustomRule(std::ostream&                   fout,
+                         std::vector<std::string> const& configs,
+                         const char* source, const cmCustomCommand& command,
+                         FCInfo& fcinfo);
+    void WriteTargetVersionAttribute(std::ostream& fout, cmGeneratorTarget* gt);
 
-  class AllConfigSources;
-  bool WriteGroup(const cmSourceGroup* sg, cmGeneratorTarget* target,
-                  std::ostream& fout, const std::string& libName,
-                  std::vector<std::string> const& configs,
-                  AllConfigSources const& sources);
+    class AllConfigSources;
+    bool WriteGroup(const cmSourceGroup* sg, cmGeneratorTarget* target,
+                    std::ostream& fout, const std::string& libName,
+                    std::vector<std::string> const& configs,
+                    AllConfigSources const&         sources);
 
-  friend class cmLocalVisualStudio7GeneratorFCInfo;
-  friend class cmLocalVisualStudio7GeneratorInternals;
+    friend class cmLocalVisualStudio7GeneratorFCInfo;
+    friend class cmLocalVisualStudio7GeneratorInternals;
 
-  class EventWriter;
+    class EventWriter;
 
-  friend class EventWriter;
+    friend class EventWriter;
 
-  bool FortranProject;
-  bool WindowsCEProject;
-  cmLocalVisualStudio7GeneratorInternals* Internal;
+    bool                                    FortranProject;
+    bool                                    WindowsCEProject;
+    cmLocalVisualStudio7GeneratorInternals* Internal;
 };
 
 #endif

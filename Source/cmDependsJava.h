@@ -3,7 +3,7 @@
 #ifndef cmDependsJava_h
 #define cmDependsJava_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmDepends.h"
 
@@ -17,24 +17,24 @@
  */
 class cmDependsJava : public cmDepends
 {
-  CM_DISABLE_COPY(cmDependsJava)
+    CM_DISABLE_COPY(cmDependsJava)
 
 public:
-  /** Checking instances need to know the build directory name and the
-      relative path from the build directory to the target file.  */
-  cmDependsJava();
+    /** Checking instances need to know the build directory name and the
+        relative path from the build directory to the target file.  */
+    cmDependsJava();
 
-  /** Virtual destructor to cleanup subclasses properly.  */
-  ~cmDependsJava() override;
+    /** Virtual destructor to cleanup subclasses properly.  */
+    ~cmDependsJava() override;
 
 protected:
-  // Implement writing/checking methods required by superclass.
-  bool WriteDependencies(const std::set<std::string>& sources,
-                         const std::string& file, std::ostream& makeDepends,
-                         std::ostream& internalDepends) override;
-  bool CheckDependencies(
-    std::istream& internalDepends, const char* internalDependsFileName,
-    std::map<std::string, DependencyVector>& validDeps) override;
+    // Implement writing/checking methods required by superclass.
+    bool WriteDependencies(const std::set<std::string>& sources,
+                           const std::string& file, std::ostream& makeDepends,
+                           std::ostream& internalDepends) override;
+    bool CheckDependencies(
+        std::istream& internalDepends, const char* internalDependsFileName,
+        std::map<std::string, DependencyVector>& validDeps) override;
 };
 
 #endif

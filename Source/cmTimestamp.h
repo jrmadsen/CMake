@@ -3,7 +3,7 @@
 #ifndef cmTimestamp_h
 #define cmTimestamp_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <time.h>
@@ -15,22 +15,22 @@
 class cmTimestamp
 {
 public:
-  cmTimestamp() {}
+    cmTimestamp() {}
 
-  std::string CurrentTime(const std::string& formatString, bool utcFlag);
+    std::string CurrentTime(const std::string& formatString, bool utcFlag);
 
-  std::string FileModificationTime(const char* path,
-                                   const std::string& formatString,
-                                   bool utcFlag);
+    std::string FileModificationTime(const char*        path,
+                                     const std::string& formatString,
+                                     bool               utcFlag);
 
 private:
-  time_t CreateUtcTimeTFromTm(struct tm& timeStruct) const;
+    time_t CreateUtcTimeTFromTm(struct tm& timeStruct) const;
 
-  std::string CreateTimestampFromTimeT(time_t timeT, std::string formatString,
-                                       bool utcFlag) const;
+    std::string CreateTimestampFromTimeT(time_t timeT, std::string formatString,
+                                         bool utcFlag) const;
 
-  std::string AddTimestampComponent(char flag, struct tm& timeStruct,
-                                    time_t timeT) const;
+    std::string AddTimestampComponent(char flag, struct tm& timeStruct,
+                                      time_t timeT) const;
 };
 
 #endif

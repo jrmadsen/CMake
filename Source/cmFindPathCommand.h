@@ -3,7 +3,7 @@
 #ifndef cmFindPathCommand_h
 #define cmFindPathCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <vector>
@@ -23,27 +23,27 @@ class cmExecutionStatus;
 class cmFindPathCommand : public cmFindBase
 {
 public:
-  cmFindPathCommand();
-  /**
-   * This is a virtual constructor for the command.
-   */
-  cmCommand* Clone() override { return new cmFindPathCommand; }
+    cmFindPathCommand();
+    /**
+     * This is a virtual constructor for the command.
+     */
+    cmCommand* Clone() override { return new cmFindPathCommand; }
 
-  /**
-   * This is called when the command is first encountered in
-   * the CMakeLists.txt file.
-   */
-  bool InitialPass(std::vector<std::string> const& args,
-                   cmExecutionStatus& status) override;
+    /**
+     * This is called when the command is first encountered in
+     * the CMakeLists.txt file.
+     */
+    bool InitialPass(std::vector<std::string> const& args,
+                     cmExecutionStatus&              status) override;
 
-  bool IncludeFileInPath;
+    bool IncludeFileInPath;
 
 private:
-  std::string FindHeaderInFramework(std::string const& file,
-                                    std::string const& dir);
-  std::string FindHeader();
-  std::string FindNormalHeader();
-  std::string FindFrameworkHeader();
+    std::string FindHeaderInFramework(std::string const& file,
+                                      std::string const& dir);
+    std::string FindHeader();
+    std::string FindNormalHeader();
+    std::string FindFrameworkHeader();
 };
 
 #endif

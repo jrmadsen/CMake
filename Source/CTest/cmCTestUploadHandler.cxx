@@ -9,64 +9,65 @@
 #include <ostream>
 #include <string>
 
-cmCTestUploadHandler::cmCTestUploadHandler()
+cmCTestUploadHandler::cmCTestUploadHandler() { this->Initialize(); }
+
+void
+cmCTestUploadHandler::Initialize()
 {
-  this->Initialize();
+    this->Superclass::Initialize();
+    this->Files.clear();
 }
 
-void cmCTestUploadHandler::Initialize()
+void
+cmCTestUploadHandler::SetFiles(const cmCTest::SetOfStrings& files)
 {
-  this->Superclass::Initialize();
-  this->Files.clear();
+    this->Files = files;
 }
 
-void cmCTestUploadHandler::SetFiles(const cmCTest::SetOfStrings& files)
+int
+cmCTestUploadHandler::ProcessHandler()
 {
-  this->Files = files;
-}
+    cmGeneratedFileStream ofs;
+    if(!this->CTest->OpenOutputFile(this->CTest->GetCurrentTag(), "Upload.xml",
+                                    ofs))
+    {
+        cmCTestLog(this->CTest, ERROR_MESSAGE,
+                   "Cannot open Upload.xml file" << std::endl);
+        return -1;
+    }
+    std::string buildname = cmCTest::SafeBuildIdField(
+        this->CTest->GetCTestConfiguration("BuildName"));
 
-int cmCTestUploadHandler::ProcessHandler()
-{
-  cmGeneratedFileStream ofs;
-  if (!this->CTest->OpenOutputFile(this->CTest->GetCurrentTag(), "Upload.xml",
-                                   ofs)) {
-    cmCTestLog(this->CTest, ERROR_MESSAGE,
-               "Cannot open Upload.xml file" << std::endl);
-    return -1;
-  }
-  std::string buildname =
-    cmCTest::SafeBuildIdField(this->CTest->GetCTestConfiguration("BuildName"));
+    cmXMLWriter xml(ofs);
+    xml.StartDocument();
+    xml.ProcessingInstruction("xml-stylesheet",
+                              "type=\"text/xsl\" "
+                              "href=\"Dart/Source/Server/XSL/Build.xsl "
+                              "<file:///Dart/Source/Server/XSL/Build.xsl> \"");
+    xml.StartElement("Site");
+    xml.Attribute("BuildName", buildname);
+    xml.Attribute("BuildStamp", this->CTest->GetCurrentTag() + "-" +
+                                    this->CTest->GetTestModelString());
+    xml.Attribute("Name", this->CTest->GetCTestConfiguration("Site"));
+    xml.Attribute("Generator",
+                  std::string("ctest") + cmVersion::GetCMakeVersion());
+    this->CTest->AddSiteProperties(xml);
+    xml.StartElement("Upload");
 
-  cmXMLWriter xml(ofs);
-  xml.StartDocument();
-  xml.ProcessingInstruction("xml-stylesheet",
-                            "type=\"text/xsl\" "
-                            "href=\"Dart/Source/Server/XSL/Build.xsl "
-                            "<file:///Dart/Source/Server/XSL/Build.xsl> \"");
-  xml.StartElement("Site");
-  xml.Attribute("BuildName", buildname);
-  xml.Attribute("BuildStamp",
-                this->CTest->GetCurrentTag() + "-" +
-                  this->CTest->GetTestModelString());
-  xml.Attribute("Name", this->CTest->GetCTestConfiguration("Site"));
-  xml.Attribute("Generator",
-                std::string("ctest") + cmVersion::GetCMakeVersion());
-  this->CTest->AddSiteProperties(xml);
-  xml.StartElement("Upload");
-
-  for (std::string const& file : this->Files) {
-    cmCTestOptionalLog(this->CTest, OUTPUT,
-                       "\tUpload file: " << file << std::endl, this->Quiet);
-    xml.StartElement("File");
-    xml.Attribute("filename", file);
-    xml.StartElement("Content");
-    xml.Attribute("encoding", "base64");
-    xml.Content(this->CTest->Base64EncodeFile(file));
-    xml.EndElement(); // Content
-    xml.EndElement(); // File
-  }
-  xml.EndElement(); // Upload
-  xml.EndElement(); // Site
-  xml.EndDocument();
-  return 0;
+    for(std::string const& file : this->Files)
+    {
+        cmCTestOptionalLog(this->CTest, OUTPUT,
+                           "\tUpload file: " << file << std::endl, this->Quiet);
+        xml.StartElement("File");
+        xml.Attribute("filename", file);
+        xml.StartElement("Content");
+        xml.Attribute("encoding", "base64");
+        xml.Content(this->CTest->Base64EncodeFile(file));
+        xml.EndElement();  // Content
+        xml.EndElement();  // File
+    }
+    xml.EndElement();  // Upload
+    xml.EndElement();  // Site
+    xml.EndDocument();
+    return 0;
 }

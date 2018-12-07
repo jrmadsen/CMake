@@ -3,7 +3,7 @@
 #ifndef cmExportBuildAndroidMKGenerator_h
 #define cmExportBuildAndroidMKGenerator_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <iosfwd>
 #include <string>
@@ -27,41 +27,42 @@ class cmGeneratorTarget;
 class cmExportBuildAndroidMKGenerator : public cmExportBuildFileGenerator
 {
 public:
-  cmExportBuildAndroidMKGenerator();
-  // this is so cmExportInstallAndroidMKGenerator can share this
-  // function as they are almost the same
-  enum GenerateType
-  {
-    BUILD,
-    INSTALL
-  };
-  static void GenerateInterfaceProperties(cmGeneratorTarget const* target,
-                                          std::ostream& os,
-                                          const ImportPropertyMap& properties,
-                                          GenerateType type,
-                                          std::string const& config);
+    cmExportBuildAndroidMKGenerator();
+    // this is so cmExportInstallAndroidMKGenerator can share this
+    // function as they are almost the same
+    enum GenerateType
+    {
+        BUILD,
+        INSTALL
+    };
+    static void GenerateInterfaceProperties(cmGeneratorTarget const* target,
+                                            std::ostream&            os,
+                                            const ImportPropertyMap& properties,
+                                            GenerateType             type,
+                                            std::string const&       config);
 
 protected:
-  // Implement virtual methods from the superclass.
-  void GeneratePolicyHeaderCode(std::ostream&) override {}
-  void GeneratePolicyFooterCode(std::ostream&) override {}
-  void GenerateImportHeaderCode(std::ostream& os,
-                                const std::string& config = "") override;
-  void GenerateImportFooterCode(std::ostream& os) override;
-  void GenerateImportTargetCode(
-    std::ostream& os, cmGeneratorTarget const* target,
-    cmStateEnums::TargetType /*targetType*/) override;
-  void GenerateExpectedTargetsCode(
-    std::ostream& os, const std::string& expectedTargets) override;
-  void GenerateImportPropertyCode(
-    std::ostream& os, const std::string& config,
-    cmGeneratorTarget const* target,
-    ImportPropertyMap const& properties) override;
-  void GenerateMissingTargetsCheckCode(
-    std::ostream& os, const std::vector<std::string>& missingTargets) override;
-  void GenerateInterfaceProperties(
-    cmGeneratorTarget const* target, std::ostream& os,
-    const ImportPropertyMap& properties) override;
+    // Implement virtual methods from the superclass.
+    void GeneratePolicyHeaderCode(std::ostream&) override {}
+    void GeneratePolicyFooterCode(std::ostream&) override {}
+    void GenerateImportHeaderCode(std::ostream&      os,
+                                  const std::string& config = "") override;
+    void GenerateImportFooterCode(std::ostream& os) override;
+    void GenerateImportTargetCode(
+        std::ostream& os, cmGeneratorTarget const* target,
+        cmStateEnums::TargetType /*targetType*/) override;
+    void GenerateExpectedTargetsCode(
+        std::ostream& os, const std::string& expectedTargets) override;
+    void GenerateImportPropertyCode(
+        std::ostream& os, const std::string& config,
+        cmGeneratorTarget const* target,
+        ImportPropertyMap const& properties) override;
+    void GenerateMissingTargetsCheckCode(
+        std::ostream&                   os,
+        const std::vector<std::string>& missingTargets) override;
+    void GenerateInterfaceProperties(
+        cmGeneratorTarget const* target, std::ostream& os,
+        const ImportPropertyMap& properties) override;
 };
 
 #endif

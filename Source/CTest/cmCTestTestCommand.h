@@ -3,7 +3,7 @@
 #ifndef cmCTestTestCommand_h
 #define cmCTestTestCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCTestHandlerCommand.h"
 
@@ -20,48 +20,48 @@ class cmCommand;
 class cmCTestTestCommand : public cmCTestHandlerCommand
 {
 public:
-  cmCTestTestCommand();
+    cmCTestTestCommand();
 
-  /**
-   * This is a virtual constructor for the command.
-   */
-  cmCommand* Clone() override
-  {
-    cmCTestTestCommand* ni = new cmCTestTestCommand;
-    ni->CTest = this->CTest;
-    ni->CTestScriptHandler = this->CTestScriptHandler;
-    return ni;
-  }
+    /**
+     * This is a virtual constructor for the command.
+     */
+    cmCommand* Clone() override
+    {
+        cmCTestTestCommand* ni = new cmCTestTestCommand;
+        ni->CTest              = this->CTest;
+        ni->CTestScriptHandler = this->CTestScriptHandler;
+        return ni;
+    }
 
-  /**
-   * The name of the command as specified in CMakeList.txt.
-   */
-  std::string GetName() const override { return "ctest_test"; }
+    /**
+     * The name of the command as specified in CMakeList.txt.
+     */
+    std::string GetName() const override { return "ctest_test"; }
 
 protected:
-  virtual cmCTestGenericHandler* InitializeActualHandler();
-  cmCTestGenericHandler* InitializeHandler() override;
+    virtual cmCTestGenericHandler* InitializeActualHandler();
+    cmCTestGenericHandler*         InitializeHandler() override;
 
-  enum
-  {
-    ctt_BUILD = ct_LAST,
-    ctt_RETURN_VALUE,
-    ctt_START,
-    ctt_END,
-    ctt_STRIDE,
-    ctt_EXCLUDE,
-    ctt_INCLUDE,
-    ctt_EXCLUDE_LABEL,
-    ctt_INCLUDE_LABEL,
-    ctt_EXCLUDE_FIXTURE,
-    ctt_EXCLUDE_FIXTURE_SETUP,
-    ctt_EXCLUDE_FIXTURE_CLEANUP,
-    ctt_PARALLEL_LEVEL,
-    ctt_SCHEDULE_RANDOM,
-    ctt_STOP_TIME,
-    ctt_TEST_LOAD,
-    ctt_LAST
-  };
+    enum
+    {
+        ctt_BUILD = ct_LAST,
+        ctt_RETURN_VALUE,
+        ctt_START,
+        ctt_END,
+        ctt_STRIDE,
+        ctt_EXCLUDE,
+        ctt_INCLUDE,
+        ctt_EXCLUDE_LABEL,
+        ctt_INCLUDE_LABEL,
+        ctt_EXCLUDE_FIXTURE,
+        ctt_EXCLUDE_FIXTURE_SETUP,
+        ctt_EXCLUDE_FIXTURE_CLEANUP,
+        ctt_PARALLEL_LEVEL,
+        ctt_SCHEDULE_RANDOM,
+        ctt_STOP_TIME,
+        ctt_TEST_LOAD,
+        ctt_LAST
+    };
 };
 
 #endif

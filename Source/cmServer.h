@@ -2,7 +2,7 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #pragma once
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cm_jsoncpp_value.h"
 #include "cm_thread.hxx"
@@ -10,7 +10,7 @@
 
 #include "cmUVHandlePtr.h"
 
-#include <memory> // IWYU pragma: keep
+#include <memory>  // IWYU pragma: keep
 #include <string>
 #include <vector>
 
@@ -28,131 +28,132 @@ class cmServerResponse;
 class cmServerBase
 {
 public:
-  cmServerBase(cmConnection* connection);
-  virtual ~cmServerBase();
+    cmServerBase(cmConnection* connection);
+    virtual ~cmServerBase();
 
-  virtual void AddNewConnection(cmConnection* ownedConnection);
+    virtual void AddNewConnection(cmConnection* ownedConnection);
 
-  /***
-   * The main override responsible for tailoring behavior towards
-   * whatever the given server is supposed to do
-   *
-   * This should almost always be called by the given connections
-   * directly.
-   *
-   * @param connection The connection the request was received on
-   * @param request The actual request
-   */
-  virtual void ProcessRequest(cmConnection* connection,
-                              const std::string& request) = 0;
-  virtual void OnConnected(cmConnection* connection);
+    /***
+     * The main override responsible for tailoring behavior towards
+     * whatever the given server is supposed to do
+     *
+     * This should almost always be called by the given connections
+     * directly.
+     *
+     * @param connection The connection the request was received on
+     * @param request The actual request
+     */
+    virtual void ProcessRequest(cmConnection*      connection,
+                                const std::string& request) = 0;
+    virtual void OnConnected(cmConnection* connection);
 
-  /***
-   * Start a dedicated thread. If this is used to start the server, it will
-   * join on the
-   * servers dtor.
-   */
-  virtual bool StartServeThread();
-  virtual bool Serve(std::string* errorMessage);
+    /***
+     * Start a dedicated thread. If this is used to start the server, it will
+     * join on the
+     * servers dtor.
+     */
+    virtual bool StartServeThread();
+    virtual bool Serve(std::string* errorMessage);
 
-  virtual void OnServeStart();
-  virtual void StartShutDown();
+    virtual void OnServeStart();
+    virtual void StartShutDown();
 
-  virtual bool OnSignal(int signum);
-  uv_loop_t* GetLoop();
-  void Close();
-  void OnDisconnect(cmConnection* pConnection);
+    virtual bool OnSignal(int signum);
+    uv_loop_t*   GetLoop();
+    void         Close();
+    void         OnDisconnect(cmConnection* pConnection);
 
 protected:
-  mutable cm::shared_mutex ConnectionsMutex;
-  std::vector<std::unique_ptr<cmConnection>> Connections;
+    mutable cm::shared_mutex                   ConnectionsMutex;
+    std::vector<std::unique_ptr<cmConnection>> Connections;
 
-  bool ServeThreadRunning = false;
-  uv_thread_t ServeThread;
-  cm::uv_async_ptr ShutdownSignal;
+    bool             ServeThreadRunning = false;
+    uv_thread_t      ServeThread;
+    cm::uv_async_ptr ShutdownSignal;
 #ifndef NDEBUG
 public:
-  // When the server starts it will mark down it's current thread ID,
-  // which is useful in other contexts to just assert that operations
-  // are performed on that same thread.
-  uv_thread_t ServeThreadId = {};
+    // When the server starts it will mark down it's current thread ID,
+    // which is useful in other contexts to just assert that operations
+    // are performed on that same thread.
+    uv_thread_t ServeThreadId = {};
 
 protected:
 #endif
 
-  uv_loop_t Loop;
+    uv_loop_t Loop;
 
-  cm::uv_signal_ptr SIGINTHandler;
-  cm::uv_signal_ptr SIGHUPHandler;
+    cm::uv_signal_ptr SIGINTHandler;
+    cm::uv_signal_ptr SIGHUPHandler;
 };
 
 class cmServer : public cmServerBase
 {
-  CM_DISABLE_COPY(cmServer)
+    CM_DISABLE_COPY(cmServer)
 
 public:
-  class DebugInfo;
+    class DebugInfo;
 
-  cmServer(cmConnection* conn, bool supportExperimental);
-  ~cmServer() override;
+    cmServer(cmConnection* conn, bool supportExperimental);
+    ~cmServer() override;
 
-  bool Serve(std::string* errorMessage) override;
+    bool Serve(std::string* errorMessage) override;
 
-  cmFileMonitor* FileMonitor() const;
+    cmFileMonitor* FileMonitor() const;
 
 private:
-  void RegisterProtocol(cmServerProtocol* protocol);
+    void RegisterProtocol(cmServerProtocol* protocol);
 
-  // Callbacks from cmServerConnection:
+    // Callbacks from cmServerConnection:
 
-  void ProcessRequest(cmConnection* connection,
-                      const std::string& request) override;
-  std::shared_ptr<cmFileMonitor> fileMonitor;
-
-public:
-  void OnServeStart() override;
-
-  void StartShutDown() override;
+    void                           ProcessRequest(cmConnection*      connection,
+                                                  const std::string& request) override;
+    std::shared_ptr<cmFileMonitor> fileMonitor;
 
 public:
-  void OnConnected(cmConnection* connection) override;
+    void OnServeStart() override;
+
+    void StartShutDown() override;
+
+public:
+    void OnConnected(cmConnection* connection) override;
 
 private:
-  static void reportProgress(const char* msg, float progress, void* data);
-  static void reportMessage(const char* msg, const char* title, bool& cancel,
-                            void* data);
+    static void reportProgress(const char* msg, float progress, void* data);
+    static void reportMessage(const char* msg, const char* title, bool& cancel,
+                              void* data);
 
-  // Handle requests:
-  cmServerResponse SetProtocolVersion(const cmServerRequest& request);
+    // Handle requests:
+    cmServerResponse SetProtocolVersion(const cmServerRequest& request);
 
-  void PrintHello(cmConnection* connection) const;
+    void PrintHello(cmConnection* connection) const;
 
-  // Write responses:
-  void WriteProgress(const cmServerRequest& request, int min, int current,
-                     int max, const std::string& message) const;
-  void WriteMessage(const cmServerRequest& request, const std::string& message,
-                    const std::string& title) const;
-  void WriteResponse(cmConnection* connection,
-                     const cmServerResponse& response,
-                     const DebugInfo* debug) const;
-  void WriteParseError(cmConnection* connection,
-                       const std::string& message) const;
-  void WriteSignal(const std::string& name, const Json::Value& obj) const;
+    // Write responses:
+    void WriteProgress(const cmServerRequest& request, int min, int current,
+                       int max, const std::string& message) const;
+    void WriteMessage(const cmServerRequest& request,
+                      const std::string&     message,
+                      const std::string&     title) const;
+    void WriteResponse(cmConnection*           connection,
+                       const cmServerResponse& response,
+                       const DebugInfo*        debug) const;
+    void WriteParseError(cmConnection*      connection,
+                         const std::string& message) const;
+    void WriteSignal(const std::string& name, const Json::Value& obj) const;
 
-  void WriteJsonObject(Json::Value const& jsonValue,
-                       const DebugInfo* debug) const;
+    void WriteJsonObject(Json::Value const& jsonValue,
+                         const DebugInfo*   debug) const;
 
-  void WriteJsonObject(cmConnection* connection, Json::Value const& jsonValue,
-                       const DebugInfo* debug) const;
+    void WriteJsonObject(cmConnection* connection, Json::Value const& jsonValue,
+                         const DebugInfo* debug) const;
 
-  static cmServerProtocol* FindMatchingProtocol(
-    const std::vector<cmServerProtocol*>& protocols, int major, int minor);
+    static cmServerProtocol* FindMatchingProtocol(
+        const std::vector<cmServerProtocol*>& protocols, int major, int minor);
 
-  const bool SupportExperimental;
+    const bool SupportExperimental;
 
-  cmServerProtocol* Protocol = nullptr;
-  std::vector<cmServerProtocol*> SupportedProtocols;
+    cmServerProtocol*              Protocol = nullptr;
+    std::vector<cmServerProtocol*> SupportedProtocols;
 
-  friend class cmServerProtocol;
-  friend class cmServerRequest;
+    friend class cmServerProtocol;
+    friend class cmServerRequest;
 };

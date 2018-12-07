@@ -3,7 +3,7 @@
 #ifndef cmCTestGlobalVC_h
 #define cmCTestGlobalVC_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCTestVC.h"
 
@@ -23,53 +23,51 @@ class cmXMLWriter;
 class cmCTestGlobalVC : public cmCTestVC
 {
 public:
-  /** Construct with a CTest instance and update log stream.  */
-  cmCTestGlobalVC(cmCTest* ctest, std::ostream& log);
+    /** Construct with a CTest instance and update log stream.  */
+    cmCTestGlobalVC(cmCTest* ctest, std::ostream& log);
 
-  ~cmCTestGlobalVC() override;
+    ~cmCTestGlobalVC() override;
 
 protected:
-  // Implement cmCTestVC internal API.
-  bool WriteXMLUpdates(cmXMLWriter& xml) override;
+    // Implement cmCTestVC internal API.
+    bool WriteXMLUpdates(cmXMLWriter& xml) override;
 
-  /** Represent a vcs-reported action for one path in a revision.  */
-  struct Change
-  {
-    char Action;
-    std::string Path;
-    Change(char a = '?')
-      : Action(a)
+    /** Represent a vcs-reported action for one path in a revision.  */
+    struct Change
     {
-    }
-  };
+        char        Action;
+        std::string Path;
+        Change(char a = '?')
+        : Action(a)
+        {}
+    };
 
-  // Update status for files in each directory.
-  class Directory : public std::map<std::string, File>
-  {
-  };
-  std::map<std::string, Directory> Dirs;
+    // Update status for files in each directory.
+    class Directory : public std::map<std::string, File>
+    {};
+    std::map<std::string, Directory> Dirs;
 
-  // Old and new repository revisions.
-  std::string OldRevision;
-  std::string NewRevision;
+    // Old and new repository revisions.
+    std::string OldRevision;
+    std::string NewRevision;
 
-  // Information known about old revision.
-  Revision PriorRev;
+    // Information known about old revision.
+    Revision PriorRev;
 
-  // Information about revisions from a svn log.
-  std::list<Revision> Revisions;
+    // Information about revisions from a svn log.
+    std::list<Revision> Revisions;
 
-  virtual const char* LocalPath(std::string const& path);
+    virtual const char* LocalPath(std::string const& path);
 
-  virtual void DoRevision(Revision const& revision,
-                          std::vector<Change> const& changes);
-  virtual void DoModification(PathStatus status, std::string const& path);
-  virtual bool LoadModifications() = 0;
-  virtual bool LoadRevisions() = 0;
+    virtual void DoRevision(Revision const&            revision,
+                            std::vector<Change> const& changes);
+    virtual void DoModification(PathStatus status, std::string const& path);
+    virtual bool LoadModifications() = 0;
+    virtual bool LoadRevisions()     = 0;
 
-  virtual void WriteXMLGlobal(cmXMLWriter& xml);
-  void WriteXMLDirectory(cmXMLWriter& xml, std::string const& path,
-                         Directory const& dir);
+    virtual void WriteXMLGlobal(cmXMLWriter& xml);
+    void         WriteXMLDirectory(cmXMLWriter& xml, std::string const& path,
+                                   Directory const& dir);
 };
 
 #endif

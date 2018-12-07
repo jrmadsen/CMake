@@ -3,7 +3,7 @@
 #ifndef cmCTestUploadCommand_h
 #define cmCTestUploadCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCTest.h"
 #include "cmCTestHandlerCommand.h"
@@ -22,40 +22,40 @@ class cmCommand;
 class cmCTestUploadCommand : public cmCTestHandlerCommand
 {
 public:
-  cmCTestUploadCommand() {}
+    cmCTestUploadCommand() {}
 
-  /**
-   * This is a virtual constructor for the command.
-   */
-  cmCommand* Clone() override
-  {
-    cmCTestUploadCommand* ni = new cmCTestUploadCommand;
-    ni->CTest = this->CTest;
-    ni->CTestScriptHandler = this->CTestScriptHandler;
-    return ni;
-  }
+    /**
+     * This is a virtual constructor for the command.
+     */
+    cmCommand* Clone() override
+    {
+        cmCTestUploadCommand* ni = new cmCTestUploadCommand;
+        ni->CTest                = this->CTest;
+        ni->CTestScriptHandler   = this->CTestScriptHandler;
+        return ni;
+    }
 
-  /**
-   * The name of the command as specified in CMakeList.txt.
-   */
-  std::string GetName() const override { return "ctest_upload"; }
+    /**
+     * The name of the command as specified in CMakeList.txt.
+     */
+    std::string GetName() const override { return "ctest_upload"; }
 
-  typedef cmCTestHandlerCommand Superclass;
+    typedef cmCTestHandlerCommand Superclass;
 
 protected:
-  cmCTestGenericHandler* InitializeHandler() override;
+    cmCTestGenericHandler* InitializeHandler() override;
 
-  bool CheckArgumentKeyword(std::string const& arg) override;
-  bool CheckArgumentValue(std::string const& arg) override;
+    bool CheckArgumentKeyword(std::string const& arg) override;
+    bool CheckArgumentValue(std::string const& arg) override;
 
-  enum
-  {
-    ArgumentDoingFiles = Superclass::ArgumentDoingLast1,
-    ArgumentDoingCaptureCMakeError,
-    ArgumentDoingLast2
-  };
+    enum
+    {
+        ArgumentDoingFiles = Superclass::ArgumentDoingLast1,
+        ArgumentDoingCaptureCMakeError,
+        ArgumentDoingLast2
+    };
 
-  cmCTest::SetOfStrings Files;
+    cmCTest::SetOfStrings Files;
 };
 
 #endif

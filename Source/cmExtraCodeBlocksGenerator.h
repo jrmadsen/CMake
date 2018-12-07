@@ -3,7 +3,7 @@
 #ifndef cmExtraCodeBlocksGenerator_h
 #define cmExtraCodeBlocksGenerator_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmExternalMakefileProjectGenerator.h"
 
@@ -21,34 +21,34 @@ class cmXMLWriter;
 class cmExtraCodeBlocksGenerator : public cmExternalMakefileProjectGenerator
 {
 public:
-  cmExtraCodeBlocksGenerator();
+    cmExtraCodeBlocksGenerator();
 
-  static cmExternalMakefileProjectGeneratorFactory* GetFactory();
+    static cmExternalMakefileProjectGeneratorFactory* GetFactory();
 
-  void Generate() override;
+    void Generate() override;
 
 private:
-  struct CbpUnit
-  {
-    std::vector<const cmGeneratorTarget*> Targets;
-  };
+    struct CbpUnit
+    {
+        std::vector<const cmGeneratorTarget*> Targets;
+    };
 
-  void CreateProjectFile(const std::vector<cmLocalGenerator*>& lgs);
+    void CreateProjectFile(const std::vector<cmLocalGenerator*>& lgs);
 
-  void CreateNewProjectFile(const std::vector<cmLocalGenerator*>& lgs,
-                            const std::string& filename);
-  std::string CreateDummyTargetFile(cmLocalGenerator* lg,
-                                    cmGeneratorTarget* target) const;
+    void        CreateNewProjectFile(const std::vector<cmLocalGenerator*>& lgs,
+                                     const std::string&                    filename);
+    std::string CreateDummyTargetFile(cmLocalGenerator*  lg,
+                                      cmGeneratorTarget* target) const;
 
-  std::string GetCBCompilerId(const cmMakefile* mf);
-  int GetCBTargetType(cmGeneratorTarget* target);
-  std::string BuildMakeCommand(const std::string& make, const char* makefile,
-                               const std::string& target,
-                               const std::string& makeFlags);
-  void AppendTarget(cmXMLWriter& xml, const std::string& targetName,
-                    cmGeneratorTarget* target, const char* make,
-                    const cmLocalGenerator* lg, const char* compiler,
-                    const std::string& makeFlags);
+    std::string GetCBCompilerId(const cmMakefile* mf);
+    int         GetCBTargetType(cmGeneratorTarget* target);
+    std::string BuildMakeCommand(const std::string& make, const char* makefile,
+                                 const std::string& target,
+                                 const std::string& makeFlags);
+    void        AppendTarget(cmXMLWriter& xml, const std::string& targetName,
+                             cmGeneratorTarget* target, const char* make,
+                             const cmLocalGenerator* lg, const char* compiler,
+                             const std::string& makeFlags);
 };
 
 #endif

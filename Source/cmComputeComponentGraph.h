@@ -3,7 +3,7 @@
 #ifndef cmComputeComponentGraph_h
 #define cmComputeComponentGraph_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmGraphAdjacencyList.h"
 
@@ -23,57 +23,57 @@
 class cmComputeComponentGraph
 {
 public:
-  // Represent the graph with an adjacency list.
-  typedef cmGraphNodeList NodeList;
-  typedef cmGraphEdgeList EdgeList;
-  typedef cmGraphAdjacencyList Graph;
+    // Represent the graph with an adjacency list.
+    typedef cmGraphNodeList      NodeList;
+    typedef cmGraphEdgeList      EdgeList;
+    typedef cmGraphAdjacencyList Graph;
 
-  cmComputeComponentGraph(Graph const& input);
-  ~cmComputeComponentGraph();
+    cmComputeComponentGraph(Graph const& input);
+    ~cmComputeComponentGraph();
 
-  /** Get the adjacency list of the component graph.  */
-  Graph const& GetComponentGraph() const { return this->ComponentGraph; }
-  EdgeList const& GetComponentGraphEdges(int c) const
-  {
-    return this->ComponentGraph[c];
-  }
+    /** Get the adjacency list of the component graph.  */
+    Graph const&    GetComponentGraph() const { return this->ComponentGraph; }
+    EdgeList const& GetComponentGraphEdges(int c) const
+    {
+        return this->ComponentGraph[c];
+    }
 
-  /** Get map from component index to original node indices.  */
-  std::vector<NodeList> const& GetComponents() const
-  {
-    return this->Components;
-  }
-  NodeList const& GetComponent(int c) const { return this->Components[c]; }
+    /** Get map from component index to original node indices.  */
+    std::vector<NodeList> const& GetComponents() const
+    {
+        return this->Components;
+    }
+    NodeList const& GetComponent(int c) const { return this->Components[c]; }
 
-  /** Get map from original node index to component index.  */
-  std::vector<int> const& GetComponentMap() const
-  {
-    return this->TarjanComponents;
-  }
+    /** Get map from original node index to component index.  */
+    std::vector<int> const& GetComponentMap() const
+    {
+        return this->TarjanComponents;
+    }
 
 private:
-  void TransferEdges();
+    void TransferEdges();
 
-  Graph const& InputGraph;
-  Graph ComponentGraph;
+    Graph const& InputGraph;
+    Graph        ComponentGraph;
 
-  // Tarjan's algorithm.
-  struct TarjanEntry
-  {
-    int Root;
-    int VisitIndex;
-  };
-  std::vector<int> TarjanVisited;
-  std::vector<int> TarjanComponents;
-  std::vector<TarjanEntry> TarjanEntries;
-  std::vector<NodeList> Components;
-  std::stack<int> TarjanStack;
-  int TarjanWalkId;
-  int TarjanIndex;
-  void Tarjan();
-  void TarjanVisit(int i);
+    // Tarjan's algorithm.
+    struct TarjanEntry
+    {
+        int Root;
+        int VisitIndex;
+    };
+    std::vector<int>         TarjanVisited;
+    std::vector<int>         TarjanComponents;
+    std::vector<TarjanEntry> TarjanEntries;
+    std::vector<NodeList>    Components;
+    std::stack<int>          TarjanStack;
+    int                      TarjanWalkId;
+    int                      TarjanIndex;
+    void                     Tarjan();
+    void                     TarjanVisit(int i);
 
-  // Connected components.
+    // Connected components.
 };
 
 #endif

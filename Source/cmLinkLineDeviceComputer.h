@@ -4,7 +4,7 @@
 #ifndef cmLinkLineDeviceComputer_h
 #define cmLinkLineDeviceComputer_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 
@@ -18,33 +18,33 @@ class cmStateDirectory;
 
 class cmLinkLineDeviceComputer : public cmLinkLineComputer
 {
-  CM_DISABLE_COPY(cmLinkLineDeviceComputer)
+    CM_DISABLE_COPY(cmLinkLineDeviceComputer)
 
 public:
-  cmLinkLineDeviceComputer(cmOutputConverter* outputConverter,
-                           cmStateDirectory const& stateDir);
-  ~cmLinkLineDeviceComputer() override;
+    cmLinkLineDeviceComputer(cmOutputConverter*      outputConverter,
+                             cmStateDirectory const& stateDir);
+    ~cmLinkLineDeviceComputer() override;
 
-  std::string ComputeLinkLibraries(cmComputeLinkInformation& cli,
-                                   std::string const& stdLibString) override;
+    std::string ComputeLinkLibraries(cmComputeLinkInformation& cli,
+                                     std::string const& stdLibString) override;
 
-  std::string GetLinkerLanguage(cmGeneratorTarget* target,
-                                std::string const& config) override;
+    std::string GetLinkerLanguage(cmGeneratorTarget* target,
+                                  std::string const& config) override;
 };
 
 class cmNinjaLinkLineDeviceComputer : public cmLinkLineDeviceComputer
 {
-  CM_DISABLE_COPY(cmNinjaLinkLineDeviceComputer)
+    CM_DISABLE_COPY(cmNinjaLinkLineDeviceComputer)
 
 public:
-  cmNinjaLinkLineDeviceComputer(cmOutputConverter* outputConverter,
-                                cmStateDirectory const& stateDir,
-                                cmGlobalNinjaGenerator const* gg);
+    cmNinjaLinkLineDeviceComputer(cmOutputConverter*            outputConverter,
+                                  cmStateDirectory const&       stateDir,
+                                  cmGlobalNinjaGenerator const* gg);
 
-  std::string ConvertToLinkReference(std::string const& input) const override;
+    std::string ConvertToLinkReference(std::string const& input) const override;
 
 private:
-  cmGlobalNinjaGenerator const* GG;
+    cmGlobalNinjaGenerator const* GG;
 };
 
 #endif

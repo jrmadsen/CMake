@@ -4,7 +4,7 @@
 #ifndef cmMSVC60LinkLineComputer_h
 #define cmMSVC60LinkLineComputer_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 
@@ -15,13 +15,13 @@ class cmStateDirectory;
 
 class cmMSVC60LinkLineComputer : public cmLinkLineComputer
 {
-  CM_DISABLE_COPY(cmMSVC60LinkLineComputer)
+    CM_DISABLE_COPY(cmMSVC60LinkLineComputer)
 
 public:
-  cmMSVC60LinkLineComputer(cmOutputConverter* outputConverter,
-                           cmStateDirectory const& stateDir);
+    cmMSVC60LinkLineComputer(cmOutputConverter*      outputConverter,
+                             cmStateDirectory const& stateDir);
 
-  std::string ConvertToLinkReference(std::string const& input) const override;
+    std::string ConvertToLinkReference(std::string const& input) const override;
 };
 
 #endif

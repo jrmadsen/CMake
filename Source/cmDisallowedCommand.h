@@ -3,7 +3,7 @@
 #ifndef cmDisallowedCommand_h
 #define cmDisallowedCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <vector>
@@ -16,33 +16,32 @@ class cmExecutionStatus;
 class cmDisallowedCommand : public cmCommand
 {
 public:
-  cmDisallowedCommand(cmCommand* command, cmPolicies::PolicyID policy,
-                      const char* message)
+    cmDisallowedCommand(cmCommand* command, cmPolicies::PolicyID policy,
+                        const char* message)
     : Command(command)
     , Policy(policy)
     , Message(message)
-  {
-  }
+    {}
 
-  ~cmDisallowedCommand() override { delete this->Command; }
+    ~cmDisallowedCommand() override { delete this->Command; }
 
-  cmCommand* Clone() override
-  {
-    return new cmDisallowedCommand(this->Command->Clone(), this->Policy,
-                                   this->Message);
-  }
+    cmCommand* Clone() override
+    {
+        return new cmDisallowedCommand(this->Command->Clone(), this->Policy,
+                                       this->Message);
+    }
 
-  bool InitialPass(std::vector<std::string> const& args,
-                   cmExecutionStatus& status) override;
+    bool InitialPass(std::vector<std::string> const& args,
+                     cmExecutionStatus&              status) override;
 
-  void FinalPass() override { this->Command->FinalPass(); }
+    void FinalPass() override { this->Command->FinalPass(); }
 
-  bool HasFinalPass() const override { return this->Command->HasFinalPass(); }
+    bool HasFinalPass() const override { return this->Command->HasFinalPass(); }
 
 private:
-  cmCommand* Command;
-  cmPolicies::PolicyID Policy;
-  const char* Message;
+    cmCommand*           Command;
+    cmPolicies::PolicyID Policy;
+    const char*          Message;
 };
 
 #endif

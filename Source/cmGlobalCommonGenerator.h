@@ -3,7 +3,7 @@
 #ifndef cmGlobalCommonGenerator_h
 #define cmGlobalCommonGenerator_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmGlobalGenerator.h"
 
@@ -15,8 +15,8 @@ class cmake;
 class cmGlobalCommonGenerator : public cmGlobalGenerator
 {
 public:
-  cmGlobalCommonGenerator(cmake* cm);
-  ~cmGlobalCommonGenerator() override;
+    cmGlobalCommonGenerator(cmake* cm);
+    ~cmGlobalCommonGenerator() override;
 };
 
 #endif

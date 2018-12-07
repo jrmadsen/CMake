@@ -3,7 +3,7 @@
 #ifndef cmCPackGeneratorFactory_h
 #define cmCPackGeneratorFactory_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <map>
 #include <string>
@@ -19,35 +19,35 @@ class cmCPackLog;
 class cmCPackGeneratorFactory
 {
 public:
-  cmCPackGeneratorFactory();
-  ~cmCPackGeneratorFactory();
+    cmCPackGeneratorFactory();
+    ~cmCPackGeneratorFactory();
 
-  //! Get the generator
-  cmCPackGenerator* NewGenerator(const std::string& name);
-  void DeleteGenerator(cmCPackGenerator* gen);
+    //! Get the generator
+    cmCPackGenerator* NewGenerator(const std::string& name);
+    void              DeleteGenerator(cmCPackGenerator* gen);
 
-  typedef cmCPackGenerator* CreateGeneratorCall();
+    typedef cmCPackGenerator* CreateGeneratorCall();
 
-  void RegisterGenerator(const std::string& name,
-                         const char* generatorDescription,
-                         CreateGeneratorCall* createGenerator);
+    void RegisterGenerator(const std::string&   name,
+                           const char*          generatorDescription,
+                           CreateGeneratorCall* createGenerator);
 
-  void SetLogger(cmCPackLog* logger) { this->Logger = logger; }
+    void SetLogger(cmCPackLog* logger) { this->Logger = logger; }
 
-  typedef std::map<std::string, std::string> DescriptionsMap;
-  const DescriptionsMap& GetGeneratorsList() const
-  {
-    return this->GeneratorDescriptions;
-  }
+    typedef std::map<std::string, std::string> DescriptionsMap;
+    const DescriptionsMap&                     GetGeneratorsList() const
+    {
+        return this->GeneratorDescriptions;
+    }
 
 private:
-  cmCPackGenerator* NewGeneratorInternal(const std::string& name);
-  std::vector<cmCPackGenerator*> Generators;
+    cmCPackGenerator* NewGeneratorInternal(const std::string& name);
+    std::vector<cmCPackGenerator*> Generators;
 
-  typedef std::map<std::string, CreateGeneratorCall*> t_GeneratorCreatorsMap;
-  t_GeneratorCreatorsMap GeneratorCreators;
-  DescriptionsMap GeneratorDescriptions;
-  cmCPackLog* Logger;
+    typedef std::map<std::string, CreateGeneratorCall*> t_GeneratorCreatorsMap;
+    t_GeneratorCreatorsMap                              GeneratorCreators;
+    DescriptionsMap                                     GeneratorDescriptions;
+    cmCPackLog*                                         Logger;
 };
 
 #endif

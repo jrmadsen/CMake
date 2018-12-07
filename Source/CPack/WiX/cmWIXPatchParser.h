@@ -12,36 +12,36 @@
 
 struct cmWIXPatchNode
 {
-  enum Type
-  {
-    TEXT,
-    ELEMENT
-  };
+    enum Type
+    {
+        TEXT,
+        ELEMENT
+    };
 
-  virtual ~cmWIXPatchNode();
+    virtual ~cmWIXPatchNode();
 
-  virtual Type type() = 0;
+    virtual Type type() = 0;
 };
 
 struct cmWIXPatchText : public cmWIXPatchNode
 {
-  virtual Type type();
+    virtual Type type();
 
-  std::string text;
+    std::string text;
 };
 
 struct cmWIXPatchElement : cmWIXPatchNode
 {
-  virtual Type type();
+    virtual Type type();
 
-  ~cmWIXPatchElement();
+    ~cmWIXPatchElement();
 
-  typedef std::vector<cmWIXPatchNode*> child_list_t;
-  typedef std::map<std::string, std::string> attributes_t;
+    typedef std::vector<cmWIXPatchNode*>       child_list_t;
+    typedef std::map<std::string, std::string> attributes_t;
 
-  std::string name;
-  child_list_t children;
-  attributes_t attributes;
+    std::string  name;
+    child_list_t children;
+    attributes_t attributes;
 };
 
 /** \class cmWIXPatchParser
@@ -50,41 +50,41 @@ struct cmWIXPatchElement : cmWIXPatchNode
 class cmWIXPatchParser : public cmXMLParser
 {
 public:
-  typedef std::map<std::string, cmWIXPatchElement> fragment_map_t;
+    typedef std::map<std::string, cmWIXPatchElement> fragment_map_t;
 
-  cmWIXPatchParser(fragment_map_t& Fragments, cmCPackLog* logger);
+    cmWIXPatchParser(fragment_map_t& Fragments, cmCPackLog* logger);
 
 private:
-  virtual void StartElement(const std::string& name, const char** atts);
+    virtual void StartElement(const std::string& name, const char** atts);
 
-  void StartFragment(const char** attributes);
+    void StartFragment(const char** attributes);
 
-  virtual void EndElement(const std::string& name);
+    virtual void EndElement(const std::string& name);
 
-  virtual void CharacterDataHandler(const char* data, int length);
+    virtual void CharacterDataHandler(const char* data, int length);
 
-  virtual void ReportError(int line, int column, const char* msg);
+    virtual void ReportError(int line, int column, const char* msg);
 
-  void ReportValidationError(std::string const& message);
+    void ReportValidationError(std::string const& message);
 
-  bool IsValid() const;
+    bool IsValid() const;
 
-  cmCPackLog* Logger;
+    cmCPackLog* Logger;
 
-  enum ParserState
-  {
-    BEGIN_DOCUMENT,
-    BEGIN_FRAGMENTS,
-    INSIDE_FRAGMENT
-  };
+    enum ParserState
+    {
+        BEGIN_DOCUMENT,
+        BEGIN_FRAGMENTS,
+        INSIDE_FRAGMENT
+    };
 
-  ParserState State;
+    ParserState State;
 
-  bool Valid;
+    bool Valid;
 
-  fragment_map_t& Fragments;
+    fragment_map_t& Fragments;
 
-  std::vector<cmWIXPatchElement*> ElementStack;
+    std::vector<cmWIXPatchElement*> ElementStack;
 };
 
 #endif

@@ -3,7 +3,7 @@
 #ifndef cmGeneratorExpressionNode_h
 #define cmGeneratorExpressionNode_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <vector>
@@ -16,39 +16,41 @@ struct cmGeneratorExpressionDAGChecker;
 
 struct cmGeneratorExpressionNode
 {
-  enum
-  {
-    DynamicParameters = 0,
-    OneOrMoreParameters = -1,
-    OneOrZeroParameters = -2
-  };
-  virtual ~cmGeneratorExpressionNode() {}
+    enum
+    {
+        DynamicParameters   = 0,
+        OneOrMoreParameters = -1,
+        OneOrZeroParameters = -2
+    };
+    virtual ~cmGeneratorExpressionNode() {}
 
-  virtual bool GeneratesContent() const { return true; }
+    virtual bool GeneratesContent() const { return true; }
 
-  virtual bool RequiresLiteralInput() const { return false; }
+    virtual bool RequiresLiteralInput() const { return false; }
 
-  virtual bool AcceptsArbitraryContentParameter() const { return false; }
+    virtual bool AcceptsArbitraryContentParameter() const { return false; }
 
-  virtual int NumExpectedParameters() const { return 1; }
+    virtual int NumExpectedParameters() const { return 1; }
 
-  virtual std::string Evaluate(
-    const std::vector<std::string>& parameters,
-    cmGeneratorExpressionContext* context,
-    const GeneratorExpressionContent* content,
-    cmGeneratorExpressionDAGChecker* dagChecker) const = 0;
+    virtual std::string Evaluate(
+        const std::vector<std::string>&   parameters,
+        cmGeneratorExpressionContext*     context,
+        const GeneratorExpressionContent* content,
+        cmGeneratorExpressionDAGChecker*  dagChecker) const = 0;
 
-  static std::string EvaluateDependentExpression(
-    std::string const& prop, cmLocalGenerator* lg,
-    cmGeneratorExpressionContext* context, const cmGeneratorTarget* headTarget,
-    const cmGeneratorTarget* currentTarget,
-    cmGeneratorExpressionDAGChecker* dagChecker);
+    static std::string EvaluateDependentExpression(
+        std::string const& prop, cmLocalGenerator* lg,
+        cmGeneratorExpressionContext*    context,
+        const cmGeneratorTarget*         headTarget,
+        const cmGeneratorTarget*         currentTarget,
+        cmGeneratorExpressionDAGChecker* dagChecker);
 
-  static const cmGeneratorExpressionNode* GetNode(
-    const std::string& identifier);
+    static const cmGeneratorExpressionNode* GetNode(
+        const std::string& identifier);
 };
 
-void reportError(cmGeneratorExpressionContext* context,
-                 const std::string& expr, const std::string& result);
+void
+reportError(cmGeneratorExpressionContext* context, const std::string& expr,
+            const std::string& result);
 
 #endif

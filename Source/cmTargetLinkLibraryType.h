@@ -5,9 +5,9 @@
 
 enum cmTargetLinkLibraryType
 {
-  GENERAL_LibraryType,
-  DEBUG_LibraryType,
-  OPTIMIZED_LibraryType
+    GENERAL_LibraryType,
+    DEBUG_LibraryType,
+    OPTIMIZED_LibraryType
 };
 
 #endif

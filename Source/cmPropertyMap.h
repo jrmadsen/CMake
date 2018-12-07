@@ -3,7 +3,7 @@
 #ifndef cmPropertyMap_h
 #define cmPropertyMap_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmProperty.h"
 
@@ -14,16 +14,16 @@
 class cmPropertyMap : public std::map<std::string, cmProperty>
 {
 public:
-  cmProperty* GetOrCreateProperty(const std::string& name);
+    cmProperty* GetOrCreateProperty(const std::string& name);
 
-  std::vector<std::string> GetPropertyList() const;
+    std::vector<std::string> GetPropertyList() const;
 
-  void SetProperty(const std::string& name, const char* value);
+    void SetProperty(const std::string& name, const char* value);
 
-  void AppendProperty(const std::string& name, const char* value,
-                      bool asString = false);
+    void AppendProperty(const std::string& name, const char* value,
+                        bool asString = false);
 
-  const char* GetPropertyValue(const std::string& name) const;
+    const char* GetPropertyValue(const std::string& name) const;
 };
 
 #endif

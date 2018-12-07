@@ -11,21 +11,21 @@
 class cmCPackCygwinSourceGenerator : public cmCPackTarBZip2Generator
 {
 public:
-  cmCPackTypeMacro(cmCPackCygwinSourceGenerator, cmCPackTarBZip2Generator);
+    cmCPackTypeMacro(cmCPackCygwinSourceGenerator, cmCPackTarBZip2Generator);
 
-  /**
-   * Construct generator
-   */
-  cmCPackCygwinSourceGenerator();
-  ~cmCPackCygwinSourceGenerator() override;
+    /**
+     * Construct generator
+     */
+    cmCPackCygwinSourceGenerator();
+    ~cmCPackCygwinSourceGenerator() override;
 
 protected:
-  const char* GetPackagingInstallPrefix();
-  virtual int InitializeInternal();
-  int PackageFiles();
-  virtual const char* GetOutputExtension();
-  std::string InstallPrefix;
-  std::string OutputExtension;
+    const char*         GetPackagingInstallPrefix();
+    virtual int         InitializeInternal();
+    int                 PackageFiles();
+    virtual const char* GetOutputExtension();
+    std::string         InstallPrefix;
+    std::string         OutputExtension;
 };
 
 #endif

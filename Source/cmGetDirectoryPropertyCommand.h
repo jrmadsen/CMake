@@ -3,7 +3,7 @@
 #ifndef cmGetDirectoryPropertyCommand_h
 #define cmGetDirectoryPropertyCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <vector>
@@ -15,17 +15,17 @@ class cmExecutionStatus;
 class cmGetDirectoryPropertyCommand : public cmCommand
 {
 public:
-  cmCommand* Clone() override { return new cmGetDirectoryPropertyCommand; }
+    cmCommand* Clone() override { return new cmGetDirectoryPropertyCommand; }
 
-  /**
-   * This is called when the command is first encountered in
-   * the input file.
-   */
-  bool InitialPass(std::vector<std::string> const& args,
-                   cmExecutionStatus& status) override;
+    /**
+     * This is called when the command is first encountered in
+     * the input file.
+     */
+    bool InitialPass(std::vector<std::string> const& args,
+                     cmExecutionStatus&              status) override;
 
 private:
-  void StoreResult(const std::string& variable, const char* prop);
+    void StoreResult(const std::string& variable, const char* prop);
 };
 
 #endif

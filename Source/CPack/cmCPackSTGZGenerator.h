@@ -3,7 +3,7 @@
 #ifndef cmCPackSTGZGenerator_h
 #define cmCPackSTGZGenerator_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCPackGenerator.h"
 #include "cmCPackTGZGenerator.h"
@@ -17,19 +17,19 @@
 class cmCPackSTGZGenerator : public cmCPackTGZGenerator
 {
 public:
-  cmCPackTypeMacro(cmCPackSTGZGenerator, cmCPackTGZGenerator);
+    cmCPackTypeMacro(cmCPackSTGZGenerator, cmCPackTGZGenerator);
 
-  /**
-   * Construct generator
-   */
-  cmCPackSTGZGenerator();
-  ~cmCPackSTGZGenerator() override;
+    /**
+     * Construct generator
+     */
+    cmCPackSTGZGenerator();
+    ~cmCPackSTGZGenerator() override;
 
 protected:
-  int PackageFiles() override;
-  int InitializeInternal() override;
-  int GenerateHeader(std::ostream* os) override;
-  const char* GetOutputExtension() override { return ".sh"; }
+    int         PackageFiles() override;
+    int         InitializeInternal() override;
+    int         GenerateHeader(std::ostream* os) override;
+    const char* GetOutputExtension() override { return ".sh"; }
 };
 
 #endif

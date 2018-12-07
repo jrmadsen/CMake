@@ -2,25 +2,30 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmProperty.h"
 
-void cmProperty::Set(const char* value)
+void
+cmProperty::Set(const char* value)
 {
-  this->Value = value;
-  this->ValueHasBeenSet = true;
+    this->Value           = value;
+    this->ValueHasBeenSet = true;
 }
 
-void cmProperty::Append(const char* value, bool asString)
+void
+cmProperty::Append(const char* value, bool asString)
 {
-  if (!this->Value.empty() && *value && !asString) {
-    this->Value += ";";
-  }
-  this->Value += value;
-  this->ValueHasBeenSet = true;
+    if(!this->Value.empty() && *value && !asString)
+    {
+        this->Value += ";";
+    }
+    this->Value += value;
+    this->ValueHasBeenSet = true;
 }
 
-const char* cmProperty::GetValue() const
+const char*
+cmProperty::GetValue() const
 {
-  if (this->ValueHasBeenSet) {
-    return this->Value.c_str();
-  }
-  return nullptr;
+    if(this->ValueHasBeenSet)
+    {
+        return this->Value.c_str();
+    }
+    return nullptr;
 }

@@ -16,65 +16,65 @@
 class cmWIXSourceWriter
 {
 public:
-  enum GuidType
-  {
-    WIX_GENERATED_GUID,
-    CMAKE_GENERATED_GUID
-  };
+    enum GuidType
+    {
+        WIX_GENERATED_GUID,
+        CMAKE_GENERATED_GUID
+    };
 
-  enum RootElementType
-  {
-    WIX_ELEMENT_ROOT,
-    INCLUDE_ELEMENT_ROOT
-  };
+    enum RootElementType
+    {
+        WIX_ELEMENT_ROOT,
+        INCLUDE_ELEMENT_ROOT
+    };
 
-  cmWIXSourceWriter(cmCPackLog* logger, std::string const& filename,
-                    GuidType componentGuidType,
-                    RootElementType rootElementType = WIX_ELEMENT_ROOT);
+    cmWIXSourceWriter(cmCPackLog* logger, std::string const& filename,
+                      GuidType        componentGuidType,
+                      RootElementType rootElementType = WIX_ELEMENT_ROOT);
 
-  ~cmWIXSourceWriter();
+    ~cmWIXSourceWriter();
 
-  void BeginElement(std::string const& name);
+    void BeginElement(std::string const& name);
 
-  void EndElement(std::string const& name);
+    void EndElement(std::string const& name);
 
-  void AddTextNode(std::string const& text);
+    void AddTextNode(std::string const& text);
 
-  void AddProcessingInstruction(std::string const& target,
-                                std::string const& content);
+    void AddProcessingInstruction(std::string const& target,
+                                  std::string const& content);
 
-  void AddAttribute(std::string const& key, std::string const& value);
+    void AddAttribute(std::string const& key, std::string const& value);
 
-  void AddAttributeUnlessEmpty(std::string const& key,
-                               std::string const& value);
+    void AddAttributeUnlessEmpty(std::string const& key,
+                                 std::string const& value);
 
-  std::string CreateGuidFromComponentId(std::string const& componentId);
+    std::string CreateGuidFromComponentId(std::string const& componentId);
 
 protected:
-  cmCPackLog* Logger;
+    cmCPackLog* Logger;
 
 private:
-  enum State
-  {
-    DEFAULT,
-    BEGIN
-  };
+    enum State
+    {
+        DEFAULT,
+        BEGIN
+    };
 
-  void WriteXMLDeclaration();
+    void WriteXMLDeclaration();
 
-  void Indent(size_t count);
+    void Indent(size_t count);
 
-  static std::string EscapeAttributeValue(std::string const& value);
+    static std::string EscapeAttributeValue(std::string const& value);
 
-  cmsys::ofstream File;
+    cmsys::ofstream File;
 
-  State State;
+    State State;
 
-  std::vector<std::string> Elements;
+    std::vector<std::string> Elements;
 
-  std::string SourceFilename;
+    std::string SourceFilename;
 
-  GuidType ComponentGuidType;
+    GuidType ComponentGuidType;
 };
 
 #endif

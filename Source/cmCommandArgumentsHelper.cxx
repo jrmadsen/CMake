@@ -3,231 +3,277 @@
 #include "cmCommandArgumentsHelper.h"
 
 cmCommandArgument::cmCommandArgument(cmCommandArgumentsHelper* args,
-                                     const char* key,
-                                     cmCommandArgumentGroup* group)
-  : Key(key)
-  , Group(group)
-  , WasActive(false)
-  , ArgumentsBeforeEmpty(true)
-  , CurrentIndex(0)
+                                     const char*               key,
+                                     cmCommandArgumentGroup*   group)
+: Key(key)
+, Group(group)
+, WasActive(false)
+, ArgumentsBeforeEmpty(true)
+, CurrentIndex(0)
 {
-  if (args != nullptr) {
-    args->AddArgument(this);
-  }
-
-  if (this->Group != nullptr) {
-    this->Group->ContainedArguments.push_back(this);
-  }
-}
-
-void cmCommandArgument::Reset()
-{
-  this->WasActive = false;
-  this->CurrentIndex = 0;
-  this->DoReset();
-}
-
-void cmCommandArgument::Follows(const cmCommandArgument* arg)
-{
-  this->ArgumentsBeforeEmpty = false;
-  this->ArgumentsBefore.insert(arg);
-}
-
-void cmCommandArgument::FollowsGroup(const cmCommandArgumentGroup* group)
-{
-  if (group != nullptr) {
-    this->ArgumentsBeforeEmpty = false;
-    this->ArgumentsBefore.insert(group->ContainedArguments.begin(),
-                                 group->ContainedArguments.end());
-  }
-}
-
-bool cmCommandArgument::MayFollow(const cmCommandArgument* current) const
-{
-  if (this->ArgumentsBeforeEmpty) {
-    return true;
-  }
-  return this->ArgumentsBefore.find(current) != this->ArgumentsBefore.end();
-}
-
-bool cmCommandArgument::KeyMatches(const std::string& key) const
-{
-  if ((this->Key == nullptr) || (this->Key[0] == '\0')) {
-    return true;
-  }
-  return (key == this->Key);
-}
-
-void cmCommandArgument::ApplyOwnGroup()
-{
-  if (this->Group != nullptr) {
-    for (cmCommandArgument* cargs : this->Group->ContainedArguments) {
-      if (cargs != this) {
-        this->ArgumentsBefore.insert(cargs);
-      }
+    if(args != nullptr)
+    {
+        args->AddArgument(this);
     }
-  }
+
+    if(this->Group != nullptr)
+    {
+        this->Group->ContainedArguments.push_back(this);
+    }
 }
 
-void cmCommandArgument::Activate()
+void
+cmCommandArgument::Reset()
 {
-  this->WasActive = true;
-  this->CurrentIndex = 0;
+    this->WasActive    = false;
+    this->CurrentIndex = 0;
+    this->DoReset();
 }
 
-bool cmCommandArgument::Consume(const std::string& arg)
+void
+cmCommandArgument::Follows(const cmCommandArgument* arg)
 {
-  bool res = this->DoConsume(arg, this->CurrentIndex);
-  this->CurrentIndex++;
-  return res;
+    this->ArgumentsBeforeEmpty = false;
+    this->ArgumentsBefore.insert(arg);
+}
+
+void
+cmCommandArgument::FollowsGroup(const cmCommandArgumentGroup* group)
+{
+    if(group != nullptr)
+    {
+        this->ArgumentsBeforeEmpty = false;
+        this->ArgumentsBefore.insert(group->ContainedArguments.begin(),
+                                     group->ContainedArguments.end());
+    }
+}
+
+bool
+cmCommandArgument::MayFollow(const cmCommandArgument* current) const
+{
+    if(this->ArgumentsBeforeEmpty)
+    {
+        return true;
+    }
+    return this->ArgumentsBefore.find(current) != this->ArgumentsBefore.end();
+}
+
+bool
+cmCommandArgument::KeyMatches(const std::string& key) const
+{
+    if((this->Key == nullptr) || (this->Key[0] == '\0'))
+    {
+        return true;
+    }
+    return (key == this->Key);
+}
+
+void
+cmCommandArgument::ApplyOwnGroup()
+{
+    if(this->Group != nullptr)
+    {
+        for(cmCommandArgument* cargs : this->Group->ContainedArguments)
+        {
+            if(cargs != this)
+            {
+                this->ArgumentsBefore.insert(cargs);
+            }
+        }
+    }
+}
+
+void
+cmCommandArgument::Activate()
+{
+    this->WasActive    = true;
+    this->CurrentIndex = 0;
+}
+
+bool
+cmCommandArgument::Consume(const std::string& arg)
+{
+    bool res = this->DoConsume(arg, this->CurrentIndex);
+    this->CurrentIndex++;
+    return res;
 }
 
 cmCAStringVector::cmCAStringVector(cmCommandArgumentsHelper* args,
-                                   const char* key,
-                                   cmCommandArgumentGroup* group)
-  : cmCommandArgument(args, key, group)
-  , Ignore(nullptr)
+                                   const char*               key,
+                                   cmCommandArgumentGroup*   group)
+: cmCommandArgument(args, key, group)
+, Ignore(nullptr)
 {
-  if ((key == nullptr) || (*key == 0)) {
-    this->DataStart = 0;
-  } else {
-    this->DataStart = 1;
-  }
-}
-
-bool cmCAStringVector::DoConsume(const std::string& arg, unsigned int index)
-{
-  if (index >= this->DataStart) {
-    if ((this->Ignore == nullptr) || (arg != this->Ignore)) {
-      this->Vector.push_back(arg);
+    if((key == nullptr) || (*key == 0))
+    {
+        this->DataStart = 0;
+    } else
+    {
+        this->DataStart = 1;
     }
-  }
-
-  return false;
 }
 
-void cmCAStringVector::DoReset()
+bool
+cmCAStringVector::DoConsume(const std::string& arg, unsigned int index)
 {
-  this->Vector.clear();
+    if(index >= this->DataStart)
+    {
+        if((this->Ignore == nullptr) || (arg != this->Ignore))
+        {
+            this->Vector.push_back(arg);
+        }
+    }
+
+    return false;
+}
+
+void
+cmCAStringVector::DoReset()
+{
+    this->Vector.clear();
 }
 
 cmCAString::cmCAString(cmCommandArgumentsHelper* args, const char* key,
                        cmCommandArgumentGroup* group)
-  : cmCommandArgument(args, key, group)
+: cmCommandArgument(args, key, group)
 {
-  if ((key == nullptr) || (*key == 0)) {
-    this->DataStart = 0;
-  } else {
-    this->DataStart = 1;
-  }
+    if((key == nullptr) || (*key == 0))
+    {
+        this->DataStart = 0;
+    } else
+    {
+        this->DataStart = 1;
+    }
 }
 
-bool cmCAString::DoConsume(const std::string& arg, unsigned int index)
+bool
+cmCAString::DoConsume(const std::string& arg, unsigned int index)
 {
-  if (index == this->DataStart) {
-    this->String = arg;
-  }
+    if(index == this->DataStart)
+    {
+        this->String = arg;
+    }
 
-  return index >= this->DataStart;
+    return index >= this->DataStart;
 }
 
-void cmCAString::DoReset()
+void
+cmCAString::DoReset()
 {
-  this->String.clear();
+    this->String.clear();
 }
 
 cmCAEnabler::cmCAEnabler(cmCommandArgumentsHelper* args, const char* key,
                          cmCommandArgumentGroup* group)
-  : cmCommandArgument(args, key, group)
-  , Enabled(false)
+: cmCommandArgument(args, key, group)
+, Enabled(false)
+{}
+
+bool
+cmCAEnabler::DoConsume(const std::string&, unsigned int index)
 {
+    if(index == 0)
+    {
+        this->Enabled = true;
+    }
+    return true;
 }
 
-bool cmCAEnabler::DoConsume(const std::string&, unsigned int index)
+void
+cmCAEnabler::DoReset()
 {
-  if (index == 0) {
-    this->Enabled = true;
-  }
-  return true;
-}
-
-void cmCAEnabler::DoReset()
-{
-  this->Enabled = false;
+    this->Enabled = false;
 }
 
 cmCADisabler::cmCADisabler(cmCommandArgumentsHelper* args, const char* key,
                            cmCommandArgumentGroup* group)
-  : cmCommandArgument(args, key, group)
-  , Enabled(true)
+: cmCommandArgument(args, key, group)
+, Enabled(true)
+{}
+
+bool
+cmCADisabler::DoConsume(const std::string&, unsigned int index)
 {
+    if(index == 0)
+    {
+        this->Enabled = false;
+    }
+    return true;
 }
 
-bool cmCADisabler::DoConsume(const std::string&, unsigned int index)
+void
+cmCADisabler::DoReset()
 {
-  if (index == 0) {
-    this->Enabled = false;
-  }
-  return true;
+    this->Enabled = true;
 }
 
-void cmCADisabler::DoReset()
+void
+cmCommandArgumentGroup::Follows(const cmCommandArgument* arg)
 {
-  this->Enabled = true;
+    for(cmCommandArgument* ca : this->ContainedArguments)
+    {
+        ca->Follows(arg);
+    }
 }
 
-void cmCommandArgumentGroup::Follows(const cmCommandArgument* arg)
+void
+cmCommandArgumentGroup::FollowsGroup(const cmCommandArgumentGroup* group)
 {
-  for (cmCommandArgument* ca : this->ContainedArguments) {
-    ca->Follows(arg);
-  }
+    for(cmCommandArgument* ca : this->ContainedArguments)
+    {
+        ca->FollowsGroup(group);
+    }
 }
 
-void cmCommandArgumentGroup::FollowsGroup(const cmCommandArgumentGroup* group)
+void
+cmCommandArgumentsHelper::Parse(const std::vector<std::string>* args,
+                                std::vector<std::string>*       unconsumedArgs)
 {
-  for (cmCommandArgument* ca : this->ContainedArguments) {
-    ca->FollowsGroup(group);
-  }
-}
-
-void cmCommandArgumentsHelper::Parse(const std::vector<std::string>* args,
-                                     std::vector<std::string>* unconsumedArgs)
-{
-  if (args == nullptr) {
-    return;
-  }
-
-  for (cmCommandArgument* ca : this->Arguments) {
-    ca->ApplyOwnGroup();
-    ca->Reset();
-  }
-
-  cmCommandArgument* activeArgument = nullptr;
-  const cmCommandArgument* previousArgument = nullptr;
-  for (std::string const& it : *args) {
-    for (cmCommandArgument* ca : this->Arguments) {
-      if (ca->KeyMatches(it) && (ca->MayFollow(previousArgument))) {
-        activeArgument = ca;
-        activeArgument->Activate();
-        break;
-      }
+    if(args == nullptr)
+    {
+        return;
     }
 
-    if (activeArgument) {
-      bool argDone = activeArgument->Consume(it);
-      previousArgument = activeArgument;
-      if (argDone) {
-        activeArgument = nullptr;
-      }
-    } else {
-      if (unconsumedArgs != nullptr) {
-        unconsumedArgs->push_back(it);
-      }
+    for(cmCommandArgument* ca : this->Arguments)
+    {
+        ca->ApplyOwnGroup();
+        ca->Reset();
     }
-  }
+
+    cmCommandArgument*       activeArgument   = nullptr;
+    const cmCommandArgument* previousArgument = nullptr;
+    for(std::string const& it : *args)
+    {
+        for(cmCommandArgument* ca : this->Arguments)
+        {
+            if(ca->KeyMatches(it) && (ca->MayFollow(previousArgument)))
+            {
+                activeArgument = ca;
+                activeArgument->Activate();
+                break;
+            }
+        }
+
+        if(activeArgument)
+        {
+            bool argDone     = activeArgument->Consume(it);
+            previousArgument = activeArgument;
+            if(argDone)
+            {
+                activeArgument = nullptr;
+            }
+        } else
+        {
+            if(unconsumedArgs != nullptr)
+            {
+                unconsumedArgs->push_back(it);
+            }
+        }
+    }
 }
 
-void cmCommandArgumentsHelper::AddArgument(cmCommandArgument* arg)
+void
+cmCommandArgumentsHelper::AddArgument(cmCommandArgument* arg)
 {
-  this->Arguments.push_back(arg);
+    this->Arguments.push_back(arg);
 }

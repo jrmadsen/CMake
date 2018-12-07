@@ -14,19 +14,19 @@
 class cmWIXFeaturesSourceWriter : public cmWIXSourceWriter
 {
 public:
-  cmWIXFeaturesSourceWriter(cmCPackLog* logger, std::string const& filename,
-                            GuidType componentGuidType);
+    cmWIXFeaturesSourceWriter(cmCPackLog* logger, std::string const& filename,
+                              GuidType componentGuidType);
 
-  void CreateCMakePackageRegistryEntry(std::string const& package,
-                                       std::string const& upgradeGuid);
+    void CreateCMakePackageRegistryEntry(std::string const& package,
+                                         std::string const& upgradeGuid);
 
-  void EmitFeatureForComponentGroup(const cmCPackComponentGroup& group,
-                                    cmWIXPatch& patch);
+    void EmitFeatureForComponentGroup(const cmCPackComponentGroup& group,
+                                      cmWIXPatch&                  patch);
 
-  void EmitFeatureForComponent(const cmCPackComponent& component,
-                               cmWIXPatch& patch);
+    void EmitFeatureForComponent(const cmCPackComponent& component,
+                                 cmWIXPatch&             patch);
 
-  void EmitComponentRef(std::string const& id);
+    void EmitComponentRef(std::string const& id);
 };
 
 #endif

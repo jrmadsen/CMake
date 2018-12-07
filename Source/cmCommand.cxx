@@ -7,27 +7,32 @@
 class cmExecutionStatus;
 struct cmListFileArgument;
 
-bool cmCommand::InvokeInitialPass(const std::vector<cmListFileArgument>& args,
-                                  cmExecutionStatus& status)
+bool
+cmCommand::InvokeInitialPass(const std::vector<cmListFileArgument>& args,
+                             cmExecutionStatus&                     status)
 {
-  std::vector<std::string> expandedArguments;
-  if (!this->Makefile->ExpandArguments(args, expandedArguments)) {
-    // There was an error expanding arguments.  It was already
-    // reported, so we can skip this command without error.
-    return true;
-  }
-  return this->InitialPass(expandedArguments, status);
+    std::vector<std::string> expandedArguments;
+    if(!this->Makefile->ExpandArguments(args, expandedArguments))
+    {
+        // There was an error expanding arguments.  It was already
+        // reported, so we can skip this command without error.
+        return true;
+    }
+    return this->InitialPass(expandedArguments, status);
 }
 
-const char* cmCommand::GetError()
+const char*
+cmCommand::GetError()
 {
-  if (this->Error.empty()) {
-    return "unknown error.";
-  }
-  return this->Error.c_str();
+    if(this->Error.empty())
+    {
+        return "unknown error.";
+    }
+    return this->Error.c_str();
 }
 
-void cmCommand::SetError(const std::string& e)
+void
+cmCommand::SetError(const std::string& e)
 {
-  this->Error = e;
+    this->Error = e;
 }

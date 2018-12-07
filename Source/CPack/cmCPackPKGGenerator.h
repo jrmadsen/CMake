@@ -3,7 +3,7 @@
 #ifndef cmCPackPKGGenerator_h
 #define cmCPackPKGGenerator_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <set>
 #include <sstream>
@@ -21,72 +21,73 @@ class cmXMLWriter;
 class cmCPackPKGGenerator : public cmCPackGenerator
 {
 public:
-  cmCPackTypeMacro(cmCPackPKGGenerator, cmCPackGenerator);
+    cmCPackTypeMacro(cmCPackPKGGenerator, cmCPackGenerator);
 
-  /**
-   * Construct generator
-   */
-  cmCPackPKGGenerator();
-  ~cmCPackPKGGenerator() override;
+    /**
+     * Construct generator
+     */
+    cmCPackPKGGenerator();
+    ~cmCPackPKGGenerator() override;
 
-  bool SupportsComponentInstallation() const override;
+    bool SupportsComponentInstallation() const override;
 
 protected:
-  int InitializeInternal() override;
-  const char* GetOutputPostfix() override { return "darwin"; }
+    int         InitializeInternal() override;
+    const char* GetOutputPostfix() override { return "darwin"; }
 
-  // Copies or creates the resource file with the given name to the
-  // package or package staging directory dirName. The variable
-  // CPACK_RESOURCE_FILE_${NAME} (where ${NAME} is the uppercased
-  // version of name) specifies the input file to use for this file,
-  // which will be configured via ConfigureFile.
-  bool CopyCreateResourceFile(const std::string& name,
-                              const std::string& dirName);
-  bool CopyResourcePlistFile(const std::string& name, const char* outName = 0);
+    // Copies or creates the resource file with the given name to the
+    // package or package staging directory dirName. The variable
+    // CPACK_RESOURCE_FILE_${NAME} (where ${NAME} is the uppercased
+    // version of name) specifies the input file to use for this file,
+    // which will be configured via ConfigureFile.
+    bool CopyCreateResourceFile(const std::string& name,
+                                const std::string& dirName);
+    bool CopyResourcePlistFile(const std::string& name,
+                               const char*        outName = 0);
 
-  int CopyInstallScript(const std::string& resdir, const std::string& script,
-                        const std::string& name);
+    int CopyInstallScript(const std::string& resdir, const std::string& script,
+                          const std::string& name);
 
-  // Retrieve the name of package file that will be generated for this
-  // component. The name is just the file name with extension, and
-  // does not include the subdirectory.
-  std::string GetPackageName(const cmCPackComponent& component);
+    // Retrieve the name of package file that will be generated for this
+    // component. The name is just the file name with extension, and
+    // does not include the subdirectory.
+    std::string GetPackageName(const cmCPackComponent& component);
 
-  // Writes a distribution.dist file, which turns a metapackage into a
-  // full-fledged distribution. This file is used to describe
-  // inter-component dependencies. metapackageFile is the name of the
-  // metapackage for the distribution. Only valid for a
-  // component-based install.
-  void WriteDistributionFile(const char* metapackageFile);
+    // Writes a distribution.dist file, which turns a metapackage into a
+    // full-fledged distribution. This file is used to describe
+    // inter-component dependencies. metapackageFile is the name of the
+    // metapackage for the distribution. Only valid for a
+    // component-based install.
+    void WriteDistributionFile(const char* metapackageFile);
 
-  // Subroutine of WriteDistributionFile that writes out the
-  // dependency attributes for inter-component dependencies.
-  void AddDependencyAttributes(const cmCPackComponent& component,
-                               std::set<const cmCPackComponent*>& visited,
-                               std::ostringstream& out);
+    // Subroutine of WriteDistributionFile that writes out the
+    // dependency attributes for inter-component dependencies.
+    void AddDependencyAttributes(const cmCPackComponent&            component,
+                                 std::set<const cmCPackComponent*>& visited,
+                                 std::ostringstream&                out);
 
-  // Subroutine of WriteDistributionFile that writes out the
-  // reverse dependency attributes for inter-component dependencies.
-  void AddReverseDependencyAttributes(
-    const cmCPackComponent& component,
-    std::set<const cmCPackComponent*>& visited, std::ostringstream& out);
+    // Subroutine of WriteDistributionFile that writes out the
+    // reverse dependency attributes for inter-component dependencies.
+    void AddReverseDependencyAttributes(
+        const cmCPackComponent&            component,
+        std::set<const cmCPackComponent*>& visited, std::ostringstream& out);
 
-  // Generates XML that encodes the hierarchy of component groups and
-  // their components in a form that can be used by distribution
-  // metapackages.
-  void CreateChoiceOutline(const cmCPackComponentGroup& group,
-                           cmXMLWriter& xout);
+    // Generates XML that encodes the hierarchy of component groups and
+    // their components in a form that can be used by distribution
+    // metapackages.
+    void CreateChoiceOutline(const cmCPackComponentGroup& group,
+                             cmXMLWriter&                 xout);
 
-  /// Create the "choice" XML element to describe a component group
-  /// for the installer GUI.
-  void CreateChoice(const cmCPackComponentGroup& group, cmXMLWriter& xout);
+    /// Create the "choice" XML element to describe a component group
+    /// for the installer GUI.
+    void CreateChoice(const cmCPackComponentGroup& group, cmXMLWriter& xout);
 
-  /// Create the "choice" XML element to describe a component for the
-  /// installer GUI.
-  void CreateChoice(const cmCPackComponent& component, cmXMLWriter& xout);
+    /// Create the "choice" XML element to describe a component for the
+    /// installer GUI.
+    void CreateChoice(const cmCPackComponent& component, cmXMLWriter& xout);
 
-  // The PostFlight component when creating a metapackage
-  cmCPackComponent PostFlightComponent;
+    // The PostFlight component when creating a metapackage
+    cmCPackComponent PostFlightComponent;
 };
 
 #endif

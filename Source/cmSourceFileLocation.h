@@ -3,7 +3,7 @@
 #ifndef cmSourceFileLocation_h
 #define cmSourceFileLocation_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 
@@ -24,78 +24,78 @@ class cmMakefile;
 class cmSourceFileLocation
 {
 public:
-  /**
-   * Construct for a source file created in a given cmMakefile
-   * instance with an initial name.
-   */
-  cmSourceFileLocation(
-    cmMakefile const* mf, const std::string& name,
-    cmSourceFileLocationKind kind = cmSourceFileLocationKind::Ambiguous);
-  cmSourceFileLocation();
-  cmSourceFileLocation(const cmSourceFileLocation& loc);
+    /**
+     * Construct for a source file created in a given cmMakefile
+     * instance with an initial name.
+     */
+    cmSourceFileLocation(
+        cmMakefile const* mf, const std::string& name,
+        cmSourceFileLocationKind kind = cmSourceFileLocationKind::Ambiguous);
+    cmSourceFileLocation();
+    cmSourceFileLocation(const cmSourceFileLocation& loc);
 
-  /**
-   * Return whether the given source file location could refers to the
-   * same source file as this location given the level of ambiguity in
-   * each location.
-   */
-  bool Matches(cmSourceFileLocation const& loc);
+    /**
+     * Return whether the given source file location could refers to the
+     * same source file as this location given the level of ambiguity in
+     * each location.
+     */
+    bool Matches(cmSourceFileLocation const& loc);
 
-  /**
-   * Explicitly state that the source file is located in the source tree.
-   */
-  void DirectoryUseSource();
+    /**
+     * Explicitly state that the source file is located in the source tree.
+     */
+    void DirectoryUseSource();
 
-  /**
-   * Explicitly state that the source file is located in the build tree.
-   */
-  void DirectoryUseBinary();
+    /**
+     * Explicitly state that the source file is located in the build tree.
+     */
+    void DirectoryUseBinary();
 
-  /**
-   * Return whether the directory containing the source is ambiguous.
-   */
-  bool DirectoryIsAmbiguous() const { return this->AmbiguousDirectory; }
+    /**
+     * Return whether the directory containing the source is ambiguous.
+     */
+    bool DirectoryIsAmbiguous() const { return this->AmbiguousDirectory; }
 
-  /**
-   * Return whether the extension of the source name is ambiguous.
-   */
-  bool ExtensionIsAmbiguous() const { return this->AmbiguousExtension; }
+    /**
+     * Return whether the extension of the source name is ambiguous.
+     */
+    bool ExtensionIsAmbiguous() const { return this->AmbiguousExtension; }
 
-  /**
-   * Get the directory containing the file as best is currently known.
-   * If DirectoryIsAmbiguous() returns false this will be a full path.
-   * Otherwise it will be a relative path (possibly empty) that is
-   * either with respect to the source or build tree.
-   */
-  const std::string& GetDirectory() const { return this->Directory; }
+    /**
+     * Get the directory containing the file as best is currently known.
+     * If DirectoryIsAmbiguous() returns false this will be a full path.
+     * Otherwise it will be a relative path (possibly empty) that is
+     * either with respect to the source or build tree.
+     */
+    const std::string& GetDirectory() const { return this->Directory; }
 
-  /**
-   * Get the file name as best is currently known.  If
-   * ExtensionIsAmbiguous() returns true this name may not be the
-   * final name (but could be).  Otherwise the returned name is the
-   * final name.
-   */
-  const std::string& GetName() const { return this->Name; }
+    /**
+     * Get the file name as best is currently known.  If
+     * ExtensionIsAmbiguous() returns true this name may not be the
+     * final name (but could be).  Otherwise the returned name is the
+     * final name.
+     */
+    const std::string& GetName() const { return this->Name; }
 
-  /**
-   * Get the cmMakefile instance for which the source file was created.
-   */
-  cmMakefile const* GetMakefile() const { return this->Makefile; }
+    /**
+     * Get the cmMakefile instance for which the source file was created.
+     */
+    cmMakefile const* GetMakefile() const { return this->Makefile; }
 
 private:
-  cmMakefile const* const Makefile;
-  bool AmbiguousDirectory;
-  bool AmbiguousExtension;
-  std::string Directory;
-  std::string Name;
+    cmMakefile const* const Makefile;
+    bool                    AmbiguousDirectory;
+    bool                    AmbiguousExtension;
+    std::string             Directory;
+    std::string             Name;
 
-  bool MatchesAmbiguousExtension(cmSourceFileLocation const& loc) const;
+    bool MatchesAmbiguousExtension(cmSourceFileLocation const& loc) const;
 
-  // Update the location with additional knowledge.
-  void Update(cmSourceFileLocation const& loc);
-  void UpdateExtension(const std::string& name);
+    // Update the location with additional knowledge.
+    void Update(cmSourceFileLocation const& loc);
+    void UpdateExtension(const std::string& name);
 
-  cmSourceFileLocation& operator=(const cmSourceFileLocation& loc) = delete;
+    cmSourceFileLocation& operator=(const cmSourceFileLocation& loc) = delete;
 };
 
 #endif

@@ -3,25 +3,25 @@
 #ifndef cmGhsMultiGpj_h
 #define cmGhsMultiGpj_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 class cmGeneratedFileStream;
 
 class GhsMultiGpj
 {
 public:
-  enum Types
-  {
-    INTERGRITY_APPLICATION,
-    LIBRARY,
-    PROJECT,
-    PROGRAM,
-    REFERENCE,
-    SUBPROJECT
-  };
+    enum Types
+    {
+        INTERGRITY_APPLICATION,
+        LIBRARY,
+        PROJECT,
+        PROGRAM,
+        REFERENCE,
+        SUBPROJECT
+    };
 
-  static void WriteGpjTag(Types const gpjType,
-                          cmGeneratedFileStream* filestream);
+    static void WriteGpjTag(Types const            gpjType,
+                            cmGeneratedFileStream* filestream);
 };
 
-#endif // ! cmGhsMultiGpjType_h
+#endif  // ! cmGhsMultiGpjType_h

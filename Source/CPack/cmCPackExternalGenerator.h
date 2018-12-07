@@ -10,7 +10,8 @@
 #include <string>
 
 class cmGlobalGenerator;
-namespace Json {
+namespace Json
+{
 class Value;
 }
 
@@ -20,70 +21,71 @@ class Value;
 class cmCPackExternalGenerator : public cmCPackGenerator
 {
 public:
-  cmCPackTypeMacro(cmCPackExternalGenerator, cmCPackGenerator);
+    cmCPackTypeMacro(cmCPackExternalGenerator, cmCPackGenerator);
 
-  const char* GetOutputExtension() override { return ".json"; }
+    const char* GetOutputExtension() override { return ".json"; }
 
 protected:
-  int InitializeInternal() override;
+    int InitializeInternal() override;
 
-  int PackageFiles() override;
+    int PackageFiles() override;
 
-  bool SupportsComponentInstallation() const override;
+    bool SupportsComponentInstallation() const override;
 
-  int InstallProjectViaInstallCommands(
-    bool setDestDir, const std::string& tempInstallDirectory) override;
-  int InstallProjectViaInstallScript(
-    bool setDestDir, const std::string& tempInstallDirectory) override;
-  int InstallProjectViaInstalledDirectories(
-    bool setDestDir, const std::string& tempInstallDirectory,
-    const mode_t* default_dir_mode) override;
+    int InstallProjectViaInstallCommands(
+        bool setDestDir, const std::string& tempInstallDirectory) override;
+    int InstallProjectViaInstallScript(
+        bool setDestDir, const std::string& tempInstallDirectory) override;
+    int InstallProjectViaInstalledDirectories(
+        bool setDestDir, const std::string& tempInstallDirectory,
+        const mode_t* default_dir_mode) override;
 
-  int RunPreinstallTarget(const std::string& installProjectName,
-                          const std::string& installDirectory,
-                          cmGlobalGenerator* globalGenerator,
-                          const std::string& buildConfig) override;
-  int InstallCMakeProject(bool setDestDir, const std::string& installDirectory,
-                          const std::string& baseTempInstallDirectory,
-                          const mode_t* default_dir_mode,
-                          const std::string& component, bool componentInstall,
-                          const std::string& installSubDirectory,
-                          const std::string& buildConfig,
-                          std::string& absoluteDestFiles) override;
+    int RunPreinstallTarget(const std::string& installProjectName,
+                            const std::string& installDirectory,
+                            cmGlobalGenerator* globalGenerator,
+                            const std::string& buildConfig) override;
+    int InstallCMakeProject(bool               setDestDir,
+                            const std::string& installDirectory,
+                            const std::string& baseTempInstallDirectory,
+                            const mode_t*      default_dir_mode,
+                            const std::string& component, bool componentInstall,
+                            const std::string& installSubDirectory,
+                            const std::string& buildConfig,
+                            std::string&       absoluteDestFiles) override;
 
 private:
-  bool StagingEnabled() const;
+    bool StagingEnabled() const;
 
-  class cmCPackExternalVersionGenerator
-  {
-  public:
-    cmCPackExternalVersionGenerator(cmCPackExternalGenerator* parent);
+    class cmCPackExternalVersionGenerator
+    {
+    public:
+        cmCPackExternalVersionGenerator(cmCPackExternalGenerator* parent);
 
-    virtual ~cmCPackExternalVersionGenerator() = default;
+        virtual ~cmCPackExternalVersionGenerator() = default;
 
-    virtual int WriteToJSON(Json::Value& root);
+        virtual int WriteToJSON(Json::Value& root);
 
-  protected:
-    virtual int GetVersionMajor() = 0;
-    virtual int GetVersionMinor() = 0;
+    protected:
+        virtual int GetVersionMajor() = 0;
+        virtual int GetVersionMinor() = 0;
 
-    int WriteVersion(Json::Value& root);
+        int WriteVersion(Json::Value& root);
 
-    cmCPackExternalGenerator* Parent;
-  };
+        cmCPackExternalGenerator* Parent;
+    };
 
-  class cmCPackExternalVersion1Generator
+    class cmCPackExternalVersion1Generator
     : public cmCPackExternalVersionGenerator
-  {
-  public:
-    using cmCPackExternalVersionGenerator::cmCPackExternalVersionGenerator;
+    {
+    public:
+        using cmCPackExternalVersionGenerator::cmCPackExternalVersionGenerator;
 
-  protected:
-    int GetVersionMajor() override { return 1; }
-    int GetVersionMinor() override { return 0; }
-  };
+    protected:
+        int GetVersionMajor() override { return 1; }
+        int GetVersionMinor() override { return 0; }
+    };
 
-  std::unique_ptr<cmCPackExternalVersionGenerator> Generator;
+    std::unique_ptr<cmCPackExternalVersionGenerator> Generator;
 };
 
 #endif

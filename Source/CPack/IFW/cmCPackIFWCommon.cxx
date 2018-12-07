@@ -4,7 +4,7 @@
 
 #include "cmCPackGenerator.h"
 #include "cmCPackIFWGenerator.h"
-#include "cmCPackLog.h" // IWYU pragma: keep
+#include "cmCPackLog.h"  // IWYU pragma: keep
 #include "cmSystemTools.h"
 #include "cmTimestamp.h"
 #include "cmVersionConfig.h"
@@ -15,123 +15,147 @@
 #include <vector>
 
 cmCPackIFWCommon::cmCPackIFWCommon()
-  : Generator(nullptr)
+: Generator(nullptr)
+{}
+
+const char*
+cmCPackIFWCommon::GetOption(const std::string& op) const
 {
+    return this->Generator ? this->Generator->cmCPackGenerator::GetOption(op)
+                           : nullptr;
 }
 
-const char* cmCPackIFWCommon::GetOption(const std::string& op) const
+bool
+cmCPackIFWCommon::IsOn(const std::string& op) const
 {
-  return this->Generator ? this->Generator->cmCPackGenerator::GetOption(op)
-                         : nullptr;
+    return this->Generator ? this->Generator->cmCPackGenerator::IsOn(op)
+                           : false;
 }
 
-bool cmCPackIFWCommon::IsOn(const std::string& op) const
+bool
+cmCPackIFWCommon::IsSetToOff(const std::string& op) const
 {
-  return this->Generator ? this->Generator->cmCPackGenerator::IsOn(op) : false;
+    return this->Generator ? this->Generator->cmCPackGenerator::IsSetToOff(op)
+                           : false;
 }
 
-bool cmCPackIFWCommon::IsSetToOff(const std::string& op) const
+bool
+cmCPackIFWCommon::IsSetToEmpty(const std::string& op) const
 {
-  return this->Generator ? this->Generator->cmCPackGenerator::IsSetToOff(op)
-                         : false;
+    return this->Generator ? this->Generator->cmCPackGenerator::IsSetToEmpty(op)
+                           : false;
 }
 
-bool cmCPackIFWCommon::IsSetToEmpty(const std::string& op) const
+bool
+cmCPackIFWCommon::IsVersionLess(const char* version)
 {
-  return this->Generator ? this->Generator->cmCPackGenerator::IsSetToEmpty(op)
-                         : false;
+    if(!this->Generator)
+    {
+        return false;
+    }
+
+    return cmSystemTools::VersionCompare(
+        cmSystemTools::OP_LESS, this->Generator->FrameworkVersion.data(),
+        version);
 }
 
-bool cmCPackIFWCommon::IsVersionLess(const char* version)
+bool
+cmCPackIFWCommon::IsVersionGreater(const char* version)
 {
-  if (!this->Generator) {
-    return false;
-  }
+    if(!this->Generator)
+    {
+        return false;
+    }
 
-  return cmSystemTools::VersionCompare(
-    cmSystemTools::OP_LESS, this->Generator->FrameworkVersion.data(), version);
+    return cmSystemTools::VersionCompare(
+        cmSystemTools::OP_GREATER, this->Generator->FrameworkVersion.data(),
+        version);
 }
 
-bool cmCPackIFWCommon::IsVersionGreater(const char* version)
+bool
+cmCPackIFWCommon::IsVersionEqual(const char* version)
 {
-  if (!this->Generator) {
-    return false;
-  }
+    if(!this->Generator)
+    {
+        return false;
+    }
 
-  return cmSystemTools::VersionCompare(
-    cmSystemTools::OP_GREATER, this->Generator->FrameworkVersion.data(),
-    version);
+    return cmSystemTools::VersionCompare(
+        cmSystemTools::OP_EQUAL, this->Generator->FrameworkVersion.data(),
+        version);
 }
 
-bool cmCPackIFWCommon::IsVersionEqual(const char* version)
+void
+cmCPackIFWCommon::ExpandListArgument(
+    const std::string& arg, std::map<std::string, std::string>& argsOut)
 {
-  if (!this->Generator) {
-    return false;
-  }
+    std::vector<std::string> args;
+    cmSystemTools::ExpandListArgument(arg, args, false);
+    if(args.empty())
+    {
+        return;
+    }
 
-  return cmSystemTools::VersionCompare(
-    cmSystemTools::OP_EQUAL, this->Generator->FrameworkVersion.data(),
-    version);
+    std::size_t i = 0;
+    std::size_t c = args.size();
+    if(c % 2)
+    {
+        argsOut[""] = args[i];
+        ++i;
+    }
+
+    --c;
+    for(; i < c; i += 2)
+    {
+        argsOut[args[i]] = args[i + 1];
+    }
 }
 
-void cmCPackIFWCommon::ExpandListArgument(
-  const std::string& arg, std::map<std::string, std::string>& argsOut)
+void
+cmCPackIFWCommon::ExpandListArgument(
+    const std::string& arg, std::multimap<std::string, std::string>& argsOut)
 {
-  std::vector<std::string> args;
-  cmSystemTools::ExpandListArgument(arg, args, false);
-  if (args.empty()) {
-    return;
-  }
+    std::vector<std::string> args;
+    cmSystemTools::ExpandListArgument(arg, args, false);
+    if(args.empty())
+    {
+        return;
+    }
 
-  std::size_t i = 0;
-  std::size_t c = args.size();
-  if (c % 2) {
-    argsOut[""] = args[i];
-    ++i;
-  }
+    std::size_t i = 0;
+    std::size_t c = args.size();
+    if(c % 2)
+    {
+        argsOut.insert(std::pair<std::string, std::string>("", args[i]));
+        ++i;
+    }
 
-  --c;
-  for (; i < c; i += 2) {
-    argsOut[args[i]] = args[i + 1];
-  }
+    --c;
+    for(; i < c; i += 2)
+    {
+        argsOut.insert(
+            std::pair<std::string, std::string>(args[i], args[i + 1]));
+    }
 }
 
-void cmCPackIFWCommon::ExpandListArgument(
-  const std::string& arg, std::multimap<std::string, std::string>& argsOut)
+void
+cmCPackIFWCommon::WriteGeneratedByToStrim(cmXMLWriter& xout)
 {
-  std::vector<std::string> args;
-  cmSystemTools::ExpandListArgument(arg, args, false);
-  if (args.empty()) {
-    return;
-  }
+    if(!this->Generator)
+    {
+        return;
+    }
 
-  std::size_t i = 0;
-  std::size_t c = args.size();
-  if (c % 2) {
-    argsOut.insert(std::pair<std::string, std::string>("", args[i]));
-    ++i;
-  }
-
-  --c;
-  for (; i < c; i += 2) {
-    argsOut.insert(std::pair<std::string, std::string>(args[i], args[i + 1]));
-  }
-}
-
-void cmCPackIFWCommon::WriteGeneratedByToStrim(cmXMLWriter& xout)
-{
-  if (!this->Generator) {
-    return;
-  }
-
-  std::ostringstream comment;
-  comment << "Generated by CPack " << CMake_VERSION << " IFW generator "
-          << "for QtIFW ";
-  if (this->IsVersionEqual("1.9.9")) {
-    comment << "less 2.0";
-  } else {
-    comment << this->Generator->FrameworkVersion;
-  }
-  comment << " tools at " << cmTimestamp().CurrentTime("", true);
-  xout.Comment(comment.str().c_str());
+    std::ostringstream comment;
+    comment << "Generated by CPack " << CMake_VERSION << " IFW generator "
+            << "for QtIFW ";
+    if(this->IsVersionEqual("1.9.9"))
+    {
+        comment << "less 2.0";
+    } else
+    {
+        comment << this->Generator->FrameworkVersion;
+    }
+    comment << " tools at " << cmTimestamp().CurrentTime("", true);
+    xout.Comment(comment.str().c_str());
 }

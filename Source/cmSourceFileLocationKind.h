@@ -5,11 +5,11 @@
 
 enum class cmSourceFileLocationKind
 {
-  // The location is user-specified and may be ambiguous.
-  Ambiguous,
-  // The location is known to be at the given location; do not try to guess at
-  // extensions or absolute path.
-  Known
+    // The location is user-specified and may be ambiguous.
+    Ambiguous,
+    // The location is known to be at the given location; do not try to guess at
+    // extensions or absolute path.
+    Known
 };
 
 #endif

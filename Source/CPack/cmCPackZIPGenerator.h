@@ -3,7 +3,7 @@
 #ifndef cmCPackZIPGenerator_h
 #define cmCPackZIPGenerator_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCPackArchiveGenerator.h"
 #include "cmCPackGenerator.h"
@@ -14,16 +14,16 @@
 class cmCPackZIPGenerator : public cmCPackArchiveGenerator
 {
 public:
-  cmCPackTypeMacro(cmCPackZIPGenerator, cmCPackArchiveGenerator);
+    cmCPackTypeMacro(cmCPackZIPGenerator, cmCPackArchiveGenerator);
 
-  /**
-   * Construct generator
-   */
-  cmCPackZIPGenerator();
-  ~cmCPackZIPGenerator() override;
+    /**
+     * Construct generator
+     */
+    cmCPackZIPGenerator();
+    ~cmCPackZIPGenerator() override;
 
 protected:
-  const char* GetOutputExtension() override { return ".zip"; }
+    const char* GetOutputExtension() override { return ".zip"; }
 };
 
 #endif

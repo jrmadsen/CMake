@@ -8,15 +8,17 @@
 
 class cmExecutionStatus;
 
-bool cmUnexpectedCommand::InitialPass(std::vector<std::string> const&,
-                                      cmExecutionStatus&)
+bool
+cmUnexpectedCommand::InitialPass(std::vector<std::string> const&,
+                                 cmExecutionStatus&)
 {
-  const char* versionValue =
-    this->Makefile->GetDefinition("CMAKE_MINIMUM_REQUIRED_VERSION");
-  if (this->Name == "endif" && (!versionValue || atof(versionValue) <= 1.4)) {
-    return true;
-  }
+    const char* versionValue =
+        this->Makefile->GetDefinition("CMAKE_MINIMUM_REQUIRED_VERSION");
+    if(this->Name == "endif" && (!versionValue || atof(versionValue) <= 1.4))
+    {
+        return true;
+    }
 
-  this->SetError(this->Error);
-  return false;
+    this->SetError(this->Error);
+    return false;
 }

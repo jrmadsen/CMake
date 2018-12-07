@@ -3,7 +3,7 @@
 #ifndef cmVariableRequiresCommand_h
 #define cmVariableRequiresCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <vector>
@@ -15,9 +15,9 @@ class cmExecutionStatus;
 class cmVariableRequiresCommand : public cmCommand
 {
 public:
-  cmCommand* Clone() override { return new cmVariableRequiresCommand; }
-  bool InitialPass(std::vector<std::string> const& args,
-                   cmExecutionStatus& status) override;
+    cmCommand* Clone() override { return new cmVariableRequiresCommand; }
+    bool       InitialPass(std::vector<std::string> const& args,
+                           cmExecutionStatus&              status) override;
 };
 
 #endif

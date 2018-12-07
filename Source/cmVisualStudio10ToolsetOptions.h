@@ -3,7 +3,7 @@
 #ifndef cmVisualStudio10ToolsetOptions_h
 #define cmVisualStudio10ToolsetOptions_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 
@@ -17,21 +17,21 @@ struct cmIDEFlagTable;
 class cmVisualStudio10ToolsetOptions
 {
 public:
-  cmIDEFlagTable const* GetClFlagTable(std::string const& name,
-                                       std::string const& toolset) const;
-  cmIDEFlagTable const* GetCSharpFlagTable(std::string const& name,
+    cmIDEFlagTable const* GetClFlagTable(std::string const& name,
+                                         std::string const& toolset) const;
+    cmIDEFlagTable const* GetCSharpFlagTable(std::string const& name,
+                                             std::string const& toolset) const;
+    cmIDEFlagTable const* GetRcFlagTable(std::string const& name,
+                                         std::string const& toolset) const;
+    cmIDEFlagTable const* GetLibFlagTable(std::string const& name,
+                                          std::string const& toolset) const;
+    cmIDEFlagTable const* GetLinkFlagTable(std::string const& name,
                                            std::string const& toolset) const;
-  cmIDEFlagTable const* GetRcFlagTable(std::string const& name,
-                                       std::string const& toolset) const;
-  cmIDEFlagTable const* GetLibFlagTable(std::string const& name,
-                                        std::string const& toolset) const;
-  cmIDEFlagTable const* GetLinkFlagTable(std::string const& name,
-                                         std::string const& toolset) const;
-  cmIDEFlagTable const* GetMasmFlagTable(std::string const& name,
-                                         std::string const& toolset) const;
+    cmIDEFlagTable const* GetMasmFlagTable(std::string const& name,
+                                           std::string const& toolset) const;
 
 private:
-  std::string GetToolsetName(std::string const& name,
-                             std::string const& toolset) const;
+    std::string GetToolsetName(std::string const& name,
+                               std::string const& toolset) const;
 };
 #endif

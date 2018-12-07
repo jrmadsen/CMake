@@ -3,7 +3,7 @@
 #ifndef cmTargetLinkLibrariesCommand_h
 #define cmTargetLinkLibrariesCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <vector>
@@ -27,37 +27,37 @@ class cmTarget;
 class cmTargetLinkLibrariesCommand : public cmCommand
 {
 public:
-  /**
-   * This is a virtual constructor for the command.
-   */
-  cmCommand* Clone() override { return new cmTargetLinkLibrariesCommand; }
+    /**
+     * This is a virtual constructor for the command.
+     */
+    cmCommand* Clone() override { return new cmTargetLinkLibrariesCommand; }
 
-  /**
-   * This is called when the command is first encountered in
-   * the CMakeLists.txt file.
-   */
-  bool InitialPass(std::vector<std::string> const& args,
-                   cmExecutionStatus& status) override;
+    /**
+     * This is called when the command is first encountered in
+     * the CMakeLists.txt file.
+     */
+    bool InitialPass(std::vector<std::string> const& args,
+                     cmExecutionStatus&              status) override;
 
 private:
-  void LinkLibraryTypeSpecifierWarning(int left, int right);
-  static const char* LinkLibraryTypeNames[3];
+    void               LinkLibraryTypeSpecifierWarning(int left, int right);
+    static const char* LinkLibraryTypeNames[3];
 
-  cmTarget* Target = nullptr;
-  enum ProcessingState
-  {
-    ProcessingLinkLibraries,
-    ProcessingPlainLinkInterface,
-    ProcessingKeywordLinkInterface,
-    ProcessingPlainPublicInterface,
-    ProcessingKeywordPublicInterface,
-    ProcessingPlainPrivateInterface,
-    ProcessingKeywordPrivateInterface
-  };
+    cmTarget* Target = nullptr;
+    enum ProcessingState
+    {
+        ProcessingLinkLibraries,
+        ProcessingPlainLinkInterface,
+        ProcessingKeywordLinkInterface,
+        ProcessingPlainPublicInterface,
+        ProcessingKeywordPublicInterface,
+        ProcessingPlainPrivateInterface,
+        ProcessingKeywordPrivateInterface
+    };
 
-  ProcessingState CurrentProcessingState = ProcessingLinkLibraries;
+    ProcessingState CurrentProcessingState = ProcessingLinkLibraries;
 
-  bool HandleLibrary(const std::string& lib, cmTargetLinkLibraryType llt);
+    bool HandleLibrary(const std::string& lib, cmTargetLinkLibraryType llt);
 };
 
 #endif

@@ -3,7 +3,7 @@
 #ifndef cmCTestGIT_h
 #define cmCTestGIT_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCTestGlobalVC.h"
 
@@ -19,39 +19,39 @@ class cmCTest;
 class cmCTestGIT : public cmCTestGlobalVC
 {
 public:
-  /** Construct with a CTest instance and update log stream.  */
-  cmCTestGIT(cmCTest* ctest, std::ostream& log);
+    /** Construct with a CTest instance and update log stream.  */
+    cmCTestGIT(cmCTest* ctest, std::ostream& log);
 
-  ~cmCTestGIT() override;
+    ~cmCTestGIT() override;
 
 private:
-  unsigned int CurrentGitVersion;
-  unsigned int GetGitVersion();
-  std::string GetWorkingRevision();
-  bool NoteOldRevision() override;
-  bool NoteNewRevision() override;
-  bool UpdateImpl() override;
+    unsigned int CurrentGitVersion;
+    unsigned int GetGitVersion();
+    std::string  GetWorkingRevision();
+    bool         NoteOldRevision() override;
+    bool         NoteNewRevision() override;
+    bool         UpdateImpl() override;
 
-  std::string FindGitDir();
-  std::string FindTopDir();
+    std::string FindGitDir();
+    std::string FindTopDir();
 
-  bool UpdateByFetchAndReset();
-  bool UpdateByCustom(std::string const& custom);
-  bool UpdateInternal();
+    bool UpdateByFetchAndReset();
+    bool UpdateByCustom(std::string const& custom);
+    bool UpdateInternal();
 
-  bool LoadRevisions() override;
-  bool LoadModifications() override;
+    bool LoadRevisions() override;
+    bool LoadModifications() override;
 
-  // "public" needed by older Sun compilers
+    // "public" needed by older Sun compilers
 public:
-  // Parsing helper classes.
-  class CommitParser;
-  class DiffParser;
-  class OneLineParser;
+    // Parsing helper classes.
+    class CommitParser;
+    class DiffParser;
+    class OneLineParser;
 
-  friend class CommitParser;
-  friend class DiffParser;
-  friend class OneLineParser;
+    friend class CommitParser;
+    friend class DiffParser;
+    friend class OneLineParser;
 };
 
 #endif

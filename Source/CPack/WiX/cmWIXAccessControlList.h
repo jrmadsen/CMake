@@ -11,24 +11,25 @@
 class cmWIXAccessControlList
 {
 public:
-  cmWIXAccessControlList(cmCPackLog* logger,
-                         cmInstalledFile const& installedFile,
-                         cmWIXSourceWriter& sourceWriter);
+    cmWIXAccessControlList(cmCPackLog*            logger,
+                           cmInstalledFile const& installedFile,
+                           cmWIXSourceWriter&     sourceWriter);
 
-  bool Apply();
+    bool Apply();
 
 private:
-  void CreatePermissionElement(std::string const& entry);
+    void CreatePermissionElement(std::string const& entry);
 
-  void ReportError(std::string const& entry, std::string const& message);
+    void ReportError(std::string const& entry, std::string const& message);
 
-  bool IsBooleanAttribute(std::string const& name);
+    bool IsBooleanAttribute(std::string const& name);
 
-  void EmitBooleanAttribute(std::string const& entry, std::string const& name);
+    void EmitBooleanAttribute(std::string const& entry,
+                              std::string const& name);
 
-  cmCPackLog* Logger;
-  cmInstalledFile const& InstalledFile;
-  cmWIXSourceWriter& SourceWriter;
+    cmCPackLog*            Logger;
+    cmInstalledFile const& InstalledFile;
+    cmWIXSourceWriter&     SourceWriter;
 };
 
 #endif

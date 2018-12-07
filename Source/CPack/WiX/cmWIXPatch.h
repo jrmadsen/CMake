@@ -14,24 +14,24 @@
 class cmWIXPatch
 {
 public:
-  cmWIXPatch(cmCPackLog* logger);
+    cmWIXPatch(cmCPackLog* logger);
 
-  bool LoadFragments(std::string const& patchFilePath);
+    bool LoadFragments(std::string const& patchFilePath);
 
-  void ApplyFragment(std::string const& id, cmWIXSourceWriter& writer);
+    void ApplyFragment(std::string const& id, cmWIXSourceWriter& writer);
 
-  bool CheckForUnappliedFragments();
+    bool CheckForUnappliedFragments();
 
 private:
-  void ApplyElementChildren(const cmWIXPatchElement& element,
-                            cmWIXSourceWriter& writer);
+    void ApplyElementChildren(const cmWIXPatchElement& element,
+                              cmWIXSourceWriter&       writer);
 
-  void ApplyElement(const cmWIXPatchElement& element,
-                    cmWIXSourceWriter& writer);
+    void ApplyElement(const cmWIXPatchElement& element,
+                      cmWIXSourceWriter&       writer);
 
-  cmCPackLog* Logger;
+    cmCPackLog* Logger;
 
-  cmWIXPatchParser::fragment_map_t Fragments;
+    cmWIXPatchParser::fragment_map_t Fragments;
 };
 
 #endif

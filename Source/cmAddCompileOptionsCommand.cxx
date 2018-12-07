@@ -6,15 +6,18 @@
 
 class cmExecutionStatus;
 
-bool cmAddCompileOptionsCommand::InitialPass(
-  std::vector<std::string> const& args, cmExecutionStatus&)
+bool
+cmAddCompileOptionsCommand::InitialPass(std::vector<std::string> const& args,
+                                        cmExecutionStatus&)
 {
-  if (args.empty()) {
-    return true;
-  }
+    if(args.empty())
+    {
+        return true;
+    }
 
-  for (std::string const& i : args) {
-    this->Makefile->AddCompileOption(i);
-  }
-  return true;
+    for(std::string const& i : args)
+    {
+        this->Makefile->AddCompileOption(i);
+    }
+    return true;
 }

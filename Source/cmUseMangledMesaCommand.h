@@ -3,7 +3,7 @@
 #ifndef cmUseMangledMesaCommand_h
 #define cmUseMangledMesaCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <vector>
@@ -15,12 +15,12 @@ class cmExecutionStatus;
 class cmUseMangledMesaCommand : public cmCommand
 {
 public:
-  cmCommand* Clone() override { return new cmUseMangledMesaCommand; }
-  bool InitialPass(std::vector<std::string> const& args,
-                   cmExecutionStatus& status) override;
+    cmCommand* Clone() override { return new cmUseMangledMesaCommand; }
+    bool       InitialPass(std::vector<std::string> const& args,
+                           cmExecutionStatus&              status) override;
 
 protected:
-  void CopyAndFullPathMesaHeader(const char* source, const char* outdir);
+    void CopyAndFullPathMesaHeader(const char* source, const char* outdir);
 };
 
 #endif

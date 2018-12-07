@@ -2,7 +2,4 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmFindFileCommand.h"
 
-cmFindFileCommand::cmFindFileCommand()
-{
-  this->IncludeFileInPath = true;
-}
+cmFindFileCommand::cmFindFileCommand() { this->IncludeFileInPath = true; }

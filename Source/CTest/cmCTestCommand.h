@@ -18,14 +18,14 @@ class cmCTestScriptHandler;
 class cmCTestCommand : public cmCommand
 {
 public:
-  cmCTestCommand()
-  {
-    this->CTest = nullptr;
-    this->CTestScriptHandler = nullptr;
-  }
+    cmCTestCommand()
+    {
+        this->CTest              = nullptr;
+        this->CTestScriptHandler = nullptr;
+    }
 
-  cmCTest* CTest;
-  cmCTestScriptHandler* CTestScriptHandler;
+    cmCTest*              CTest;
+    cmCTestScriptHandler* CTestScriptHandler;
 };
 
 #endif

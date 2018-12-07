@@ -3,7 +3,7 @@
 #ifndef cmGeneratorExpressionParser_h
 #define cmGeneratorExpressionParser_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <vector>
 
@@ -13,19 +13,20 @@ struct cmGeneratorExpressionEvaluator;
 
 struct cmGeneratorExpressionParser
 {
-  cmGeneratorExpressionParser(
-    const std::vector<cmGeneratorExpressionToken>& tokens);
+    cmGeneratorExpressionParser(
+        const std::vector<cmGeneratorExpressionToken>& tokens);
 
-  void Parse(std::vector<cmGeneratorExpressionEvaluator*>& result);
-
-private:
-  void ParseContent(std::vector<cmGeneratorExpressionEvaluator*>&);
-  void ParseGeneratorExpression(std::vector<cmGeneratorExpressionEvaluator*>&);
+    void Parse(std::vector<cmGeneratorExpressionEvaluator*>& result);
 
 private:
-  std::vector<cmGeneratorExpressionToken>::const_iterator it;
-  const std::vector<cmGeneratorExpressionToken> Tokens;
-  unsigned int NestingLevel;
+    void ParseContent(std::vector<cmGeneratorExpressionEvaluator*>&);
+    void ParseGeneratorExpression(
+        std::vector<cmGeneratorExpressionEvaluator*>&);
+
+private:
+    std::vector<cmGeneratorExpressionToken>::const_iterator it;
+    const std::vector<cmGeneratorExpressionToken>           Tokens;
+    unsigned int                                            NestingLevel;
 };
 
 #endif

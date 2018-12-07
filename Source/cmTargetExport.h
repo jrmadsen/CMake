@@ -3,7 +3,7 @@
 #ifndef cmTargetExport_h
 #define cmTargetExport_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 
@@ -18,20 +18,20 @@ class cmInstallTargetGenerator;
 class cmTargetExport
 {
 public:
-  std::string TargetName;
-  cmGeneratorTarget* Target;
+    std::string        TargetName;
+    cmGeneratorTarget* Target;
 
-  ///@name Generators
-  ///@{
-  cmInstallTargetGenerator* ArchiveGenerator;
-  cmInstallTargetGenerator* RuntimeGenerator;
-  cmInstallTargetGenerator* LibraryGenerator;
-  cmInstallTargetGenerator* ObjectsGenerator;
-  cmInstallTargetGenerator* FrameworkGenerator;
-  cmInstallTargetGenerator* BundleGenerator;
-  cmInstallFilesGenerator* HeaderGenerator;
-  std::string InterfaceIncludeDirectories;
-  ///@}
+    ///@name Generators
+    ///@{
+    cmInstallTargetGenerator* ArchiveGenerator;
+    cmInstallTargetGenerator* RuntimeGenerator;
+    cmInstallTargetGenerator* LibraryGenerator;
+    cmInstallTargetGenerator* ObjectsGenerator;
+    cmInstallTargetGenerator* FrameworkGenerator;
+    cmInstallTargetGenerator* BundleGenerator;
+    cmInstallFilesGenerator*  HeaderGenerator;
+    std::string               InterfaceIncludeDirectories;
+    ///@}
 };
 
 #endif

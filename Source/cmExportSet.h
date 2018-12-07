@@ -3,7 +3,7 @@
 #ifndef cmExportSet_h
 #define cmExportSet_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <vector>
@@ -16,36 +16,35 @@ class cmTargetExport;
 class cmExportSet
 {
 public:
-  /// Construct an empty export set named \a name
-  cmExportSet(const std::string& name)
+    /// Construct an empty export set named \a name
+    cmExportSet(const std::string& name)
     : Name(name)
-  {
-  }
-  /// Destructor
-  ~cmExportSet();
+    {}
+    /// Destructor
+    ~cmExportSet();
 
-  void Compute(cmLocalGenerator* lg);
+    void Compute(cmLocalGenerator* lg);
 
-  void AddTargetExport(cmTargetExport* tgt);
+    void AddTargetExport(cmTargetExport* tgt);
 
-  void AddInstallation(cmInstallExportGenerator const* installation);
+    void AddInstallation(cmInstallExportGenerator const* installation);
 
-  std::string const& GetName() const { return this->Name; }
+    std::string const& GetName() const { return this->Name; }
 
-  std::vector<cmTargetExport*> const* GetTargetExports() const
-  {
-    return &this->TargetExports;
-  }
+    std::vector<cmTargetExport*> const* GetTargetExports() const
+    {
+        return &this->TargetExports;
+    }
 
-  std::vector<cmInstallExportGenerator const*> const* GetInstallations() const
-  {
-    return &this->Installations;
-  }
+    std::vector<cmInstallExportGenerator const*> const* GetInstallations() const
+    {
+        return &this->Installations;
+    }
 
 private:
-  std::vector<cmTargetExport*> TargetExports;
-  std::string Name;
-  std::vector<cmInstallExportGenerator const*> Installations;
+    std::vector<cmTargetExport*>                 TargetExports;
+    std::string                                  Name;
+    std::vector<cmInstallExportGenerator const*> Installations;
 };
 
 #endif

@@ -8,47 +8,56 @@
 class cmExecutionStatus;
 
 // cmSubdirCommand
-bool cmSubdirCommand::InitialPass(std::vector<std::string> const& args,
-                                  cmExecutionStatus&)
+bool
+cmSubdirCommand::InitialPass(std::vector<std::string> const& args,
+                             cmExecutionStatus&)
 {
-  if (args.empty()) {
-    this->SetError("called with incorrect number of arguments");
-    return false;
-  }
-  bool res = true;
-  bool excludeFromAll = false;
+    if(args.empty())
+    {
+        this->SetError("called with incorrect number of arguments");
+        return false;
+    }
+    bool res            = true;
+    bool excludeFromAll = false;
 
-  for (std::string const& i : args) {
-    if (i == "EXCLUDE_FROM_ALL") {
-      excludeFromAll = true;
-      continue;
-    }
-    if (i == "PREORDER") {
-      // Ignored
-      continue;
-    }
+    for(std::string const& i : args)
+    {
+        if(i == "EXCLUDE_FROM_ALL")
+        {
+            excludeFromAll = true;
+            continue;
+        }
+        if(i == "PREORDER")
+        {
+            // Ignored
+            continue;
+        }
 
-    // if they specified a relative path then compute the full
-    std::string srcPath =
-      this->Makefile->GetCurrentSourceDirectory() + "/" + i;
-    if (cmSystemTools::FileIsDirectory(srcPath)) {
-      std::string binPath =
-        this->Makefile->GetCurrentBinaryDirectory() + "/" + i;
-      this->Makefile->AddSubDirectory(srcPath, binPath, excludeFromAll, false);
+        // if they specified a relative path then compute the full
+        std::string srcPath =
+            this->Makefile->GetCurrentSourceDirectory() + "/" + i;
+        if(cmSystemTools::FileIsDirectory(srcPath))
+        {
+            std::string binPath =
+                this->Makefile->GetCurrentBinaryDirectory() + "/" + i;
+            this->Makefile->AddSubDirectory(srcPath, binPath, excludeFromAll,
+                                            false);
+        }
+        // otherwise it is a full path
+        else if(cmSystemTools::FileIsDirectory(i))
+        {
+            // we must compute the binPath from the srcPath, we just take the
+            // last element from the source path and use that
+            std::string binPath = this->Makefile->GetCurrentBinaryDirectory() +
+                                  "/" + cmSystemTools::GetFilenameName(i);
+            this->Makefile->AddSubDirectory(i, binPath, excludeFromAll, false);
+        } else
+        {
+            std::string error = "Incorrect SUBDIRS command. Directory: ";
+            error += i + " does not exist.";
+            this->SetError(error);
+            res = false;
+        }
     }
-    // otherwise it is a full path
-    else if (cmSystemTools::FileIsDirectory(i)) {
-      // we must compute the binPath from the srcPath, we just take the last
-      // element from the source path and use that
-      std::string binPath = this->Makefile->GetCurrentBinaryDirectory() + "/" +
-        cmSystemTools::GetFilenameName(i);
-      this->Makefile->AddSubDirectory(i, binPath, excludeFromAll, false);
-    } else {
-      std::string error = "Incorrect SUBDIRS command. Directory: ";
-      error += i + " does not exist.";
-      this->SetError(error);
-      res = false;
-    }
-  }
-  return res;
+    return res;
 }

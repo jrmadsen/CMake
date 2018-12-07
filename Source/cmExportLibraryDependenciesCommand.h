@@ -3,7 +3,7 @@
 #ifndef cmExportLibraryDependenciesCommand_h
 #define cmExportLibraryDependenciesCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <vector>
@@ -15,20 +15,20 @@ class cmExecutionStatus;
 class cmExportLibraryDependenciesCommand : public cmCommand
 {
 public:
-  cmCommand* Clone() override
-  {
-    return new cmExportLibraryDependenciesCommand;
-  }
-  bool InitialPass(std::vector<std::string> const& args,
-                   cmExecutionStatus& status) override;
+    cmCommand* Clone() override
+    {
+        return new cmExportLibraryDependenciesCommand;
+    }
+    bool InitialPass(std::vector<std::string> const& args,
+                     cmExecutionStatus&              status) override;
 
-  void FinalPass() override;
-  bool HasFinalPass() const override { return true; }
+    void FinalPass() override;
+    bool HasFinalPass() const override { return true; }
 
 private:
-  std::string Filename;
-  bool Append = false;
-  void ConstFinalPass() const;
+    std::string Filename;
+    bool        Append = false;
+    void        ConstFinalPass() const;
 };
 
 #endif

@@ -4,7 +4,7 @@
 #define cmVSSetupHelper_h
 
 #ifndef NOMINMAX
-#  define NOMINMAX // Undefine min and max defined by windows.h
+#    define NOMINMAX  // Undefine min and max defined by windows.h
 #endif
 
 // Published by Visual Studio Setup team
@@ -15,143 +15,151 @@
 
 #include <windows.h>
 
-template <class T>
-class SmartCOMPtr
+template <class T> class SmartCOMPtr
 {
 public:
-  SmartCOMPtr() { ptr = NULL; }
-  SmartCOMPtr(T* p)
-  {
-    ptr = p;
-    if (ptr != NULL)
-      ptr->AddRef();
-  }
-  SmartCOMPtr(const SmartCOMPtr<T>& sptr)
-  {
-    ptr = sptr.ptr;
-    if (ptr != NULL)
-      ptr->AddRef();
-  }
-  T** operator&() { return &ptr; }
-  T* operator->() { return ptr; }
-  T* operator=(T* p)
-  {
-    if (*this != p) {
-      ptr = p;
-      if (ptr != NULL)
-        ptr->AddRef();
+    SmartCOMPtr() { ptr = NULL; }
+    SmartCOMPtr(T* p)
+    {
+        ptr = p;
+        if(ptr != NULL)
+            ptr->AddRef();
     }
-    return *this;
-  }
-  operator T*() const { return ptr; }
-  template <class I>
-  HRESULT QueryInterface(REFCLSID rclsid, I** pp)
-  {
-    if (pp != NULL) {
-      return ptr->QueryInterface(rclsid, (void**)pp);
-    } else {
-      return E_FAIL;
+    SmartCOMPtr(const SmartCOMPtr<T>& sptr)
+    {
+        ptr = sptr.ptr;
+        if(ptr != NULL)
+            ptr->AddRef();
     }
-  }
-  HRESULT CoCreateInstance(REFCLSID clsid, IUnknown* pUnknown,
-                           REFIID interfaceId, DWORD dwClsContext = CLSCTX_ALL)
-  {
-    HRESULT hr = ::CoCreateInstance(clsid, pUnknown, dwClsContext, interfaceId,
-                                    (void**)&ptr);
-    return hr;
-  }
-  ~SmartCOMPtr()
-  {
-    if (ptr != NULL)
-      ptr->Release();
-  }
+    T** operator&() { return &ptr; }
+    T*  operator->() { return ptr; }
+    T*  operator=(T* p)
+    {
+        if(*this != p)
+        {
+            ptr = p;
+            if(ptr != NULL)
+                ptr->AddRef();
+        }
+        return *this;
+    }
+                               operator T*() const { return ptr; }
+    template <class I> HRESULT QueryInterface(REFCLSID rclsid, I** pp)
+    {
+        if(pp != NULL)
+        {
+            return ptr->QueryInterface(rclsid, (void**) pp);
+        } else
+        {
+            return E_FAIL;
+        }
+    }
+    HRESULT CoCreateInstance(REFCLSID clsid, IUnknown* pUnknown,
+                             REFIID interfaceId,
+                             DWORD  dwClsContext = CLSCTX_ALL)
+    {
+        HRESULT hr = ::CoCreateInstance(clsid, pUnknown, dwClsContext,
+                                        interfaceId, (void**) &ptr);
+        return hr;
+    }
+    ~SmartCOMPtr()
+    {
+        if(ptr != NULL)
+            ptr->Release();
+    }
 
 private:
-  T* ptr;
+    T* ptr;
 };
 
 class SmartBSTR
 {
 public:
-  SmartBSTR() { str = NULL; }
-  SmartBSTR(const SmartBSTR& src)
-  {
-    if (src.str != NULL) {
-      str = ::SysAllocStringByteLen((char*)str, ::SysStringByteLen(str));
-    } else {
-      str = ::SysAllocStringByteLen(NULL, 0);
+    SmartBSTR() { str = NULL; }
+    SmartBSTR(const SmartBSTR& src)
+    {
+        if(src.str != NULL)
+        {
+            str = ::SysAllocStringByteLen((char*) str, ::SysStringByteLen(str));
+        } else
+        {
+            str = ::SysAllocStringByteLen(NULL, 0);
+        }
     }
-  }
-  SmartBSTR& operator=(const SmartBSTR& src)
-  {
-    if (str != src.str) {
-      ::SysFreeString(str);
-      if (src.str != NULL) {
-        str = ::SysAllocStringByteLen((char*)str, ::SysStringByteLen(str));
-      } else {
-        str = ::SysAllocStringByteLen(NULL, 0);
-      }
+    SmartBSTR& operator=(const SmartBSTR& src)
+    {
+        if(str != src.str)
+        {
+            ::SysFreeString(str);
+            if(src.str != NULL)
+            {
+                str = ::SysAllocStringByteLen((char*) str,
+                                              ::SysStringByteLen(str));
+            } else
+            {
+                str = ::SysAllocStringByteLen(NULL, 0);
+            }
+        }
+        return *this;
     }
-    return *this;
-  }
-  operator BSTR() const { return str; }
-  BSTR* operator&() throw() { return &str; }
-  ~SmartBSTR() throw() { ::SysFreeString(str); }
+          operator BSTR() const { return str; }
+    BSTR* operator&() throw() { return &str; }
+    ~SmartBSTR() throw() { ::SysFreeString(str); }
 
 private:
-  BSTR str;
+    BSTR str;
 };
 
 struct VSInstanceInfo
 {
-  std::wstring InstanceId;
-  std::wstring VSInstallLocation;
-  std::wstring Version;
-  std::string VCToolsetVersion;
-  ULONGLONG ullVersion = 0;
-  bool IsWin10SDKInstalled = false;
-  bool IsWin81SDKInstalled = false;
+    std::wstring InstanceId;
+    std::wstring VSInstallLocation;
+    std::wstring Version;
+    std::string  VCToolsetVersion;
+    ULONGLONG    ullVersion          = 0;
+    bool         IsWin10SDKInstalled = false;
+    bool         IsWin81SDKInstalled = false;
 
-  VSInstanceInfo() = default;
+    VSInstanceInfo() = default;
 
-  std::string GetInstallLocation() const;
+    std::string GetInstallLocation() const;
 };
 
 class cmVSSetupAPIHelper
 {
 public:
-  cmVSSetupAPIHelper();
-  ~cmVSSetupAPIHelper();
+    cmVSSetupAPIHelper();
+    ~cmVSSetupAPIHelper();
 
-  bool SetVSInstance(std::string const& vsInstallLocation);
+    bool SetVSInstance(std::string const& vsInstallLocation);
 
-  bool IsVS2017Installed();
-  bool GetVSInstanceInfo(std::string& vsInstallLocation);
-  bool GetVCToolsetVersion(std::string& vsToolsetVersion);
-  bool IsWin10SDKInstalled();
-  bool IsWin81SDKInstalled();
+    bool IsVS2017Installed();
+    bool GetVSInstanceInfo(std::string& vsInstallLocation);
+    bool GetVCToolsetVersion(std::string& vsToolsetVersion);
+    bool IsWin10SDKInstalled();
+    bool IsWin81SDKInstalled();
 
 private:
-  bool Initialize();
-  bool GetVSInstanceInfo(SmartCOMPtr<ISetupInstance2> instance2,
-                         VSInstanceInfo& vsInstanceInfo);
-  bool CheckInstalledComponent(SmartCOMPtr<ISetupPackageReference> package,
-                               bool& bWin10SDK, bool& bWin81SDK);
-  int ChooseVSInstance(const std::vector<VSInstanceInfo>& vecVSInstances);
-  bool EnumerateAndChooseVSInstance();
+    bool Initialize();
+    bool GetVSInstanceInfo(SmartCOMPtr<ISetupInstance2> instance2,
+                           VSInstanceInfo&              vsInstanceInfo);
+    bool CheckInstalledComponent(SmartCOMPtr<ISetupPackageReference> package,
+                                 bool& bWin10SDK, bool& bWin81SDK);
+    int  ChooseVSInstance(const std::vector<VSInstanceInfo>& vecVSInstances);
+    bool EnumerateAndChooseVSInstance();
 
-  // COM ptrs to query about VS instances
-  SmartCOMPtr<ISetupConfiguration> setupConfig;
-  SmartCOMPtr<ISetupConfiguration2> setupConfig2;
-  SmartCOMPtr<ISetupHelper> setupHelper;
-  // used to indicate failure in Initialize(), so we don't have to call again
-  bool initializationFailure;
-  // indicated if COM initialization is successful
-  HRESULT comInitialized;
-  // current best instance of VS selected
-  VSInstanceInfo chosenInstanceInfo;
+    // COM ptrs to query about VS instances
+    SmartCOMPtr<ISetupConfiguration>  setupConfig;
+    SmartCOMPtr<ISetupConfiguration2> setupConfig2;
+    SmartCOMPtr<ISetupHelper>         setupHelper;
+    // used to indicate failure in Initialize(), so we don't have to call again
+    bool initializationFailure;
+    // indicated if COM initialization is successful
+    HRESULT comInitialized;
+    // current best instance of VS selected
+    VSInstanceInfo chosenInstanceInfo;
 
-  std::string SpecifiedVSInstallLocation;
+    std::string SpecifiedVSInstallLocation;
 };
 
 #endif

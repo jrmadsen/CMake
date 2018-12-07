@@ -3,7 +3,7 @@
 #ifndef cmFindPackageCommand_h
 #define cmFindPackageCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cm_kwiml.h"
 #include <cstddef>
@@ -38,192 +38,190 @@ class cmSearchPath;
 class cmFindPackageCommand : public cmFindCommon
 {
 public:
-  /*! A sorting order strategy to be applied to recovered package folders (see
-   * FIND_PACKAGE_SORT_ORDER)*/
-  enum /*class*/ SortOrderType
-  {
-    None,
-    Name_order,
-    Natural
-  };
-  /*! A sorting direction to be applied to recovered package folders (see
-   * FIND_PACKAGE_SORT_DIRECTION)*/
-  enum /*class*/ SortDirectionType
-  {
-    Asc,
-    Dec
-  };
+    /*! A sorting order strategy to be applied to recovered package folders (see
+     * FIND_PACKAGE_SORT_ORDER)*/
+    enum /*class*/ SortOrderType
+    {
+        None,
+        Name_order,
+        Natural
+    };
+    /*! A sorting direction to be applied to recovered package folders (see
+     * FIND_PACKAGE_SORT_DIRECTION)*/
+    enum /*class*/ SortDirectionType
+    {
+        Asc,
+        Dec
+    };
 
-  /*! sorts a given list of string based on the input sort parameters */
-  static void Sort(std::vector<std::string>::iterator begin,
-                   std::vector<std::string>::iterator end, SortOrderType order,
-                   SortDirectionType dir);
+    /*! sorts a given list of string based on the input sort parameters */
+    static void Sort(std::vector<std::string>::iterator begin,
+                     std::vector<std::string>::iterator end,
+                     SortOrderType order, SortDirectionType dir);
 
-  cmFindPackageCommand();
+    cmFindPackageCommand();
 
-  /**
-   * This is a virtual constructor for the command.
-   */
-  cmCommand* Clone() override { return new cmFindPackageCommand; }
+    /**
+     * This is a virtual constructor for the command.
+     */
+    cmCommand* Clone() override { return new cmFindPackageCommand; }
 
-  /**
-   * This is called when the command is first encountered in
-   * the CMakeLists.txt file.
-   */
-  bool InitialPass(std::vector<std::string> const& args,
-                   cmExecutionStatus& status) override;
+    /**
+     * This is called when the command is first encountered in
+     * the CMakeLists.txt file.
+     */
+    bool InitialPass(std::vector<std::string> const& args,
+                     cmExecutionStatus&              status) override;
 
 private:
-  class PathLabel : public cmFindCommon::PathLabel
-  {
-  protected:
-    PathLabel();
-
-  public:
-    PathLabel(const std::string& label)
-      : cmFindCommon::PathLabel(label)
+    class PathLabel : public cmFindCommon::PathLabel
     {
-    }
-    static PathLabel UserRegistry;
-    static PathLabel Builds;
-    static PathLabel SystemRegistry;
-  };
+    protected:
+        PathLabel();
 
-  // Add additional search path labels and groups not present in the
-  // parent class
-  void AppendSearchPathGroups();
+    public:
+        PathLabel(const std::string& label)
+        : cmFindCommon::PathLabel(label)
+        {}
+        static PathLabel UserRegistry;
+        static PathLabel Builds;
+        static PathLabel SystemRegistry;
+    };
 
-  void AppendSuccessInformation();
-  void AppendToFoundProperty(bool found);
-  void SetModuleVariables(const std::string& components);
-  bool FindModule(bool& found);
-  void AddFindDefinition(const std::string& var, const char* val);
-  void RestoreFindDefinitions();
-  bool HandlePackageMode();
-  bool FindConfig();
-  bool FindPrefixedConfig();
-  bool FindFrameworkConfig();
-  bool FindAppBundleConfig();
-  enum PolicyScopeRule
-  {
-    NoPolicyScope,
-    DoPolicyScope
-  };
-  bool ReadListFile(const char* f, PolicyScopeRule psr);
-  void StoreVersionFound();
+    // Add additional search path labels and groups not present in the
+    // parent class
+    void AppendSearchPathGroups();
 
-  void ComputePrefixes();
-  void FillPrefixesPackageRoot();
-  void FillPrefixesCMakeEnvironment();
-  void FillPrefixesCMakeVariable();
-  void FillPrefixesSystemEnvironment();
-  void FillPrefixesUserRegistry();
-  void FillPrefixesSystemRegistry();
-  void FillPrefixesCMakeSystemVariable();
-  void FillPrefixesUserGuess();
-  void FillPrefixesUserHints();
-  void LoadPackageRegistryDir(std::string const& dir, cmSearchPath& outPaths);
-  void LoadPackageRegistryWinUser();
-  void LoadPackageRegistryWinSystem();
-  void LoadPackageRegistryWin(bool user, unsigned int view,
-                              cmSearchPath& outPaths);
-  bool CheckPackageRegistryEntry(const std::string& fname,
-                                 cmSearchPath& outPaths);
-  bool SearchDirectory(std::string const& dir);
-  bool CheckDirectory(std::string const& dir);
-  bool FindConfigFile(std::string const& dir, std::string& file);
-  bool CheckVersion(std::string const& config_file);
-  bool CheckVersionFile(std::string const& version_file,
-                        std::string& result_version);
-  bool SearchPrefix(std::string const& prefix);
-  bool SearchFrameworkPrefix(std::string const& prefix_in);
-  bool SearchAppBundlePrefix(std::string const& prefix_in);
-
-  friend class cmFindPackageFileList;
-
-  struct OriginalDef
-  {
-    bool exists;
-    std::string value;
-  };
-  std::map<std::string, OriginalDef> OriginalDefs;
-
-  std::string Name;
-  std::string Variable;
-  std::string Version;
-  unsigned int VersionMajor;
-  unsigned int VersionMinor;
-  unsigned int VersionPatch;
-  unsigned int VersionTweak;
-  unsigned int VersionCount;
-  bool VersionExact;
-  std::string FileFound;
-  std::string VersionFound;
-  unsigned int VersionFoundMajor;
-  unsigned int VersionFoundMinor;
-  unsigned int VersionFoundPatch;
-  unsigned int VersionFoundTweak;
-  unsigned int VersionFoundCount;
-  KWIML_INT_uint64_t RequiredCMakeVersion;
-  bool Quiet;
-  bool Required;
-  bool UseConfigFiles;
-  bool UseFindModules;
-  bool NoUserRegistry;
-  bool NoSystemRegistry;
-  bool DebugMode;
-  bool UseLib32Paths;
-  bool UseLib64Paths;
-  bool UseLibx32Paths;
-  bool PolicyScope;
-  std::string LibraryArchitecture;
-  std::vector<std::string> Names;
-  std::vector<std::string> Configs;
-  std::set<std::string> IgnoredPaths;
-
-  /*! the selected sortOrder (None by default)*/
-  SortOrderType SortOrder;
-  /*! the selected sortDirection (Asc by default)*/
-  SortDirectionType SortDirection;
-
-  struct ConfigFileInfo
-  {
-    std::string filename;
-    std::string version;
-
-    bool operator<(ConfigFileInfo const& rhs) const
+    void AppendSuccessInformation();
+    void AppendToFoundProperty(bool found);
+    void SetModuleVariables(const std::string& components);
+    bool FindModule(bool& found);
+    void AddFindDefinition(const std::string& var, const char* val);
+    void RestoreFindDefinitions();
+    bool HandlePackageMode();
+    bool FindConfig();
+    bool FindPrefixedConfig();
+    bool FindFrameworkConfig();
+    bool FindAppBundleConfig();
+    enum PolicyScopeRule
     {
-      return this->filename < rhs.filename;
-    }
+        NoPolicyScope,
+        DoPolicyScope
+    };
+    bool ReadListFile(const char* f, PolicyScopeRule psr);
+    void StoreVersionFound();
 
-    bool operator==(ConfigFileInfo const& rhs) const
+    void ComputePrefixes();
+    void FillPrefixesPackageRoot();
+    void FillPrefixesCMakeEnvironment();
+    void FillPrefixesCMakeVariable();
+    void FillPrefixesSystemEnvironment();
+    void FillPrefixesUserRegistry();
+    void FillPrefixesSystemRegistry();
+    void FillPrefixesCMakeSystemVariable();
+    void FillPrefixesUserGuess();
+    void FillPrefixesUserHints();
+    void LoadPackageRegistryDir(std::string const& dir, cmSearchPath& outPaths);
+    void LoadPackageRegistryWinUser();
+    void LoadPackageRegistryWinSystem();
+    void LoadPackageRegistryWin(bool user, unsigned int view,
+                                cmSearchPath& outPaths);
+    bool CheckPackageRegistryEntry(const std::string& fname,
+                                   cmSearchPath&      outPaths);
+    bool SearchDirectory(std::string const& dir);
+    bool CheckDirectory(std::string const& dir);
+    bool FindConfigFile(std::string const& dir, std::string& file);
+    bool CheckVersion(std::string const& config_file);
+    bool CheckVersionFile(std::string const& version_file,
+                          std::string&       result_version);
+    bool SearchPrefix(std::string const& prefix);
+    bool SearchFrameworkPrefix(std::string const& prefix_in);
+    bool SearchAppBundlePrefix(std::string const& prefix_in);
+
+    friend class cmFindPackageFileList;
+
+    struct OriginalDef
     {
-      return this->filename == rhs.filename;
-    }
+        bool        exists;
+        std::string value;
+    };
+    std::map<std::string, OriginalDef> OriginalDefs;
 
-    bool operator!=(ConfigFileInfo const& rhs) const
+    std::string              Name;
+    std::string              Variable;
+    std::string              Version;
+    unsigned int             VersionMajor;
+    unsigned int             VersionMinor;
+    unsigned int             VersionPatch;
+    unsigned int             VersionTweak;
+    unsigned int             VersionCount;
+    bool                     VersionExact;
+    std::string              FileFound;
+    std::string              VersionFound;
+    unsigned int             VersionFoundMajor;
+    unsigned int             VersionFoundMinor;
+    unsigned int             VersionFoundPatch;
+    unsigned int             VersionFoundTweak;
+    unsigned int             VersionFoundCount;
+    KWIML_INT_uint64_t       RequiredCMakeVersion;
+    bool                     Quiet;
+    bool                     Required;
+    bool                     UseConfigFiles;
+    bool                     UseFindModules;
+    bool                     NoUserRegistry;
+    bool                     NoSystemRegistry;
+    bool                     DebugMode;
+    bool                     UseLib32Paths;
+    bool                     UseLib64Paths;
+    bool                     UseLibx32Paths;
+    bool                     PolicyScope;
+    std::string              LibraryArchitecture;
+    std::vector<std::string> Names;
+    std::vector<std::string> Configs;
+    std::set<std::string>    IgnoredPaths;
+
+    /*! the selected sortOrder (None by default)*/
+    SortOrderType SortOrder;
+    /*! the selected sortDirection (Asc by default)*/
+    SortDirectionType SortDirection;
+
+    struct ConfigFileInfo
     {
-      return !(*this == rhs);
-    }
-  };
-  std::vector<ConfigFileInfo> ConsideredConfigs;
+        std::string filename;
+        std::string version;
 
-  friend struct std::hash<ConfigFileInfo>;
+        bool operator<(ConfigFileInfo const& rhs) const
+        {
+            return this->filename < rhs.filename;
+        }
+
+        bool operator==(ConfigFileInfo const& rhs) const
+        {
+            return this->filename == rhs.filename;
+        }
+
+        bool operator!=(ConfigFileInfo const& rhs) const
+        {
+            return !(*this == rhs);
+        }
+    };
+    std::vector<ConfigFileInfo> ConsideredConfigs;
+
+    friend struct std::hash<ConfigFileInfo>;
 };
 
-namespace std {
-
-template <>
-struct hash<cmFindPackageCommand::ConfigFileInfo>
+namespace std
 {
-  typedef cmFindPackageCommand::ConfigFileInfo argument_type;
-  typedef size_t result_type;
+template <> struct hash<cmFindPackageCommand::ConfigFileInfo>
+{
+    typedef cmFindPackageCommand::ConfigFileInfo argument_type;
+    typedef size_t                               result_type;
 
-  result_type operator()(argument_type const& s) const noexcept
-  {
-    result_type const h(std::hash<std::string>{}(s.filename));
-    return h;
-  }
+    result_type operator()(argument_type const& s) const noexcept
+    {
+        result_type const h(std::hash<std::string>{}(s.filename));
+        return h;
+    }
 };
 }
 

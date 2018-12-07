@@ -3,7 +3,7 @@
 #ifndef cmAddCustomCommandCommand_h
 #define cmAddCustomCommandCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <vector>
@@ -21,20 +21,20 @@ class cmExecutionStatus;
 class cmAddCustomCommandCommand : public cmCommand
 {
 public:
-  /**
-   * This is a virtual constructor for the command.
-   */
-  cmCommand* Clone() override { return new cmAddCustomCommandCommand; }
+    /**
+     * This is a virtual constructor for the command.
+     */
+    cmCommand* Clone() override { return new cmAddCustomCommandCommand; }
 
-  /**
-   * This is called when the command is first encountered in
-   * the CMakeLists.txt file.
-   */
-  bool InitialPass(std::vector<std::string> const& args,
-                   cmExecutionStatus& status) override;
+    /**
+     * This is called when the command is first encountered in
+     * the CMakeLists.txt file.
+     */
+    bool InitialPass(std::vector<std::string> const& args,
+                     cmExecutionStatus&              status) override;
 
 protected:
-  bool CheckOutputs(const std::vector<std::string>& outputs);
+    bool CheckOutputs(const std::vector<std::string>& outputs);
 };
 
 #endif

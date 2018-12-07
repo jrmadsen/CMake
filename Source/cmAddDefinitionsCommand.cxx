@@ -7,16 +7,19 @@
 class cmExecutionStatus;
 
 // cmAddDefinitionsCommand
-bool cmAddDefinitionsCommand::InitialPass(std::vector<std::string> const& args,
-                                          cmExecutionStatus&)
+bool
+cmAddDefinitionsCommand::InitialPass(std::vector<std::string> const& args,
+                                     cmExecutionStatus&)
 {
-  // it is OK to have no arguments
-  if (args.empty()) {
-    return true;
-  }
+    // it is OK to have no arguments
+    if(args.empty())
+    {
+        return true;
+    }
 
-  for (std::string const& i : args) {
-    this->Makefile->AddDefineFlag(i);
-  }
-  return true;
+    for(std::string const& i : args)
+    {
+        this->Makefile->AddDefineFlag(i);
+    }
+    return true;
 }

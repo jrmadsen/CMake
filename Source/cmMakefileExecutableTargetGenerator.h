@@ -3,7 +3,7 @@
 #ifndef cmMakefileExecutableTargetGenerator_h
 #define cmMakefileExecutableTargetGenerator_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 
@@ -14,19 +14,19 @@ class cmGeneratorTarget;
 class cmMakefileExecutableTargetGenerator : public cmMakefileTargetGenerator
 {
 public:
-  cmMakefileExecutableTargetGenerator(cmGeneratorTarget* target);
-  ~cmMakefileExecutableTargetGenerator() override;
+    cmMakefileExecutableTargetGenerator(cmGeneratorTarget* target);
+    ~cmMakefileExecutableTargetGenerator() override;
 
-  /* the main entry point for this class. Writes the Makefiles associated
-     with this target */
-  void WriteRuleFiles() override;
+    /* the main entry point for this class. Writes the Makefiles associated
+       with this target */
+    void WriteRuleFiles() override;
 
 protected:
-  virtual void WriteExecutableRule(bool relink);
-  virtual void WriteDeviceExecutableRule(bool relink);
+    virtual void WriteExecutableRule(bool relink);
+    virtual void WriteDeviceExecutableRule(bool relink);
 
 private:
-  std::string DeviceLinkObject;
+    std::string DeviceLinkObject;
 };
 
 #endif

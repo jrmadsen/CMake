@@ -10,8 +10,11 @@ class cmState;
  * To add a new command edit cmCommands.cxx and add your command.
  * It is up to the caller to delete the commands created by this call.
  */
-void GetScriptingCommands(cmState* state);
-void GetProjectCommands(cmState* state);
-void GetProjectCommandsInScriptMode(cmState* state);
+void
+GetScriptingCommands(cmState* state);
+void
+GetProjectCommands(cmState* state);
+void
+GetProjectCommandsInScriptMode(cmState* state);
 
 #endif

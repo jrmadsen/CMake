@@ -3,7 +3,7 @@
 #ifndef cmCTestBuildAndTestHandler_h
 #define cmCTestBuildAndTestHandler_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCTestGenericHandler.h"
 #include "cmDuration.h"
@@ -22,53 +22,53 @@ class cmake;
 class cmCTestBuildAndTestHandler : public cmCTestGenericHandler
 {
 public:
-  typedef cmCTestGenericHandler Superclass;
+    typedef cmCTestGenericHandler Superclass;
 
-  /*
-   * The main entry point for this class
-   */
-  int ProcessHandler() override;
+    /*
+     * The main entry point for this class
+     */
+    int ProcessHandler() override;
 
-  //! Set all the build and test arguments
-  int ProcessCommandLineArguments(
-    const std::string& currentArg, size_t& idx,
-    const std::vector<std::string>& allArgs) override;
+    //! Set all the build and test arguments
+    int ProcessCommandLineArguments(
+        const std::string& currentArg, size_t& idx,
+        const std::vector<std::string>& allArgs) override;
 
-  /*
-   * Get the output variable
-   */
-  const char* GetOutput();
+    /*
+     * Get the output variable
+     */
+    const char* GetOutput();
 
-  cmCTestBuildAndTestHandler();
+    cmCTestBuildAndTestHandler();
 
-  void Initialize() override;
+    void Initialize() override;
 
 protected:
-  ///! Run CMake and build a test and then run it as a single test.
-  int RunCMakeAndTest(std::string* output);
-  int RunCMake(std::string* outstring, std::ostringstream& out,
-               std::string& cmakeOutString, cmake* cm);
+    ///! Run CMake and build a test and then run it as a single test.
+    int RunCMakeAndTest(std::string* output);
+    int RunCMake(std::string* outstring, std::ostringstream& out,
+                 std::string& cmakeOutString, cmake* cm);
 
-  std::string Output;
+    std::string Output;
 
-  std::string BuildGenerator;
-  std::string BuildGeneratorPlatform;
-  std::string BuildGeneratorToolset;
-  std::vector<std::string> BuildOptions;
-  bool BuildTwoConfig;
-  std::string BuildMakeProgram;
-  std::string ConfigSample;
-  std::string SourceDir;
-  std::string BinaryDir;
-  std::string BuildProject;
-  std::string TestCommand;
-  bool BuildNoClean;
-  std::string BuildRunDir;
-  std::string ExecutableDirectory;
-  std::vector<std::string> TestCommandArgs;
-  std::vector<std::string> BuildTargets;
-  bool BuildNoCMake;
-  cmDuration Timeout;
+    std::string              BuildGenerator;
+    std::string              BuildGeneratorPlatform;
+    std::string              BuildGeneratorToolset;
+    std::vector<std::string> BuildOptions;
+    bool                     BuildTwoConfig;
+    std::string              BuildMakeProgram;
+    std::string              ConfigSample;
+    std::string              SourceDir;
+    std::string              BinaryDir;
+    std::string              BuildProject;
+    std::string              TestCommand;
+    bool                     BuildNoClean;
+    std::string              BuildRunDir;
+    std::string              ExecutableDirectory;
+    std::vector<std::string> TestCommandArgs;
+    std::vector<std::string> BuildTargets;
+    bool                     BuildNoCMake;
+    cmDuration               Timeout;
 };
 
 #endif

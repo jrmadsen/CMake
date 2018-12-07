@@ -15,44 +15,45 @@
 class cmGlobalJOMMakefileGenerator : public cmGlobalUnixMakefileGenerator3
 {
 public:
-  cmGlobalJOMMakefileGenerator(cmake* cm);
-  static cmGlobalGeneratorFactory* NewFactory()
-  {
-    return new cmGlobalGeneratorSimpleFactory<cmGlobalJOMMakefileGenerator>();
-  }
-  ///! Get the name for the generator.
-  std::string GetName() const override
-  {
-    return cmGlobalJOMMakefileGenerator::GetActualName();
-  }
-  // use NMake Makefiles in the name so that scripts/tests that depend on the
-  // name NMake Makefiles will work
-  static std::string GetActualName() { return "NMake Makefiles JOM"; }
+    cmGlobalJOMMakefileGenerator(cmake* cm);
+    static cmGlobalGeneratorFactory* NewFactory()
+    {
+        return new cmGlobalGeneratorSimpleFactory<
+            cmGlobalJOMMakefileGenerator>();
+    }
+    ///! Get the name for the generator.
+    std::string GetName() const override
+    {
+        return cmGlobalJOMMakefileGenerator::GetActualName();
+    }
+    // use NMake Makefiles in the name so that scripts/tests that depend on the
+    // name NMake Makefiles will work
+    static std::string GetActualName() { return "NMake Makefiles JOM"; }
 
-  /** Get the documentation entry for this generator.  */
-  static void GetDocumentation(cmDocumentationEntry& entry);
+    /** Get the documentation entry for this generator.  */
+    static void GetDocumentation(cmDocumentationEntry& entry);
 
-  /**
-   * Try to determine system information such as shared library
-   * extension, pthreads, byte order etc.
-   */
-  void EnableLanguage(std::vector<std::string> const& languages, cmMakefile*,
-                      bool optional) override;
+    /**
+     * Try to determine system information such as shared library
+     * extension, pthreads, byte order etc.
+     */
+    void EnableLanguage(std::vector<std::string> const& languages, cmMakefile*,
+                        bool                            optional) override;
 
 protected:
-  void GenerateBuildCommand(std::vector<std::string>& makeCommand,
-                            const std::string& makeProgram,
-                            const std::string& projectName,
-                            const std::string& projectDir,
-                            const std::string& targetName,
-                            const std::string& config, bool fast, int jobs,
-                            bool verbose,
-                            std::vector<std::string> const& makeOptions =
-                              std::vector<std::string>()) override;
+    void GenerateBuildCommand(std::vector<std::string>& makeCommand,
+                              const std::string&        makeProgram,
+                              const std::string&        projectName,
+                              const std::string&        projectDir,
+                              const std::string&        targetName,
+                              const std::string& config, bool fast, int jobs,
+                              bool                            verbose,
+                              std::vector<std::string> const& makeOptions =
+                                  std::vector<std::string>()) override;
 
 private:
-  void PrintCompilerAdvice(std::ostream& os, std::string const& lang,
-                           const char* envVar) const override;
+    void PrintCompilerAdvice(std::ostream& os, std::string const& lang,
+                             const char* envVar) const override;
 };
 
 #endif

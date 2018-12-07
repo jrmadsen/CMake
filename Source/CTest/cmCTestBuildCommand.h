@@ -3,7 +3,7 @@
 #ifndef cmCTestBuildCommand_h
 #define cmCTestBuildCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCTestHandlerCommand.h"
 
@@ -24,45 +24,45 @@ class cmGlobalGenerator;
 class cmCTestBuildCommand : public cmCTestHandlerCommand
 {
 public:
-  cmCTestBuildCommand();
-  ~cmCTestBuildCommand() override;
+    cmCTestBuildCommand();
+    ~cmCTestBuildCommand() override;
 
-  /**
-   * This is a virtual constructor for the command.
-   */
-  cmCommand* Clone() override
-  {
-    cmCTestBuildCommand* ni = new cmCTestBuildCommand;
-    ni->CTest = this->CTest;
-    ni->CTestScriptHandler = this->CTestScriptHandler;
-    return ni;
-  }
+    /**
+     * This is a virtual constructor for the command.
+     */
+    cmCommand* Clone() override
+    {
+        cmCTestBuildCommand* ni = new cmCTestBuildCommand;
+        ni->CTest               = this->CTest;
+        ni->CTestScriptHandler  = this->CTestScriptHandler;
+        return ni;
+    }
 
-  /**
-   * The name of the command as specified in CMakeList.txt.
-   */
-  std::string GetName() const override { return "ctest_build"; }
+    /**
+     * The name of the command as specified in CMakeList.txt.
+     */
+    std::string GetName() const override { return "ctest_build"; }
 
-  bool InitialPass(std::vector<std::string> const& args,
-                   cmExecutionStatus& status) override;
+    bool InitialPass(std::vector<std::string> const& args,
+                     cmExecutionStatus&              status) override;
 
-  cmGlobalGenerator* GlobalGenerator;
+    cmGlobalGenerator* GlobalGenerator;
 
 protected:
-  cmCTestBuildHandler* Handler;
-  enum
-  {
-    ctb_BUILD = ct_LAST,
-    ctb_NUMBER_ERRORS,
-    ctb_NUMBER_WARNINGS,
-    ctb_TARGET,
-    ctb_CONFIGURATION,
-    ctb_FLAGS,
-    ctb_PROJECT_NAME,
-    ctb_LAST
-  };
+    cmCTestBuildHandler* Handler;
+    enum
+    {
+        ctb_BUILD = ct_LAST,
+        ctb_NUMBER_ERRORS,
+        ctb_NUMBER_WARNINGS,
+        ctb_TARGET,
+        ctb_CONFIGURATION,
+        ctb_FLAGS,
+        ctb_PROJECT_NAME,
+        ctb_LAST
+    };
 
-  cmCTestGenericHandler* InitializeHandler() override;
+    cmCTestGenericHandler* InitializeHandler() override;
 };
 
 #endif

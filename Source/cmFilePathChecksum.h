@@ -3,7 +3,7 @@
 #ifndef cmFilePathChecksum_h
 #define cmFilePathChecksum_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <array>
 #include <stddef.h>
@@ -23,42 +23,42 @@ class cmMakefile;
 class cmFilePathChecksum
 {
 public:
-  /// Maximum number of characters to use from the path checksum
-  static const size_t partLengthDefault = 10;
+    /// Maximum number of characters to use from the path checksum
+    static const size_t partLengthDefault = 10;
 
-  /// @brief Parent directories are empty
-  cmFilePathChecksum();
+    /// @brief Parent directories are empty
+    cmFilePathChecksum();
 
-  /// @brief Initializes the parent directories manually
-  cmFilePathChecksum(std::string const& currentSrcDir,
-                     std::string const& currentBinDir,
-                     std::string const& projectSrcDir,
-                     std::string const& projectBinDir);
-
-  /// @brief Initializes the parent directories from a makefile
-  cmFilePathChecksum(cmMakefile* makefile);
-
-  /// @brief Allows parent directories setup after construction
-  ///
-  void setupParentDirs(std::string const& currentSrcDir,
+    /// @brief Initializes the parent directories manually
+    cmFilePathChecksum(std::string const& currentSrcDir,
                        std::string const& currentBinDir,
                        std::string const& projectSrcDir,
                        std::string const& projectBinDir);
 
-  /* @brief Calculates the path checksum for the parent directory of a file
-   *
-   */
-  std::string get(std::string const& filePath) const;
+    /// @brief Initializes the parent directories from a makefile
+    cmFilePathChecksum(cmMakefile* makefile);
 
-  /* @brief Same as get() but returns only the first length characters
-   *
-   */
-  std::string getPart(std::string const& filePath,
-                      size_t length = partLengthDefault) const;
+    /// @brief Allows parent directories setup after construction
+    ///
+    void setupParentDirs(std::string const& currentSrcDir,
+                         std::string const& currentBinDir,
+                         std::string const& projectSrcDir,
+                         std::string const& projectBinDir);
+
+    /* @brief Calculates the path checksum for the parent directory of a file
+     *
+     */
+    std::string get(std::string const& filePath) const;
+
+    /* @brief Same as get() but returns only the first length characters
+     *
+     */
+    std::string getPart(std::string const& filePath,
+                        size_t             length = partLengthDefault) const;
 
 private:
-  /// List of (directory name, seed name) pairs
-  std::array<std::pair<std::string, std::string>, 4> parentDirs;
+    /// List of (directory name, seed name) pairs
+    std::array<std::pair<std::string, std::string>, 4> parentDirs;
 };
 
 #endif

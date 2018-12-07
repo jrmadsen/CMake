@@ -3,7 +3,7 @@
 #ifndef cmParseJacocoCoverage_h
 #define cmParseJacocoCoverage_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <map>
 #include <string>
@@ -23,31 +23,32 @@ class cmCTestCoverageHandlerContainer;
 class cmParseJacocoCoverage
 {
 public:
-  cmParseJacocoCoverage(cmCTestCoverageHandlerContainer& cont, cmCTest* ctest);
-  bool LoadCoverageData(std::vector<std::string> const& files);
+    cmParseJacocoCoverage(cmCTestCoverageHandlerContainer& cont,
+                          cmCTest*                         ctest);
+    bool LoadCoverageData(std::vector<std::string> const& files);
 
-  std::string PackageName;
-  std::string FileName;
-  std::string ModuleName;
-  std::string CurFileName;
+    std::string PackageName;
+    std::string FileName;
+    std::string ModuleName;
+    std::string CurFileName;
 
 private:
-  // implement virtual from parent
-  // remove files with no coverage
-  void RemoveUnCoveredFiles();
-  // Read a single mcov file
-  bool ReadJacocoXML(const char* f);
-  // split a string based on ,
-  bool SplitString(std::vector<std::string>& args, std::string const& line);
-  bool FindJavaFile(std::string const& routine, std::string& filepath);
-  void InitializeJavaFile(std::string& file);
-  bool LoadSource(std::string d);
+    // implement virtual from parent
+    // remove files with no coverage
+    void RemoveUnCoveredFiles();
+    // Read a single mcov file
+    bool ReadJacocoXML(const char* f);
+    // split a string based on ,
+    bool SplitString(std::vector<std::string>& args, std::string const& line);
+    bool FindJavaFile(std::string const& routine, std::string& filepath);
+    void InitializeJavaFile(std::string& file);
+    bool LoadSource(std::string d);
 
-  class XMLParser;
+    class XMLParser;
 
-  std::map<std::string, std::string> RoutineToDirectory;
-  cmCTestCoverageHandlerContainer& Coverage;
-  cmCTest* CTest;
+    std::map<std::string, std::string> RoutineToDirectory;
+    cmCTestCoverageHandlerContainer&   Coverage;
+    cmCTest*                           CTest;
 };
 
 #endif

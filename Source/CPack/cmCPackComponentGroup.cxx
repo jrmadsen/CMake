@@ -6,26 +6,28 @@
 
 #include <string>
 
-unsigned long cmCPackComponent::GetInstalledSize(
-  const std::string& installDir) const
+unsigned long
+cmCPackComponent::GetInstalledSize(const std::string& installDir) const
 {
-  if (this->TotalSize != 0) {
+    if(this->TotalSize != 0)
+    {
+        return this->TotalSize;
+    }
+
+    for(std::string const& file : this->Files)
+    {
+        std::string path = installDir;
+        path += '/';
+        path += file;
+        this->TotalSize += cmSystemTools::FileLength(path);
+    }
+
     return this->TotalSize;
-  }
-
-  for (std::string const& file : this->Files) {
-    std::string path = installDir;
-    path += '/';
-    path += file;
-    this->TotalSize += cmSystemTools::FileLength(path);
-  }
-
-  return this->TotalSize;
 }
 
-unsigned long cmCPackComponent::GetInstalledSizeInKbytes(
-  const std::string& installDir) const
+unsigned long
+cmCPackComponent::GetInstalledSizeInKbytes(const std::string& installDir) const
 {
-  unsigned long result = (GetInstalledSize(installDir) + 512) / 1024;
-  return result ? result : 1;
+    unsigned long result = (GetInstalledSize(installDir) + 512) / 1024;
+    return result ? result : 1;
 }

@@ -11,27 +11,27 @@
 class cmCPackNuGetGenerator : public cmCPackGenerator
 {
 public:
-  cmCPackTypeMacro(cmCPackNuGetGenerator, cmCPackGenerator);
+    cmCPackTypeMacro(cmCPackNuGetGenerator, cmCPackGenerator);
 
-  // NOTE In fact, it is possible to have NuGet not only for Windows...
-  // https://docs.microsoft.com/en-us/nuget/install-nuget-client-tools
-  static bool CanGenerate() { return true; }
+    // NOTE In fact, it is possible to have NuGet not only for Windows...
+    // https://docs.microsoft.com/en-us/nuget/install-nuget-client-tools
+    static bool CanGenerate() { return true; }
 
 protected:
-  bool SupportsComponentInstallation() const override;
-  int PackageFiles() override;
+    bool SupportsComponentInstallation() const override;
+    int  PackageFiles() override;
 
-  const char* GetOutputExtension() override { return ".nupkg"; }
-  bool SupportsAbsoluteDestination() const override { return false; }
-  /**
-   * The method used to prepare variables when component
-   * install is used.
-   */
-  void SetupGroupComponentVariables(bool ignoreGroup);
-  /**
-   * Populate \c packageFileNames vector of built packages.
-   */
-  void AddGeneratedPackageNames();
+    const char* GetOutputExtension() override { return ".nupkg"; }
+    bool        SupportsAbsoluteDestination() const override { return false; }
+    /**
+     * The method used to prepare variables when component
+     * install is used.
+     */
+    void SetupGroupComponentVariables(bool ignoreGroup);
+    /**
+     * Populate \c packageFileNames vector of built packages.
+     */
+    void AddGeneratedPackageNames();
 };
 
 #endif

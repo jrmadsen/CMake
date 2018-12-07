@@ -3,7 +3,7 @@
 #ifndef cmFindLibraryCommand_h
 #define cmFindLibraryCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <vector>
@@ -23,33 +23,33 @@ class cmExecutionStatus;
 class cmFindLibraryCommand : public cmFindBase
 {
 public:
-  cmFindLibraryCommand();
-  /**
-   * This is a virtual constructor for the command.
-   */
-  cmCommand* Clone() override { return new cmFindLibraryCommand; }
+    cmFindLibraryCommand();
+    /**
+     * This is a virtual constructor for the command.
+     */
+    cmCommand* Clone() override { return new cmFindLibraryCommand; }
 
-  /**
-   * This is called when the command is first encountered in
-   * the CMakeLists.txt file.
-   */
-  bool InitialPass(std::vector<std::string> const& args,
-                   cmExecutionStatus& status) override;
+    /**
+     * This is called when the command is first encountered in
+     * the CMakeLists.txt file.
+     */
+    bool InitialPass(std::vector<std::string> const& args,
+                     cmExecutionStatus&              status) override;
 
 protected:
-  void AddArchitecturePaths(const char* suffix);
-  void AddArchitecturePath(std::string const& dir,
-                           std::string::size_type start_pos,
-                           const char* suffix, bool fresh = true);
-  std::string FindLibrary();
+    void        AddArchitecturePaths(const char* suffix);
+    void        AddArchitecturePath(std::string const&     dir,
+                                    std::string::size_type start_pos,
+                                    const char* suffix, bool fresh = true);
+    std::string FindLibrary();
 
 private:
-  std::string FindNormalLibrary();
-  std::string FindNormalLibraryNamesPerDir();
-  std::string FindNormalLibraryDirsPerName();
-  std::string FindFrameworkLibrary();
-  std::string FindFrameworkLibraryNamesPerDir();
-  std::string FindFrameworkLibraryDirsPerName();
+    std::string FindNormalLibrary();
+    std::string FindNormalLibraryNamesPerDir();
+    std::string FindNormalLibraryDirsPerName();
+    std::string FindFrameworkLibrary();
+    std::string FindFrameworkLibraryNamesPerDir();
+    std::string FindFrameworkLibraryDirsPerName();
 };
 
 #endif

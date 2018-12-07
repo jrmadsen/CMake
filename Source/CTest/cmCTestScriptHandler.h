@@ -3,7 +3,7 @@
 #ifndef cmCTestScriptHandler_h
 #define cmCTestScriptHandler_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCTestGenericHandler.h"
 #include "cmDuration.h"
@@ -57,117 +57,118 @@ class cmake;
 class cmCTestScriptHandler : public cmCTestGenericHandler
 {
 public:
-  typedef cmCTestGenericHandler Superclass;
+    typedef cmCTestGenericHandler Superclass;
 
-  /**
-   * Add a script to run, and if is should run in the current process
-   */
-  void AddConfigurationScript(const char*, bool pscope);
+    /**
+     * Add a script to run, and if is should run in the current process
+     */
+    void AddConfigurationScript(const char*, bool pscope);
 
-  /**
-   * Run a dashboard using a specified confiuration script
-   */
-  int ProcessHandler() override;
+    /**
+     * Run a dashboard using a specified confiuration script
+     */
+    int ProcessHandler() override;
 
-  /*
-   * Run a script
-   */
-  static bool RunScript(cmCTest* ctest, const char* script, bool InProcess,
-                        int* returnValue);
-  int RunCurrentScript();
+    /*
+     * Run a script
+     */
+    static bool RunScript(cmCTest* ctest, const char* script, bool InProcess,
+                          int* returnValue);
+    int         RunCurrentScript();
 
-  /*
-   * Empty Binary Directory
-   */
-  static bool EmptyBinaryDirectory(const char* dir);
+    /*
+     * Empty Binary Directory
+     */
+    static bool EmptyBinaryDirectory(const char* dir);
 
-  /*
-   * Write an initial CMakeCache.txt from the given contents.
-   */
-  static bool WriteInitialCache(const char* directory, const char* text);
+    /*
+     * Write an initial CMakeCache.txt from the given contents.
+     */
+    static bool WriteInitialCache(const char* directory, const char* text);
 
-  /*
-   * Some elapsed time handling functions
-   */
-  static void SleepInSeconds(unsigned int secondsToWait);
-  void UpdateElapsedTime();
+    /*
+     * Some elapsed time handling functions
+     */
+    static void SleepInSeconds(unsigned int secondsToWait);
+    void        UpdateElapsedTime();
 
-  /**
-   * Return the time remaianing that the script is allowed to run in
-   * seconds if the user has set the variable CTEST_TIME_LIMIT. If that has
-   * not been set it returns a very large value.
-   */
-  cmDuration GetRemainingTimeAllowed();
+    /**
+     * Return the time remaianing that the script is allowed to run in
+     * seconds if the user has set the variable CTEST_TIME_LIMIT. If that has
+     * not been set it returns a very large value.
+     */
+    cmDuration GetRemainingTimeAllowed();
 
-  cmCTestScriptHandler();
-  ~cmCTestScriptHandler() override;
+    cmCTestScriptHandler();
+    ~cmCTestScriptHandler() override;
 
-  void Initialize() override;
+    void Initialize() override;
 
-  void CreateCMake();
-  cmake* GetCMake() { return this->CMake; }
+    void   CreateCMake();
+    cmake* GetCMake() { return this->CMake; }
 
-  void SetRunCurrentScript(bool value);
+    void SetRunCurrentScript(bool value);
 
 private:
-  // reads in a script
-  int ReadInScript(const std::string& total_script_arg);
-  int ExecuteScript(const std::string& total_script_arg);
+    // reads in a script
+    int ReadInScript(const std::string& total_script_arg);
+    int ExecuteScript(const std::string& total_script_arg);
 
-  // extract vars from the script to set ivars
-  int ExtractVariables();
+    // extract vars from the script to set ivars
+    int ExtractVariables();
 
-  // perform a CVS checkout of the source dir
-  int CheckOutSourceDir();
+    // perform a CVS checkout of the source dir
+    int CheckOutSourceDir();
 
-  // perform any extra cvs updates that were requested
-  int PerformExtraUpdates();
+    // perform any extra cvs updates that were requested
+    int PerformExtraUpdates();
 
-  // backup and restore dirs
-  int BackupDirectories();
-  void RestoreBackupDirectories();
+    // backup and restore dirs
+    int  BackupDirectories();
+    void RestoreBackupDirectories();
 
-  int RunConfigurationScript(const std::string& script, bool pscope);
-  int RunConfigurationDashboard();
+    int RunConfigurationScript(const std::string& script, bool pscope);
+    int RunConfigurationDashboard();
 
-  // Add ctest command
-  void AddCTestCommand(std::string const& name, cmCTestCommand* command);
+    // Add ctest command
+    void AddCTestCommand(std::string const& name, cmCTestCommand* command);
 
-  // Try to remove the binary directory once
-  static bool TryToRemoveBinaryDirectoryOnce(const std::string& directoryPath);
+    // Try to remove the binary directory once
+    static bool TryToRemoveBinaryDirectoryOnce(
+        const std::string& directoryPath);
 
-  std::vector<std::string> ConfigurationScripts;
-  std::vector<bool> ScriptProcessScope;
+    std::vector<std::string> ConfigurationScripts;
+    std::vector<bool>        ScriptProcessScope;
 
-  bool ShouldRunCurrentScript;
+    bool ShouldRunCurrentScript;
 
-  bool Backup;
-  bool EmptyBinDir;
-  bool EmptyBinDirOnce;
+    bool Backup;
+    bool EmptyBinDir;
+    bool EmptyBinDirOnce;
 
-  std::string SourceDir;
-  std::string BinaryDir;
-  std::string BackupSourceDir;
-  std::string BackupBinaryDir;
-  std::string CTestRoot;
-  std::string CVSCheckOut;
-  std::string CTestCmd;
-  std::string UpdateCmd;
-  std::string CTestEnv;
-  std::string InitialCache;
-  std::string CMakeCmd;
-  std::string CMOutFile;
-  std::vector<std::string> ExtraUpdates;
+    std::string              SourceDir;
+    std::string              BinaryDir;
+    std::string              BackupSourceDir;
+    std::string              BackupBinaryDir;
+    std::string              CTestRoot;
+    std::string              CVSCheckOut;
+    std::string              CTestCmd;
+    std::string              UpdateCmd;
+    std::string              CTestEnv;
+    std::string              InitialCache;
+    std::string              CMakeCmd;
+    std::string              CMOutFile;
+    std::vector<std::string> ExtraUpdates;
 
-  double MinimumInterval;
-  double ContinuousDuration;
+    double MinimumInterval;
+    double ContinuousDuration;
 
-  // what time in seconds did this script start running
-  std::chrono::steady_clock::time_point ScriptStartTime;
+    // what time in seconds did this script start running
+    std::chrono::steady_clock::time_point ScriptStartTime;
 
-  cmMakefile* Makefile;
-  cmGlobalGenerator* GlobalGenerator;
-  cmake* CMake;
+    cmMakefile*        Makefile;
+    cmGlobalGenerator* GlobalGenerator;
+    cmake*             CMake;
 };
 
 #endif

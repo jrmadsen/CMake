@@ -3,43 +3,47 @@
 #include "cmExpandedCommandArgument.h"
 
 cmExpandedCommandArgument::cmExpandedCommandArgument()
-  : Quoted(false)
-{
-}
+: Quoted(false)
+{}
 
 cmExpandedCommandArgument::cmExpandedCommandArgument(std::string const& value,
-                                                     bool quoted)
-  : Value(value)
-  , Quoted(quoted)
+                                                     bool               quoted)
+: Value(value)
+, Quoted(quoted)
+{}
+
+std::string const&
+cmExpandedCommandArgument::GetValue() const
 {
+    return this->Value;
 }
 
-std::string const& cmExpandedCommandArgument::GetValue() const
+bool
+cmExpandedCommandArgument::WasQuoted() const
 {
-  return this->Value;
+    return this->Quoted;
 }
 
-bool cmExpandedCommandArgument::WasQuoted() const
+bool
+cmExpandedCommandArgument::operator==(const char* value) const
 {
-  return this->Quoted;
+    return this->Value == value;
 }
 
-bool cmExpandedCommandArgument::operator==(const char* value) const
+bool
+cmExpandedCommandArgument::operator==(std::string const& value) const
 {
-  return this->Value == value;
+    return this->Value == value;
 }
 
-bool cmExpandedCommandArgument::operator==(std::string const& value) const
+bool
+cmExpandedCommandArgument::empty() const
 {
-  return this->Value == value;
+    return this->Value.empty();
 }
 
-bool cmExpandedCommandArgument::empty() const
+const char*
+cmExpandedCommandArgument::c_str() const
 {
-  return this->Value.empty();
-}
-
-const char* cmExpandedCommandArgument::c_str() const
-{
-  return this->Value.c_str();
+    return this->Value.c_str();
 }

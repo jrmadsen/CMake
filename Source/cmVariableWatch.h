@@ -3,10 +3,10 @@
 #ifndef cmVariableWatch_h
 #define cmVariableWatch_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <map>
-#include <memory> // IWYU pragma: keep
+#include <memory>  // IWYU pragma: keep
 #include <string>
 #include <vector>
 
@@ -20,70 +20,71 @@ class cmMakefile;
 class cmVariableWatch
 {
 public:
-  typedef void (*WatchMethod)(const std::string& variable, int access_type,
-                              void* client_data, const char* newValue,
-                              const cmMakefile* mf);
-  typedef void (*DeleteData)(void* client_data);
+    typedef void (*WatchMethod)(const std::string& variable, int access_type,
+                                void* client_data, const char* newValue,
+                                const cmMakefile* mf);
+    typedef void (*DeleteData)(void* client_data);
 
-  cmVariableWatch();
-  ~cmVariableWatch();
+    cmVariableWatch();
+    ~cmVariableWatch();
 
-  /**
-   * Add watch to the variable
-   */
-  bool AddWatch(const std::string& variable, WatchMethod method,
-                void* client_data = nullptr, DeleteData delete_data = nullptr);
-  void RemoveWatch(const std::string& variable, WatchMethod method,
-                   void* client_data = nullptr);
+    /**
+     * Add watch to the variable
+     */
+    bool AddWatch(const std::string& variable, WatchMethod method,
+                  void*      client_data = nullptr,
+                  DeleteData delete_data = nullptr);
+    void RemoveWatch(const std::string& variable, WatchMethod method,
+                     void* client_data = nullptr);
 
-  /**
-   * This method is called when variable is accessed
-   */
-  bool VariableAccessed(const std::string& variable, int access_type,
-                        const char* newValue, const cmMakefile* mf) const;
+    /**
+     * This method is called when variable is accessed
+     */
+    bool VariableAccessed(const std::string& variable, int access_type,
+                          const char* newValue, const cmMakefile* mf) const;
 
-  /**
-   * Different access types.
-   */
-  enum
-  {
-    VARIABLE_READ_ACCESS = 0,
-    UNKNOWN_VARIABLE_READ_ACCESS,
-    UNKNOWN_VARIABLE_DEFINED_ACCESS,
-    VARIABLE_MODIFIED_ACCESS,
-    VARIABLE_REMOVED_ACCESS,
-    NO_ACCESS
-  };
+    /**
+     * Different access types.
+     */
+    enum
+    {
+        VARIABLE_READ_ACCESS = 0,
+        UNKNOWN_VARIABLE_READ_ACCESS,
+        UNKNOWN_VARIABLE_DEFINED_ACCESS,
+        VARIABLE_MODIFIED_ACCESS,
+        VARIABLE_REMOVED_ACCESS,
+        NO_ACCESS
+    };
 
-  /**
-   * Return the access as string
-   */
-  static const char* GetAccessAsString(int access_type);
+    /**
+     * Return the access as string
+     */
+    static const char* GetAccessAsString(int access_type);
 
 protected:
-  struct Pair
-  {
-    WatchMethod Method;
-    void* ClientData;
-    DeleteData DeleteDataCall;
-    Pair()
-      : Method(nullptr)
-      , ClientData(nullptr)
-      , DeleteDataCall(nullptr)
+    struct Pair
     {
-    }
-    ~Pair()
-    {
-      if (this->DeleteDataCall && this->ClientData) {
-        this->DeleteDataCall(this->ClientData);
-      }
-    }
-  };
+        WatchMethod Method;
+        void*       ClientData;
+        DeleteData  DeleteDataCall;
+        Pair()
+        : Method(nullptr)
+        , ClientData(nullptr)
+        , DeleteDataCall(nullptr)
+        {}
+        ~Pair()
+        {
+            if(this->DeleteDataCall && this->ClientData)
+            {
+                this->DeleteDataCall(this->ClientData);
+            }
+        }
+    };
 
-  typedef std::vector<std::shared_ptr<Pair>> VectorOfPairs;
-  typedef std::map<std::string, VectorOfPairs> StringToVectorOfPairs;
+    typedef std::vector<std::shared_ptr<Pair>>   VectorOfPairs;
+    typedef std::map<std::string, VectorOfPairs> StringToVectorOfPairs;
 
-  StringToVectorOfPairs WatchMap;
+    StringToVectorOfPairs WatchMap;
 };
 
 #endif

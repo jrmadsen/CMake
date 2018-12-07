@@ -6,17 +6,21 @@
 
 class cmExecutionStatus;
 
-bool cmCTestReadCustomFilesCommand::InitialPass(
-  std::vector<std::string> const& args, cmExecutionStatus& /*unused*/)
+bool
+cmCTestReadCustomFilesCommand::InitialPass(std::vector<std::string> const& args,
+                                           cmExecutionStatus& /*unused*/)
 {
-  if (args.empty()) {
-    this->SetError("called with incorrect number of arguments");
-    return false;
-  }
+    if(args.empty())
+    {
+        this->SetError("called with incorrect number of arguments");
+        return false;
+    }
 
-  for (std::string const& arg : args) {
-    this->CTest->ReadCustomConfigurationFileTree(arg.c_str(), this->Makefile);
-  }
+    for(std::string const& arg : args)
+    {
+        this->CTest->ReadCustomConfigurationFileTree(arg.c_str(),
+                                                     this->Makefile);
+    }
 
-  return true;
+    return true;
 }

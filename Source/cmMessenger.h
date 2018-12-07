@@ -3,7 +3,7 @@
 #ifndef cmMessenger_h
 #define cmMessenger_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmListFileCache.h"
 #include "cmake.h"
@@ -15,25 +15,25 @@ class cmState;
 class cmMessenger
 {
 public:
-  cmMessenger(cmState* state);
+    cmMessenger(cmState* state);
 
-  void IssueMessage(
-    cmake::MessageType t, std::string const& text,
-    cmListFileBacktrace const& backtrace = cmListFileBacktrace()) const;
+    void IssueMessage(
+        cmake::MessageType t, std::string const& text,
+        cmListFileBacktrace const& backtrace = cmListFileBacktrace()) const;
 
-  void DisplayMessage(cmake::MessageType t, std::string const& text,
-                      cmListFileBacktrace const& backtrace) const;
+    void DisplayMessage(cmake::MessageType t, std::string const& text,
+                        cmListFileBacktrace const& backtrace) const;
 
-  bool GetSuppressDevWarnings() const;
-  bool GetSuppressDeprecatedWarnings() const;
-  bool GetDevWarningsAsErrors() const;
-  bool GetDeprecatedWarningsAsErrors() const;
+    bool GetSuppressDevWarnings() const;
+    bool GetSuppressDeprecatedWarnings() const;
+    bool GetDevWarningsAsErrors() const;
+    bool GetDeprecatedWarningsAsErrors() const;
 
 private:
-  bool IsMessageTypeVisible(cmake::MessageType t) const;
-  cmake::MessageType ConvertMessageType(cmake::MessageType t) const;
+    bool               IsMessageTypeVisible(cmake::MessageType t) const;
+    cmake::MessageType ConvertMessageType(cmake::MessageType t) const;
 
-  cmState* State;
+    cmState* State;
 };
 
 #endif

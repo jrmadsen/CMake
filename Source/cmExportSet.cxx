@@ -6,24 +6,25 @@
 #include "cmLocalGenerator.h"
 #include "cmTargetExport.h"
 
-cmExportSet::~cmExportSet()
+cmExportSet::~cmExportSet() { cmDeleteAll(this->TargetExports); }
+
+void
+cmExportSet::Compute(cmLocalGenerator* lg)
 {
-  cmDeleteAll(this->TargetExports);
+    for(cmTargetExport* tgtExport : this->TargetExports)
+    {
+        tgtExport->Target = lg->FindGeneratorTargetToUse(tgtExport->TargetName);
+    }
 }
 
-void cmExportSet::Compute(cmLocalGenerator* lg)
+void
+cmExportSet::AddTargetExport(cmTargetExport* te)
 {
-  for (cmTargetExport* tgtExport : this->TargetExports) {
-    tgtExport->Target = lg->FindGeneratorTargetToUse(tgtExport->TargetName);
-  }
+    this->TargetExports.push_back(te);
 }
 
-void cmExportSet::AddTargetExport(cmTargetExport* te)
+void
+cmExportSet::AddInstallation(cmInstallExportGenerator const* installation)
 {
-  this->TargetExports.push_back(te);
-}
-
-void cmExportSet::AddInstallation(cmInstallExportGenerator const* installation)
-{
-  this->Installations.push_back(installation);
+    this->Installations.push_back(installation);
 }

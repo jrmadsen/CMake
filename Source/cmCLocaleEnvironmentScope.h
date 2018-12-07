@@ -3,25 +3,25 @@
 #ifndef cmCLocaleEnvironmentScope_h
 #define cmCLocaleEnvironmentScope_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <map>
 #include <string>
 
 class cmCLocaleEnvironmentScope
 {
-  CM_DISABLE_COPY(cmCLocaleEnvironmentScope)
+    CM_DISABLE_COPY(cmCLocaleEnvironmentScope)
 
 public:
-  cmCLocaleEnvironmentScope();
-  ~cmCLocaleEnvironmentScope();
+    cmCLocaleEnvironmentScope();
+    ~cmCLocaleEnvironmentScope();
 
 private:
-  std::string GetEnv(std::string const& key);
-  void SetEnv(std::string const& key, std::string const& value);
+    std::string GetEnv(std::string const& key);
+    void        SetEnv(std::string const& key, std::string const& value);
 
-  typedef std::map<std::string, std::string> backup_map_t;
-  backup_map_t EnvironmentBackup;
+    typedef std::map<std::string, std::string> backup_map_t;
+    backup_map_t                               EnvironmentBackup;
 };
 
 #endif

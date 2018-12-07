@@ -3,7 +3,7 @@
 #ifndef cmCTestRunScriptCommand_h
 #define cmCTestRunScriptCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCTestCommand.h"
 
@@ -22,25 +22,25 @@ class cmExecutionStatus;
 class cmCTestRunScriptCommand : public cmCTestCommand
 {
 public:
-  cmCTestRunScriptCommand() {}
+    cmCTestRunScriptCommand() {}
 
-  /**
-   * This is a virtual constructor for the command.
-   */
-  cmCommand* Clone() override
-  {
-    cmCTestRunScriptCommand* ni = new cmCTestRunScriptCommand;
-    ni->CTest = this->CTest;
-    ni->CTestScriptHandler = this->CTestScriptHandler;
-    return ni;
-  }
+    /**
+     * This is a virtual constructor for the command.
+     */
+    cmCommand* Clone() override
+    {
+        cmCTestRunScriptCommand* ni = new cmCTestRunScriptCommand;
+        ni->CTest                   = this->CTest;
+        ni->CTestScriptHandler      = this->CTestScriptHandler;
+        return ni;
+    }
 
-  /**
-   * This is called when the command is first encountered in
-   * the CMakeLists.txt file.
-   */
-  bool InitialPass(std::vector<std::string> const& args,
-                   cmExecutionStatus& status) override;
+    /**
+     * This is called when the command is first encountered in
+     * the CMakeLists.txt file.
+     */
+    bool InitialPass(std::vector<std::string> const& args,
+                     cmExecutionStatus&              status) override;
 };
 
 #endif

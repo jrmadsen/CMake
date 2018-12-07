@@ -17,21 +17,21 @@ class cmGeneratedFileStream;
 class cmCPackFreeBSDGenerator : public cmCPackArchiveGenerator
 {
 public:
-  cmCPackTypeMacro(cmCPackFreeBSDGenerator, cmCPackArchiveGenerator);
-  /**
-   * Construct generator
-   */
-  cmCPackFreeBSDGenerator();
-  ~cmCPackFreeBSDGenerator() override;
+    cmCPackTypeMacro(cmCPackFreeBSDGenerator, cmCPackArchiveGenerator);
+    /**
+     * Construct generator
+     */
+    cmCPackFreeBSDGenerator();
+    ~cmCPackFreeBSDGenerator() override;
 
-  int InitializeInternal() override;
-  int PackageFiles() override;
+    int InitializeInternal() override;
+    int PackageFiles() override;
 
 protected:
-  const char* GetOutputExtension() override { return ".txz"; }
+    const char* GetOutputExtension() override { return ".txz"; }
 
-  std::string var_lookup(const char* var_name);
-  void write_manifest_fields(cmGeneratedFileStream&);
+    std::string var_lookup(const char* var_name);
+    void        write_manifest_fields(cmGeneratedFileStream&);
 };
 
 #endif

@@ -6,10 +6,7 @@
 #include "cmCPackArchiveGenerator.h"
 
 cmCPackTarBZip2Generator::cmCPackTarBZip2Generator()
-  : cmCPackArchiveGenerator(cmArchiveWrite::CompressBZip2, "paxr")
-{
-}
+: cmCPackArchiveGenerator(cmArchiveWrite::CompressBZip2, "paxr")
+{}
 
-cmCPackTarBZip2Generator::~cmCPackTarBZip2Generator()
-{
-}
+cmCPackTarBZip2Generator::~cmCPackTarBZip2Generator() {}

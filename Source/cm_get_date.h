@@ -6,11 +6,13 @@
 #include <time.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/** Parse a date/time string.  Treat relative times with respect to 'now'. */
-time_t cm_get_date(time_t now, const char* str);
+    /** Parse a date/time string.  Treat relative times with respect to 'now'.
+     */
+    time_t cm_get_date(time_t now, const char* str);
 
 #ifdef __cplusplus
 } /* extern "C" */

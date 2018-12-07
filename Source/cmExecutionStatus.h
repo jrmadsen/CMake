@@ -11,39 +11,38 @@
 class cmExecutionStatus
 {
 public:
-  cmExecutionStatus()
+    cmExecutionStatus()
     : ReturnInvoked(false)
     , BreakInvoked(false)
     , ContinueInvoked(false)
     , NestedError(false)
-  {
-  }
+    {}
 
-  void Clear()
-  {
-    this->ReturnInvoked = false;
-    this->BreakInvoked = false;
-    this->ContinueInvoked = false;
-    this->NestedError = false;
-  }
+    void Clear()
+    {
+        this->ReturnInvoked   = false;
+        this->BreakInvoked    = false;
+        this->ContinueInvoked = false;
+        this->NestedError     = false;
+    }
 
-  void SetReturnInvoked() { this->ReturnInvoked = true; }
-  bool GetReturnInvoked() const { return this->ReturnInvoked; }
+    void SetReturnInvoked() { this->ReturnInvoked = true; }
+    bool GetReturnInvoked() const { return this->ReturnInvoked; }
 
-  void SetBreakInvoked() { this->BreakInvoked = true; }
-  bool GetBreakInvoked() const { return this->BreakInvoked; }
+    void SetBreakInvoked() { this->BreakInvoked = true; }
+    bool GetBreakInvoked() const { return this->BreakInvoked; }
 
-  void SetContinueInvoked() { this->ContinueInvoked = true; }
-  bool GetContinueInvoked() const { return this->ContinueInvoked; }
+    void SetContinueInvoked() { this->ContinueInvoked = true; }
+    bool GetContinueInvoked() const { return this->ContinueInvoked; }
 
-  void SetNestedError() { this->NestedError = true; }
-  bool GetNestedError() const { return this->NestedError; }
+    void SetNestedError() { this->NestedError = true; }
+    bool GetNestedError() const { return this->NestedError; }
 
 private:
-  bool ReturnInvoked;
-  bool BreakInvoked;
-  bool ContinueInvoked;
-  bool NestedError;
+    bool ReturnInvoked;
+    bool BreakInvoked;
+    bool ContinueInvoked;
+    bool NestedError;
 };
 
 #endif

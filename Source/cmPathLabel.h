@@ -3,7 +3,7 @@
 #ifndef cmPathLabel_h
 #define cmPathLabel_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 
@@ -17,21 +17,21 @@
 class cmPathLabel
 {
 public:
-  cmPathLabel(const std::string& label);
+    cmPathLabel(const std::string& label);
 
-  // The comparison operators are only for quick sorting and searching and
-  // in no way imply any lexicographical order of the label
-  bool operator<(const cmPathLabel& l) const;
-  bool operator==(const cmPathLabel& l) const;
+    // The comparison operators are only for quick sorting and searching and
+    // in no way imply any lexicographical order of the label
+    bool operator<(const cmPathLabel& l) const;
+    bool operator==(const cmPathLabel& l) const;
 
-  const std::string& GetLabel() const { return this->Label; }
-  const unsigned int& GetHash() const { return this->Hash; }
+    const std::string&  GetLabel() const { return this->Label; }
+    const unsigned int& GetHash() const { return this->Hash; }
 
 protected:
-  cmPathLabel();
+    cmPathLabel();
 
-  std::string Label;
-  unsigned int Hash;
+    std::string  Label;
+    unsigned int Hash;
 };
 
 #endif

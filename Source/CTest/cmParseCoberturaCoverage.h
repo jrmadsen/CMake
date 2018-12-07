@@ -3,7 +3,7 @@
 #ifndef cmParseCoberturaCoverage_h
 #define cmParseCoberturaCoverage_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <vector>
@@ -23,23 +23,23 @@ class cmCTestCoverageHandlerContainer;
 class cmParseCoberturaCoverage
 {
 public:
-  //! Create the coverage parser by passing in the coverage handler
-  //! container and the cmCTest object
-  cmParseCoberturaCoverage(cmCTestCoverageHandlerContainer& cont,
-                           cmCTest* ctest);
+    //! Create the coverage parser by passing in the coverage handler
+    //! container and the cmCTest object
+    cmParseCoberturaCoverage(cmCTestCoverageHandlerContainer& cont,
+                             cmCTest*                         ctest);
 
-  bool inSources;
-  bool inSource;
-  std::vector<std::string> filepaths;
-  //! Read the XML produced by running `coverage xml`
-  bool ReadCoverageXML(const char* xmlFile);
+    bool                     inSources;
+    bool                     inSource;
+    std::vector<std::string> filepaths;
+    //! Read the XML produced by running `coverage xml`
+    bool ReadCoverageXML(const char* xmlFile);
 
 private:
-  class XMLParser;
+    class XMLParser;
 
-  cmCTestCoverageHandlerContainer& Coverage;
-  cmCTest* CTest;
-  std::string CurFileName;
+    cmCTestCoverageHandlerContainer& Coverage;
+    cmCTest*                         CTest;
+    std::string                      CurFileName;
 };
 
 #endif

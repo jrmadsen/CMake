@@ -3,7 +3,7 @@
 #ifndef cmLinkDirectoriesCommand_h
 #define cmLinkDirectoriesCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <vector>
@@ -23,21 +23,21 @@ class cmExecutionStatus;
 class cmLinkDirectoriesCommand : public cmCommand
 {
 public:
-  /**
-   * This is a virtual constructor for the command.
-   */
-  cmCommand* Clone() override { return new cmLinkDirectoriesCommand; }
+    /**
+     * This is a virtual constructor for the command.
+     */
+    cmCommand* Clone() override { return new cmLinkDirectoriesCommand; }
 
-  /**
-   * This is called when the command is first encountered in
-   * the CMakeLists.txt file.
-   */
-  bool InitialPass(std::vector<std::string> const& args,
-                   cmExecutionStatus& status) override;
+    /**
+     * This is called when the command is first encountered in
+     * the CMakeLists.txt file.
+     */
+    bool InitialPass(std::vector<std::string> const& args,
+                     cmExecutionStatus&              status) override;
 
 private:
-  void AddLinkDir(std::string const& dir,
-                  std::vector<std::string>& directories);
+    void AddLinkDir(std::string const&        dir,
+                    std::vector<std::string>& directories);
 };
 
 #endif

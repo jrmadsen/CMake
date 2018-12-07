@@ -3,7 +3,7 @@
 #ifndef cmFileLockPool_h
 #define cmFileLockPool_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <vector>
@@ -13,78 +13,78 @@ class cmFileLockResult;
 
 class cmFileLockPool
 {
-  CM_DISABLE_COPY(cmFileLockPool)
+    CM_DISABLE_COPY(cmFileLockPool)
 
 public:
-  cmFileLockPool();
-  ~cmFileLockPool();
+    cmFileLockPool();
+    ~cmFileLockPool();
 
-  //@{
-  /**
-   * @brief Function scope control.
-   */
-  void PushFunctionScope();
-  void PopFunctionScope();
-  //@}
+    //@{
+    /**
+     * @brief Function scope control.
+     */
+    void PushFunctionScope();
+    void PopFunctionScope();
+    //@}
 
-  //@{
-  /**
-   * @brief File scope control.
-   */
-  void PushFileScope();
-  void PopFileScope();
-  //@}
+    //@{
+    /**
+     * @brief File scope control.
+     */
+    void PushFileScope();
+    void PopFileScope();
+    //@}
 
-  //@{
-  /**
-   * @brief Lock the file in given scope.
-   * @param timeoutSec Lock timeout. If -1 try until success or fatal error.
-   */
-  cmFileLockResult LockFunctionScope(const std::string& filename,
-                                     unsigned long timeoutSec);
-  cmFileLockResult LockFileScope(const std::string& filename,
-                                 unsigned long timeoutSec);
-  cmFileLockResult LockProcessScope(const std::string& filename,
-                                    unsigned long timeoutSec);
-  //@}
+    //@{
+    /**
+     * @brief Lock the file in given scope.
+     * @param timeoutSec Lock timeout. If -1 try until success or fatal error.
+     */
+    cmFileLockResult LockFunctionScope(const std::string& filename,
+                                       unsigned long      timeoutSec);
+    cmFileLockResult LockFileScope(const std::string& filename,
+                                   unsigned long      timeoutSec);
+    cmFileLockResult LockProcessScope(const std::string& filename,
+                                      unsigned long      timeoutSec);
+    //@}
 
-  /**
-   * @brief Unlock the file explicitly.
-   */
-  cmFileLockResult Release(const std::string& filename);
+    /**
+     * @brief Unlock the file explicitly.
+     */
+    cmFileLockResult Release(const std::string& filename);
 
 private:
-  bool IsAlreadyLocked(const std::string& filename) const;
-
-  class ScopePool
-  {
-    CM_DISABLE_COPY(ScopePool)
-
-  public:
-    ScopePool();
-    ~ScopePool();
-
-    cmFileLockResult Lock(const std::string& filename,
-                          unsigned long timeoutSec);
-    cmFileLockResult Release(const std::string& filename);
     bool IsAlreadyLocked(const std::string& filename) const;
 
-  private:
-    typedef std::vector<cmFileLock*> List;
-    typedef List::iterator It;
+    class ScopePool
+    {
+        CM_DISABLE_COPY(ScopePool)
+
+    public:
+        ScopePool();
+        ~ScopePool();
+
+        cmFileLockResult Lock(const std::string& filename,
+                              unsigned long      timeoutSec);
+        cmFileLockResult Release(const std::string& filename);
+        bool             IsAlreadyLocked(const std::string& filename) const;
+
+    private:
+        typedef std::vector<cmFileLock*> List;
+        typedef List::iterator           It;
+        typedef List::const_iterator     CIt;
+
+        List Locks;
+    };
+
+    typedef std::vector<ScopePool*> List;
+
+    typedef List::iterator       It;
     typedef List::const_iterator CIt;
 
-    List Locks;
-  };
-
-  typedef std::vector<ScopePool*> List;
-
-  typedef List::iterator It;
-  typedef List::const_iterator CIt;
-
-  List FunctionScopes;
-  List FileScopes;
-  ScopePool ProcessScope;
+    List      FunctionScopes;
+    List      FileScopes;
+    ScopePool ProcessScope;
 };
 
-#endif // cmFileLockPool_h
+#endif  // cmFileLockPool_h

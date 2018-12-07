@@ -3,7 +3,7 @@
 #ifndef cmCTestCoverageCommand_h
 #define cmCTestCoverageCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCTestHandlerCommand.h"
 
@@ -21,40 +21,40 @@ class cmCommand;
 class cmCTestCoverageCommand : public cmCTestHandlerCommand
 {
 public:
-  cmCTestCoverageCommand();
+    cmCTestCoverageCommand();
 
-  /**
-   * This is a virtual constructor for the command.
-   */
-  cmCommand* Clone() override
-  {
-    cmCTestCoverageCommand* ni = new cmCTestCoverageCommand;
-    ni->CTest = this->CTest;
-    ni->CTestScriptHandler = this->CTestScriptHandler;
-    return ni;
-  }
+    /**
+     * This is a virtual constructor for the command.
+     */
+    cmCommand* Clone() override
+    {
+        cmCTestCoverageCommand* ni = new cmCTestCoverageCommand;
+        ni->CTest                  = this->CTest;
+        ni->CTestScriptHandler     = this->CTestScriptHandler;
+        return ni;
+    }
 
-  /**
-   * The name of the command as specified in CMakeList.txt.
-   */
-  std::string GetName() const override { return "ctest_coverage"; }
+    /**
+     * The name of the command as specified in CMakeList.txt.
+     */
+    std::string GetName() const override { return "ctest_coverage"; }
 
-  typedef cmCTestHandlerCommand Superclass;
+    typedef cmCTestHandlerCommand Superclass;
 
 protected:
-  cmCTestGenericHandler* InitializeHandler() override;
+    cmCTestGenericHandler* InitializeHandler() override;
 
-  bool CheckArgumentKeyword(std::string const& arg) override;
-  bool CheckArgumentValue(std::string const& arg) override;
+    bool CheckArgumentKeyword(std::string const& arg) override;
+    bool CheckArgumentValue(std::string const& arg) override;
 
-  enum
-  {
-    ArgumentDoingLabels = Superclass::ArgumentDoingLast1,
-    ArgumentDoingLast2
-  };
+    enum
+    {
+        ArgumentDoingLabels = Superclass::ArgumentDoingLast1,
+        ArgumentDoingLast2
+    };
 
-  bool LabelsMentioned;
-  std::set<std::string> Labels;
+    bool                  LabelsMentioned;
+    std::set<std::string> Labels;
 };
 
 #endif

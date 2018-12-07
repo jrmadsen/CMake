@@ -3,7 +3,7 @@
 #ifndef cmConfigureFileCommand_h
 #define cmConfigureFileCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <vector>
@@ -16,25 +16,25 @@ class cmExecutionStatus;
 class cmConfigureFileCommand : public cmCommand
 {
 public:
-  cmCommand* Clone() override { return new cmConfigureFileCommand; }
+    cmCommand* Clone() override { return new cmConfigureFileCommand; }
 
-  /**
-   * This is called when the command is first encountered in
-   * the input file.
-   */
-  bool InitialPass(std::vector<std::string> const& args,
-                   cmExecutionStatus& status) override;
+    /**
+     * This is called when the command is first encountered in
+     * the input file.
+     */
+    bool InitialPass(std::vector<std::string> const& args,
+                     cmExecutionStatus&              status) override;
 
 private:
-  int ConfigureFile();
+    int ConfigureFile();
 
-  cmNewLineStyle NewLineStyle;
+    cmNewLineStyle NewLineStyle;
 
-  std::string InputFile;
-  std::string OutputFile;
-  bool CopyOnly = false;
-  bool EscapeQuotes = false;
-  bool AtOnly = false;
+    std::string InputFile;
+    std::string OutputFile;
+    bool        CopyOnly     = false;
+    bool        EscapeQuotes = false;
+    bool        AtOnly       = false;
 };
 
 #endif

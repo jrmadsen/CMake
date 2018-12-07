@@ -11,19 +11,19 @@
 class cmCPackCygwinBinaryGenerator : public cmCPackTarBZip2Generator
 {
 public:
-  cmCPackTypeMacro(cmCPackCygwinBinaryGenerator, cmCPackTarBZip2Generator);
+    cmCPackTypeMacro(cmCPackCygwinBinaryGenerator, cmCPackTarBZip2Generator);
 
-  /**
-   * Construct generator
-   */
-  cmCPackCygwinBinaryGenerator();
-  ~cmCPackCygwinBinaryGenerator() override;
+    /**
+     * Construct generator
+     */
+    cmCPackCygwinBinaryGenerator();
+    ~cmCPackCygwinBinaryGenerator() override;
 
 protected:
-  virtual int InitializeInternal();
-  int PackageFiles();
-  virtual const char* GetOutputExtension();
-  std::string OutputExtension;
+    virtual int         InitializeInternal();
+    int                 PackageFiles();
+    virtual const char* GetOutputExtension();
+    std::string         OutputExtension;
 };
 
 #endif

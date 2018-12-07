@@ -9,25 +9,25 @@
 #include "cmMakefile.h"
 
 cmLocalGhsMultiGenerator::cmLocalGhsMultiGenerator(cmGlobalGenerator* gg,
-                                                   cmMakefile* mf)
-  : cmLocalGenerator(gg, mf)
-{
-}
+                                                   cmMakefile*        mf)
+: cmLocalGenerator(gg, mf)
+{}
 
-cmLocalGhsMultiGenerator::~cmLocalGhsMultiGenerator()
-{
-}
+cmLocalGhsMultiGenerator::~cmLocalGhsMultiGenerator() {}
 
-void cmLocalGhsMultiGenerator::Generate()
+void
+cmLocalGhsMultiGenerator::Generate()
 {
-  const std::vector<cmGeneratorTarget*>& tgts = this->GetGeneratorTargets();
+    const std::vector<cmGeneratorTarget*>& tgts = this->GetGeneratorTargets();
 
-  for (std::vector<cmGeneratorTarget*>::const_iterator l = tgts.begin();
-       l != tgts.end(); ++l) {
-    if ((*l)->GetType() == cmStateEnums::INTERFACE_LIBRARY) {
-      continue;
+    for(std::vector<cmGeneratorTarget*>::const_iterator l = tgts.begin();
+        l != tgts.end(); ++l)
+    {
+        if((*l)->GetType() == cmStateEnums::INTERFACE_LIBRARY)
+        {
+            continue;
+        }
+        cmGhsMultiTargetGenerator tg(*l);
+        tg.Generate();
     }
-    cmGhsMultiTargetGenerator tg(*l);
-    tg.Generate();
-  }
 }

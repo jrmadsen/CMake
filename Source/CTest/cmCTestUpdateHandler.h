@@ -3,7 +3,7 @@
 #ifndef cmCTestUpdateHandler_h
 #define cmCTestUpdateHandler_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCTestGenericHandler.h"
 
@@ -18,50 +18,48 @@
 class cmCTestUpdateHandler : public cmCTestGenericHandler
 {
 public:
-  typedef cmCTestGenericHandler Superclass;
+    typedef cmCTestGenericHandler Superclass;
 
-  /*
-   * The main entry point for this class
-   */
-  int ProcessHandler() override;
+    /*
+     * The main entry point for this class
+     */
+    int ProcessHandler() override;
 
-  cmCTestUpdateHandler();
+    cmCTestUpdateHandler();
 
-  enum
-  {
-    e_UNKNOWN = 0,
-    e_CVS,
-    e_SVN,
-    e_BZR,
-    e_GIT,
-    e_HG,
-    e_P4,
-    e_LAST
-  };
+    enum
+    {
+        e_UNKNOWN = 0,
+        e_CVS,
+        e_SVN,
+        e_BZR,
+        e_GIT,
+        e_HG,
+        e_P4,
+        e_LAST
+    };
 
-  /**
-   * Initialize handler
-   */
-  void Initialize() override;
+    /**
+     * Initialize handler
+     */
+    void Initialize() override;
 
 private:
-  // Some structures needed for update
-  struct StringPair : public std::pair<std::string, std::string>
-  {
-  };
-  struct UpdateFiles : public std::vector<StringPair>
-  {
-  };
+    // Some structures needed for update
+    struct StringPair : public std::pair<std::string, std::string>
+    {};
+    struct UpdateFiles : public std::vector<StringPair>
+    {};
 
-  // Determine the type of version control
-  int DetermineType(const char* cmd, const char* type);
+    // Determine the type of version control
+    int DetermineType(const char* cmd, const char* type);
 
-  // The VCS command to update the working tree.
-  std::string UpdateCommand;
-  int UpdateType;
+    // The VCS command to update the working tree.
+    std::string UpdateCommand;
+    int         UpdateType;
 
-  int DetectVCS(const char* dir);
-  bool SelectVCS();
+    int  DetectVCS(const char* dir);
+    bool SelectVCS();
 };
 
 #endif

@@ -3,7 +3,7 @@
 #ifndef cmLocalVisualStudio10Generator_h
 #define cmLocalVisualStudio10Generator_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 
@@ -21,31 +21,31 @@ class cmMakefile;
 class cmLocalVisualStudio10Generator : public cmLocalVisualStudio7Generator
 {
 public:
-  ///! Set cache only and recurse to false by default.
-  cmLocalVisualStudio10Generator(cmGlobalGenerator* gg, cmMakefile* mf);
+    ///! Set cache only and recurse to false by default.
+    cmLocalVisualStudio10Generator(cmGlobalGenerator* gg, cmMakefile* mf);
 
-  virtual ~cmLocalVisualStudio10Generator();
+    virtual ~cmLocalVisualStudio10Generator();
 
-  /**
-   * Generate the makefile for this directory.
-   */
-  void Generate() override;
-  void ReadAndStoreExternalGUID(const std::string& name,
-                                const char* path) override;
+    /**
+     * Generate the makefile for this directory.
+     */
+    void Generate() override;
+    void ReadAndStoreExternalGUID(const std::string& name,
+                                  const char*        path) override;
 
-  std::set<cmSourceFile const*>& GetSourcesVisited(cmGeneratorTarget* target)
-  {
-    return SourcesVisited[target];
-  };
+    std::set<cmSourceFile const*>& GetSourcesVisited(cmGeneratorTarget* target)
+    {
+        return SourcesVisited[target];
+    };
 
 protected:
-  const char* ReportErrorLabel() const override;
-  bool CustomCommandUseLocal() const override { return true; }
+    const char* ReportErrorLabel() const override;
+    bool        CustomCommandUseLocal() const override { return true; }
 
 private:
-  void GenerateTargetsDepthFirst(cmGeneratorTarget* target,
-                                 std::vector<cmGeneratorTarget*>& remaining);
+    void GenerateTargetsDepthFirst(cmGeneratorTarget*               target,
+                                   std::vector<cmGeneratorTarget*>& remaining);
 
-  std::map<cmGeneratorTarget*, std::set<cmSourceFile const*>> SourcesVisited;
+    std::map<cmGeneratorTarget*, std::set<cmSourceFile const*>> SourcesVisited;
 };
 #endif

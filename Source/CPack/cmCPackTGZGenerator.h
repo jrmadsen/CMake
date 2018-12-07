@@ -3,7 +3,7 @@
 #ifndef cmCPackTGZGenerator_h
 #define cmCPackTGZGenerator_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCPackArchiveGenerator.h"
 #include "cmCPackGenerator.h"
@@ -15,15 +15,15 @@
 class cmCPackTGZGenerator : public cmCPackArchiveGenerator
 {
 public:
-  cmCPackTypeMacro(cmCPackTGZGenerator, cmCPackArchiveGenerator);
-  /**
-   * Construct generator
-   */
-  cmCPackTGZGenerator();
-  ~cmCPackTGZGenerator() override;
+    cmCPackTypeMacro(cmCPackTGZGenerator, cmCPackArchiveGenerator);
+    /**
+     * Construct generator
+     */
+    cmCPackTGZGenerator();
+    ~cmCPackTGZGenerator() override;
 
 protected:
-  const char* GetOutputExtension() override { return ".tar.gz"; }
+    const char* GetOutputExtension() override { return ".tar.gz"; }
 };
 
 #endif

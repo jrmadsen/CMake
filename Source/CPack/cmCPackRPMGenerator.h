@@ -3,7 +3,7 @@
 #ifndef cmCPackRPMGenerator_h
 #define cmCPackRPMGenerator_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCPackGenerator.h"
 
@@ -20,53 +20,53 @@
 class cmCPackRPMGenerator : public cmCPackGenerator
 {
 public:
-  cmCPackTypeMacro(cmCPackRPMGenerator, cmCPackGenerator);
+    cmCPackTypeMacro(cmCPackRPMGenerator, cmCPackGenerator);
 
-  /**
-   * Construct generator
-   */
-  cmCPackRPMGenerator();
-  ~cmCPackRPMGenerator() override;
+    /**
+     * Construct generator
+     */
+    cmCPackRPMGenerator();
+    ~cmCPackRPMGenerator() override;
 
-  static bool CanGenerate()
-  {
+    static bool CanGenerate()
+    {
 #ifdef __APPLE__
-    // on MacOS enable CPackRPM iff rpmbuild is found
-    std::vector<std::string> locations;
-    locations.push_back("/sw/bin");        // Fink
-    locations.push_back("/opt/local/bin"); // MacPorts
-    return cmSystemTools::FindProgram("rpmbuild") != "" ? true : false;
+        // on MacOS enable CPackRPM iff rpmbuild is found
+        std::vector<std::string> locations;
+        locations.push_back("/sw/bin");         // Fink
+        locations.push_back("/opt/local/bin");  // MacPorts
+        return cmSystemTools::FindProgram("rpmbuild") != "" ? true : false;
 #else
-    // legacy behavior on other systems
-    return true;
+        // legacy behavior on other systems
+        return true;
 #endif
-  }
+    }
 
 protected:
-  int InitializeInternal() override;
-  int PackageFiles() override;
-  /**
-   * This method factors out the work done in component packaging case.
-   */
-  int PackageOnePack(std::string const& initialToplevel,
-                     std::string const& packageName);
-  /**
-   * The method used to package files when component
-   * install is used. This will create one
-   * archive for each component group.
-   */
-  int PackageComponents(bool ignoreGroup);
-  /**
-   * Special case of component install where all
-   * components will be put in a single installer.
-   */
-  int PackageComponentsAllInOne(const std::string& compInstDirName);
-  const char* GetOutputExtension() override { return ".rpm"; }
-  bool SupportsComponentInstallation() const override;
-  std::string GetComponentInstallDirNameSuffix(
-    const std::string& componentName) override;
+    int InitializeInternal() override;
+    int PackageFiles() override;
+    /**
+     * This method factors out the work done in component packaging case.
+     */
+    int PackageOnePack(std::string const& initialToplevel,
+                       std::string const& packageName);
+    /**
+     * The method used to package files when component
+     * install is used. This will create one
+     * archive for each component group.
+     */
+    int PackageComponents(bool ignoreGroup);
+    /**
+     * Special case of component install where all
+     * components will be put in a single installer.
+     */
+    int         PackageComponentsAllInOne(const std::string& compInstDirName);
+    const char* GetOutputExtension() override { return ".rpm"; }
+    bool        SupportsComponentInstallation() const override;
+    std::string GetComponentInstallDirNameSuffix(
+        const std::string& componentName) override;
 
-  void AddGeneratedPackageNames();
+    void AddGeneratedPackageNames();
 };
 
 #endif

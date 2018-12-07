@@ -3,7 +3,7 @@
 #ifndef cmWorkingDirectory_h
 #define cmWorkingDirectory_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 
@@ -19,24 +19,24 @@
 class cmWorkingDirectory
 {
 public:
-  cmWorkingDirectory(std::string const& newdir);
-  ~cmWorkingDirectory();
+    cmWorkingDirectory(std::string const& newdir);
+    ~cmWorkingDirectory();
 
-  bool SetDirectory(std::string const& newdir);
-  void Pop();
-  bool Failed() const { return ResultCode != 0; }
+    bool SetDirectory(std::string const& newdir);
+    void Pop();
+    bool Failed() const { return ResultCode != 0; }
 
-  /** \return 0 if the last attempt to set the working directory was
-   *          successful. If it failed, the value returned will be the
-   *          \c errno value associated with the failure. A description
-   *          of the error code can be obtained by passing the result
-   *          to \c std::strerror().
-   */
-  int GetLastResult() const { return ResultCode; }
+    /** \return 0 if the last attempt to set the working directory was
+     *          successful. If it failed, the value returned will be the
+     *          \c errno value associated with the failure. A description
+     *          of the error code can be obtained by passing the result
+     *          to \c std::strerror().
+     */
+    int GetLastResult() const { return ResultCode; }
 
 private:
-  std::string OldDir;
-  int ResultCode;
+    std::string OldDir;
+    int         ResultCode;
 };
 
 #endif

@@ -3,7 +3,7 @@
 #ifndef cmCTestUpdateCommand_h
 #define cmCTestUpdateCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCTestHandlerCommand.h"
 
@@ -20,26 +20,26 @@ class cmCommand;
 class cmCTestUpdateCommand : public cmCTestHandlerCommand
 {
 public:
-  cmCTestUpdateCommand() {}
+    cmCTestUpdateCommand() {}
 
-  /**
-   * This is a virtual constructor for the command.
-   */
-  cmCommand* Clone() override
-  {
-    cmCTestUpdateCommand* ni = new cmCTestUpdateCommand;
-    ni->CTest = this->CTest;
-    ni->CTestScriptHandler = this->CTestScriptHandler;
-    return ni;
-  }
+    /**
+     * This is a virtual constructor for the command.
+     */
+    cmCommand* Clone() override
+    {
+        cmCTestUpdateCommand* ni = new cmCTestUpdateCommand;
+        ni->CTest                = this->CTest;
+        ni->CTestScriptHandler   = this->CTestScriptHandler;
+        return ni;
+    }
 
-  /**
-   * The name of the command as specified in CMakeList.txt.
-   */
-  std::string GetName() const override { return "ctest_update"; }
+    /**
+     * The name of the command as specified in CMakeList.txt.
+     */
+    std::string GetName() const override { return "ctest_update"; }
 
 protected:
-  cmCTestGenericHandler* InitializeHandler() override;
+    cmCTestGenericHandler* InitializeHandler() override;
 };
 
 #endif

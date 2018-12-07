@@ -3,7 +3,7 @@
 #ifndef cmNewLineStyle_h
 #define cmNewLineStyle_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <vector>
@@ -11,29 +11,29 @@
 class cmNewLineStyle
 {
 public:
-  cmNewLineStyle();
+    cmNewLineStyle();
 
-  enum Style
-  {
-    Invalid,
-    // LF = '\n', 0x0A, 10
-    // CR = '\r', 0x0D, 13
-    LF,  // Unix
-    CRLF // Dos
-  };
+    enum Style
+    {
+        Invalid,
+        // LF = '\n', 0x0A, 10
+        // CR = '\r', 0x0D, 13
+        LF,   // Unix
+        CRLF  // Dos
+    };
 
-  void SetStyle(Style);
-  Style GetStyle() const;
+    void  SetStyle(Style);
+    Style GetStyle() const;
 
-  bool IsValid() const;
+    bool IsValid() const;
 
-  bool ReadFromArguments(const std::vector<std::string>& args,
-                         std::string& errorString);
+    bool ReadFromArguments(const std::vector<std::string>& args,
+                           std::string&                    errorString);
 
-  const std::string GetCharacters() const;
+    const std::string GetCharacters() const;
 
 private:
-  Style NewLineStyle;
+    Style NewLineStyle;
 };
 
 #endif

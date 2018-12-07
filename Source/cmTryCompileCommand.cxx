@@ -8,28 +8,33 @@
 class cmExecutionStatus;
 
 // cmTryCompileCommand
-bool cmTryCompileCommand::InitialPass(std::vector<std::string> const& argv,
-                                      cmExecutionStatus&)
+bool
+cmTryCompileCommand::InitialPass(std::vector<std::string> const& argv,
+                                 cmExecutionStatus&)
 {
-  if (argv.size() < 3) {
-    return false;
-  }
-
-  if (this->Makefile->GetCMakeInstance()->GetWorkingMode() ==
-      cmake::FIND_PACKAGE_MODE) {
-    this->Makefile->IssueMessage(
-      cmake::FATAL_ERROR,
-      "The TRY_COMPILE() command is not supported in --find-package mode.");
-    return false;
-  }
-
-  this->TryCompileCode(argv, false);
-
-  // if They specified clean then we clean up what we can
-  if (this->SrcFileSignature) {
-    if (!this->Makefile->GetCMakeInstance()->GetDebugTryCompile()) {
-      this->CleanupFiles(this->BinaryDirectory);
+    if(argv.size() < 3)
+    {
+        return false;
     }
-  }
-  return true;
+
+    if(this->Makefile->GetCMakeInstance()->GetWorkingMode() ==
+       cmake::FIND_PACKAGE_MODE)
+    {
+        this->Makefile->IssueMessage(cmake::FATAL_ERROR,
+                                     "The TRY_COMPILE() command is not "
+                                     "supported in --find-package mode.");
+        return false;
+    }
+
+    this->TryCompileCode(argv, false);
+
+    // if They specified clean then we clean up what we can
+    if(this->SrcFileSignature)
+    {
+        if(!this->Makefile->GetCMakeInstance()->GetDebugTryCompile())
+        {
+            this->CleanupFiles(this->BinaryDirectory);
+        }
+    }
+    return true;
 }

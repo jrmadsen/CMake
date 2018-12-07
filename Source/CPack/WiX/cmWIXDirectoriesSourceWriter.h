@@ -15,20 +15,21 @@
 class cmWIXDirectoriesSourceWriter : public cmWIXSourceWriter
 {
 public:
-  cmWIXDirectoriesSourceWriter(cmCPackLog* logger, std::string const& filename,
-                               GuidType componentGuidType);
+    cmWIXDirectoriesSourceWriter(cmCPackLog*        logger,
+                                 std::string const& filename,
+                                 GuidType           componentGuidType);
 
-  void EmitStartMenuFolder(std::string const& startMenuFolder);
+    void EmitStartMenuFolder(std::string const& startMenuFolder);
 
-  void EmitDesktopFolder();
+    void EmitDesktopFolder();
 
-  void EmitStartupFolder();
+    void EmitStartupFolder();
 
-  size_t BeginInstallationPrefixDirectory(
-    std::string const& programFilesFolderId,
-    std::string const& installRootString);
+    size_t BeginInstallationPrefixDirectory(
+        std::string const& programFilesFolderId,
+        std::string const& installRootString);
 
-  void EndInstallationPrefixDirectory(size_t size);
+    void EndInstallationPrefixDirectory(size_t size);
 };
 
 #endif

@@ -12,30 +12,33 @@
 
 class cmExecutionStatus;
 
-bool cmTargetLinkOptionsCommand::InitialPass(
-  std::vector<std::string> const& args, cmExecutionStatus&)
+bool
+cmTargetLinkOptionsCommand::InitialPass(std::vector<std::string> const& args,
+                                        cmExecutionStatus&)
 {
-  return this->HandleArguments(args, "LINK_OPTIONS", PROCESS_BEFORE);
+    return this->HandleArguments(args, "LINK_OPTIONS", PROCESS_BEFORE);
 }
 
-void cmTargetLinkOptionsCommand::HandleMissingTarget(const std::string& name)
+void
+cmTargetLinkOptionsCommand::HandleMissingTarget(const std::string& name)
 {
-  std::ostringstream e;
-  e << "Cannot specify link options for target \"" << name
-    << "\" which is not built by this project.";
-  this->Makefile->IssueMessage(cmake::FATAL_ERROR, e.str());
+    std::ostringstream e;
+    e << "Cannot specify link options for target \"" << name
+      << "\" which is not built by this project.";
+    this->Makefile->IssueMessage(cmake::FATAL_ERROR, e.str());
 }
 
-std::string cmTargetLinkOptionsCommand::Join(
-  const std::vector<std::string>& content)
+std::string
+cmTargetLinkOptionsCommand::Join(const std::vector<std::string>& content)
 {
-  return cmJoin(content, ";");
+    return cmJoin(content, ";");
 }
 
-bool cmTargetLinkOptionsCommand::HandleDirectContent(
-  cmTarget* tgt, const std::vector<std::string>& content, bool prepend, bool)
+bool
+cmTargetLinkOptionsCommand::HandleDirectContent(
+    cmTarget* tgt, const std::vector<std::string>& content, bool prepend, bool)
 {
-  cmListFileBacktrace lfbt = this->Makefile->GetBacktrace();
-  tgt->InsertLinkOption(this->Join(content), lfbt, prepend);
-  return true; // Successfully handled.
+    cmListFileBacktrace lfbt = this->Makefile->GetBacktrace();
+    tgt->InsertLinkOption(this->Join(content), lfbt, prepend);
+    return true;  // Successfully handled.
 }

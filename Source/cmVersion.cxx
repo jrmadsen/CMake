@@ -4,24 +4,29 @@
 
 #include "cmVersionConfig.h"
 
-unsigned int cmVersion::GetMajorVersion()
+unsigned int
+cmVersion::GetMajorVersion()
 {
-  return CMake_VERSION_MAJOR;
+    return CMake_VERSION_MAJOR;
 }
-unsigned int cmVersion::GetMinorVersion()
+unsigned int
+cmVersion::GetMinorVersion()
 {
-  return CMake_VERSION_MINOR;
+    return CMake_VERSION_MINOR;
 }
-unsigned int cmVersion::GetPatchVersion()
+unsigned int
+cmVersion::GetPatchVersion()
 {
-  return CMake_VERSION_PATCH;
+    return CMake_VERSION_PATCH;
 }
-unsigned int cmVersion::GetTweakVersion()
+unsigned int
+cmVersion::GetTweakVersion()
 {
-  return 0;
+    return 0;
 }
 
-const char* cmVersion::GetCMakeVersion()
+const char*
+cmVersion::GetCMakeVersion()
 {
-  return CMake_VERSION;
+    return CMake_VERSION;
 }

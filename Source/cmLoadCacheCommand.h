@@ -3,7 +3,7 @@
 #ifndef cmLoadCacheCommand_h
 #define cmLoadCacheCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <set>
 #include <string>
@@ -21,24 +21,24 @@ class cmExecutionStatus;
 class cmLoadCacheCommand : public cmCommand
 {
 public:
-  /**
-   * This is a virtual constructor for the command.
-   */
-  cmCommand* Clone() override { return new cmLoadCacheCommand; }
+    /**
+     * This is a virtual constructor for the command.
+     */
+    cmCommand* Clone() override { return new cmLoadCacheCommand; }
 
-  /**
-   * This is called when the command is first encountered in
-   * the CMakeLists.txt file.
-   */
-  bool InitialPass(std::vector<std::string> const& args,
-                   cmExecutionStatus& status) override;
+    /**
+     * This is called when the command is first encountered in
+     * the CMakeLists.txt file.
+     */
+    bool InitialPass(std::vector<std::string> const& args,
+                     cmExecutionStatus&              status) override;
 
 protected:
-  std::set<std::string> VariablesToRead;
-  std::string Prefix;
+    std::set<std::string> VariablesToRead;
+    std::string           Prefix;
 
-  bool ReadWithPrefix(std::vector<std::string> const& args);
-  void CheckLine(const char* line);
+    bool ReadWithPrefix(std::vector<std::string> const& args);
+    void CheckLine(const char* line);
 };
 
 #endif

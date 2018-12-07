@@ -2,7 +2,7 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #pragma once
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmUVHandlePtr.h"
 #include <string>
@@ -13,16 +13,16 @@
 class cmPipeConnection : public cmEventBasedConnection
 {
 public:
-  cmPipeConnection(const std::string& name,
-                   cmConnectionBufferStrategy* bufferStrategy = nullptr);
+    cmPipeConnection(const std::string&          name,
+                     cmConnectionBufferStrategy* bufferStrategy = nullptr);
 
-  bool OnServeStart(std::string* pString) override;
+    bool OnServeStart(std::string* pString) override;
 
-  bool OnConnectionShuttingDown() override;
+    bool OnConnectionShuttingDown() override;
 
-  void Connect(uv_stream_t* server) override;
+    void Connect(uv_stream_t* server) override;
 
 private:
-  const std::string PipeName;
-  cm::uv_pipe_ptr ServerPipe;
+    const std::string PipeName;
+    cm::uv_pipe_ptr   ServerPipe;
 };

@@ -3,7 +3,7 @@
 #ifndef cmCPackProductBuildGenerator_h
 #define cmCPackProductBuildGenerator_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 
@@ -19,35 +19,35 @@ class cmCPackComponent;
 class cmCPackProductBuildGenerator : public cmCPackPKGGenerator
 {
 public:
-  cmCPackTypeMacro(cmCPackProductBuildGenerator, cmCPackPKGGenerator);
+    cmCPackTypeMacro(cmCPackProductBuildGenerator, cmCPackPKGGenerator);
 
-  /**
-   * Construct generator
-   */
-  cmCPackProductBuildGenerator();
-  ~cmCPackProductBuildGenerator() override;
+    /**
+     * Construct generator
+     */
+    cmCPackProductBuildGenerator();
+    ~cmCPackProductBuildGenerator() override;
 
 protected:
-  int InitializeInternal() override;
-  int PackageFiles() override;
-  const char* GetOutputExtension() override { return ".pkg"; }
+    int         InitializeInternal() override;
+    int         PackageFiles() override;
+    const char* GetOutputExtension() override { return ".pkg"; }
 
-  // Run ProductBuild with the given command line, which will (if
-  // successful) produce the given package file. Returns true if
-  // ProductBuild succeeds, false otherwise.
-  bool RunProductBuild(const std::string& command);
+    // Run ProductBuild with the given command line, which will (if
+    // successful) produce the given package file. Returns true if
+    // ProductBuild succeeds, false otherwise.
+    bool RunProductBuild(const std::string& command);
 
-  // Generate a package in the file packageFile for the given
-  // component.  All of the files within this component are stored in
-  // the directory packageDir. Returns true if successful, false
-  // otherwise.
-  bool GenerateComponentPackage(const std::string& packageFileDir,
-                                const std::string& packageFileName,
-                                const std::string& packageDir,
-                                const cmCPackComponent* component);
+    // Generate a package in the file packageFile for the given
+    // component.  All of the files within this component are stored in
+    // the directory packageDir. Returns true if successful, false
+    // otherwise.
+    bool GenerateComponentPackage(const std::string&      packageFileDir,
+                                  const std::string&      packageFileName,
+                                  const std::string&      packageDir,
+                                  const cmCPackComponent* component);
 
-  const char* GetComponentScript(const char* script,
-                                 const char* script_component);
+    const char* GetComponentScript(const char* script,
+                                   const char* script_component);
 };
 
 #endif

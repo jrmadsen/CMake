@@ -8,15 +8,14 @@
 class cmOutputConverter;
 
 cmNinjaLinkLineComputer::cmNinjaLinkLineComputer(
-  cmOutputConverter* outputConverter, cmStateDirectory const& stateDir,
-  cmGlobalNinjaGenerator const* gg)
-  : cmLinkLineComputer(outputConverter, stateDir)
-  , GG(gg)
-{
-}
+    cmOutputConverter* outputConverter, cmStateDirectory const& stateDir,
+    cmGlobalNinjaGenerator const* gg)
+: cmLinkLineComputer(outputConverter, stateDir)
+, GG(gg)
+{}
 
-std::string cmNinjaLinkLineComputer::ConvertToLinkReference(
-  std::string const& lib) const
+std::string
+cmNinjaLinkLineComputer::ConvertToLinkReference(std::string const& lib) const
 {
-  return GG->ConvertToNinjaPath(lib);
+    return GG->ConvertToNinjaPath(lib);
 }

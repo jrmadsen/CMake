@@ -4,27 +4,28 @@
 #ifndef cmStateTypes_h
 #define cmStateTypes_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmLinkedTree.h"
 
-namespace cmStateDetail {
+namespace cmStateDetail
+{
 struct SnapshotDataType;
 typedef cmLinkedTree<cmStateDetail::SnapshotDataType>::iterator PositionType;
 }
 
-namespace cmStateEnums {
-
+namespace cmStateEnums
+{
 enum SnapshotType
 {
-  BaseType,
-  BuildsystemDirectoryType,
-  FunctionCallType,
-  MacroCallType,
-  IncludeFileType,
-  InlineListFileType,
-  PolicyScopeType,
-  VariableScopeType
+    BaseType,
+    BuildsystemDirectoryType,
+    FunctionCallType,
+    MacroCallType,
+    IncludeFileType,
+    InlineListFileType,
+    PolicyScopeType,
+    VariableScopeType
 };
 
 // There are multiple overlapping ranges represented here. Be aware that adding
@@ -32,32 +33,32 @@ enum SnapshotType
 // assume details about the ordering.
 enum TargetType
 {
-  EXECUTABLE,
-  STATIC_LIBRARY,
-  SHARED_LIBRARY,
-  MODULE_LIBRARY,
-  OBJECT_LIBRARY,
-  UTILITY,
-  GLOBAL_TARGET,
-  INTERFACE_LIBRARY,
-  UNKNOWN_LIBRARY
+    EXECUTABLE,
+    STATIC_LIBRARY,
+    SHARED_LIBRARY,
+    MODULE_LIBRARY,
+    OBJECT_LIBRARY,
+    UTILITY,
+    GLOBAL_TARGET,
+    INTERFACE_LIBRARY,
+    UNKNOWN_LIBRARY
 };
 
 enum CacheEntryType
 {
-  BOOL = 0,
-  PATH,
-  FILEPATH,
-  STRING,
-  INTERNAL,
-  STATIC,
-  UNINITIALIZED
+    BOOL = 0,
+    PATH,
+    FILEPATH,
+    STRING,
+    INTERNAL,
+    STATIC,
+    UNINITIALIZED
 };
 
 enum ArtifactType
 {
-  RuntimeBinaryArtifact,
-  ImportLibraryArtifact
+    RuntimeBinaryArtifact,
+    ImportLibraryArtifact
 };
 }
 

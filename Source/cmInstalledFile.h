@@ -3,12 +3,12 @@
 #ifndef cmInstalledFile_h
 #define cmInstalledFile_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmGeneratorExpression.h"
 
 #include <map>
-#include <memory> // IWYU pragma: keep
+#include <memory>  // IWYU pragma: keep
 #include <string>
 #include <vector>
 
@@ -22,54 +22,54 @@ class cmMakefile;
 class cmInstalledFile
 {
 public:
-  typedef std::unique_ptr<cmCompiledGeneratorExpression>
-    CompiledGeneratorExpressionPtrType;
+    typedef std::unique_ptr<cmCompiledGeneratorExpression>
+        CompiledGeneratorExpressionPtrType;
 
-  typedef std::vector<cmCompiledGeneratorExpression*> ExpressionVectorType;
+    typedef std::vector<cmCompiledGeneratorExpression*> ExpressionVectorType;
 
-  struct Property
-  {
-    Property();
-    ~Property();
+    struct Property
+    {
+        Property();
+        ~Property();
 
-    ExpressionVectorType ValueExpressions;
-  };
+        ExpressionVectorType ValueExpressions;
+    };
 
-  typedef std::map<std::string, Property> PropertyMapType;
+    typedef std::map<std::string, Property> PropertyMapType;
 
-  cmInstalledFile();
+    cmInstalledFile();
 
-  ~cmInstalledFile();
+    ~cmInstalledFile();
 
-  void RemoveProperty(const std::string& prop);
+    void RemoveProperty(const std::string& prop);
 
-  void SetProperty(cmMakefile const* mf, const std::string& prop,
-                   const char* value);
+    void SetProperty(cmMakefile const* mf, const std::string& prop,
+                     const char* value);
 
-  void AppendProperty(cmMakefile const* mf, const std::string& prop,
-                      const char* value, bool asString = false);
+    void AppendProperty(cmMakefile const* mf, const std::string& prop,
+                        const char* value, bool asString = false);
 
-  bool HasProperty(const std::string& prop) const;
+    bool HasProperty(const std::string& prop) const;
 
-  bool GetProperty(const std::string& prop, std::string& value) const;
+    bool GetProperty(const std::string& prop, std::string& value) const;
 
-  bool GetPropertyAsBool(const std::string& prop) const;
+    bool GetPropertyAsBool(const std::string& prop) const;
 
-  void GetPropertyAsList(const std::string& prop,
-                         std::vector<std::string>& list) const;
+    void GetPropertyAsList(const std::string&        prop,
+                           std::vector<std::string>& list) const;
 
-  void SetName(cmMakefile* mf, const std::string& name);
+    void SetName(cmMakefile* mf, const std::string& name);
 
-  std::string const& GetName() const;
+    std::string const& GetName() const;
 
-  cmCompiledGeneratorExpression const& GetNameExpression() const;
+    cmCompiledGeneratorExpression const& GetNameExpression() const;
 
-  PropertyMapType const& GetProperties() const { return this->Properties; }
+    PropertyMapType const& GetProperties() const { return this->Properties; }
 
 private:
-  std::string Name;
-  cmCompiledGeneratorExpression* NameExpression;
-  PropertyMapType Properties;
+    std::string                    Name;
+    cmCompiledGeneratorExpression* NameExpression;
+    PropertyMapType                Properties;
 };
 
 #endif

@@ -3,7 +3,7 @@
 #ifndef cmCMakePolicyCommand_h
 #define cmCMakePolicyCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 #include <vector>
@@ -21,22 +21,22 @@ class cmExecutionStatus;
 class cmCMakePolicyCommand : public cmCommand
 {
 public:
-  /**
-   * This is a virtual constructor for the command.
-   */
-  cmCommand* Clone() override { return new cmCMakePolicyCommand; }
+    /**
+     * This is a virtual constructor for the command.
+     */
+    cmCommand* Clone() override { return new cmCMakePolicyCommand; }
 
-  /**
-   * This is called when the command is first encountered in
-   * the CMakeLists.txt file.
-   */
-  bool InitialPass(std::vector<std::string> const& args,
-                   cmExecutionStatus& status) override;
+    /**
+     * This is called when the command is first encountered in
+     * the CMakeLists.txt file.
+     */
+    bool InitialPass(std::vector<std::string> const& args,
+                     cmExecutionStatus&              status) override;
 
 private:
-  bool HandleSetMode(std::vector<std::string> const& args);
-  bool HandleGetMode(std::vector<std::string> const& args);
-  bool HandleVersionMode(std::vector<std::string> const& args);
+    bool HandleSetMode(std::vector<std::string> const& args);
+    bool HandleGetMode(std::vector<std::string> const& args);
+    bool HandleVersionMode(std::vector<std::string> const& args);
 };
 
 #endif

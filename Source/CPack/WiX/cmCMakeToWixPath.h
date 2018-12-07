@@ -3,10 +3,11 @@
 #ifndef cmCMakeToWixPath_h
 #define cmCMakeToWixPath_h
 
-#include "cmConfigure.h" //IWYU pragma: keep
+#include "cmConfigure.h"  //IWYU pragma: keep
 
 #include <string>
 
-std::string CMakeToWixPath(const std::string& cygpath);
+std::string
+CMakeToWixPath(const std::string& cygpath);
 
-#endif // cmCMakeToWixPath_h
+#endif  // cmCMakeToWixPath_h

@@ -7,35 +7,42 @@
 class cmExecutionStatus;
 
 // cmLinkLibrariesCommand
-bool cmLinkLibrariesCommand::InitialPass(std::vector<std::string> const& args,
-                                         cmExecutionStatus&)
+bool
+cmLinkLibrariesCommand::InitialPass(std::vector<std::string> const& args,
+                                    cmExecutionStatus&)
 {
-  if (args.empty()) {
-    return true;
-  }
-  // add libraries, note that there is an optional prefix
-  // of debug and optimized than can be used
-  for (std::vector<std::string>::const_iterator i = args.begin();
-       i != args.end(); ++i) {
-    if (*i == "debug") {
-      ++i;
-      if (i == args.end()) {
-        this->SetError("The \"debug\" argument must be followed by "
-                       "a library");
-        return false;
-      }
-      this->Makefile->AppendProperty("LINK_LIBRARIES", "debug");
-    } else if (*i == "optimized") {
-      ++i;
-      if (i == args.end()) {
-        this->SetError("The \"optimized\" argument must be followed by "
-                       "a library");
-        return false;
-      }
-      this->Makefile->AppendProperty("LINK_LIBRARIES", "optimized");
+    if(args.empty())
+    {
+        return true;
     }
-    this->Makefile->AppendProperty("LINK_LIBRARIES", i->c_str());
-  }
+    // add libraries, note that there is an optional prefix
+    // of debug and optimized than can be used
+    for(std::vector<std::string>::const_iterator i = args.begin();
+        i != args.end(); ++i)
+    {
+        if(*i == "debug")
+        {
+            ++i;
+            if(i == args.end())
+            {
+                this->SetError("The \"debug\" argument must be followed by "
+                               "a library");
+                return false;
+            }
+            this->Makefile->AppendProperty("LINK_LIBRARIES", "debug");
+        } else if(*i == "optimized")
+        {
+            ++i;
+            if(i == args.end())
+            {
+                this->SetError("The \"optimized\" argument must be followed by "
+                               "a library");
+                return false;
+            }
+            this->Makefile->AppendProperty("LINK_LIBRARIES", "optimized");
+        }
+        this->Makefile->AppendProperty("LINK_LIBRARIES", i->c_str());
+    }
 
-  return true;
+    return true;
 }

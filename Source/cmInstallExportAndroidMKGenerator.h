@@ -17,21 +17,21 @@ class cmMakefile;
 class cmInstallExportAndroidMKGenerator : public cmInstallExportGenerator
 {
 public:
-  cmInstallExportAndroidMKGenerator(
-    cmExportSet* exportSet, const char* dest, const char* file_permissions,
-    const std::vector<std::string>& configurations, const char* component,
-    MessageLevel message, bool exclude_from_all, const char* filename,
-    const char* name_space, bool exportOld);
-  ~cmInstallExportAndroidMKGenerator();
+    cmInstallExportAndroidMKGenerator(
+        cmExportSet* exportSet, const char* dest, const char* file_permissions,
+        const std::vector<std::string>& configurations, const char* component,
+        MessageLevel message, bool exclude_from_all, const char* filename,
+        const char* name_space, bool exportOld);
+    ~cmInstallExportAndroidMKGenerator();
 
-  void Compute(cmLocalGenerator* lg);
+    void Compute(cmLocalGenerator* lg);
 
 protected:
-  virtual void GenerateScript(std::ostream& os);
-  virtual void GenerateScriptConfigs(std::ostream& os, Indent const& indent);
-  virtual void GenerateScriptActions(std::ostream& os, Indent const& indent);
-  void GenerateImportFile(cmExportSet const* exportSet);
-  void GenerateImportFile(const char* config, cmExportSet const* exportSet);
+    virtual void GenerateScript(std::ostream& os);
+    virtual void GenerateScriptConfigs(std::ostream& os, Indent const& indent);
+    virtual void GenerateScriptActions(std::ostream& os, Indent const& indent);
+    void         GenerateImportFile(cmExportSet const* exportSet);
+    void GenerateImportFile(const char* config, cmExportSet const* exportSet);
 };
 
 #endif

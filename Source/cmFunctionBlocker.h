@@ -11,35 +11,36 @@ class cmMakefile;
 class cmFunctionBlocker
 {
 public:
-  /**
-   * should a function be blocked
-   */
-  virtual bool IsFunctionBlocked(const cmListFileFunction& lff, cmMakefile& mf,
-                                 cmExecutionStatus& status) = 0;
+    /**
+     * should a function be blocked
+     */
+    virtual bool IsFunctionBlocked(const cmListFileFunction& lff,
+                                   cmMakefile&               mf,
+                                   cmExecutionStatus&        status) = 0;
 
-  /**
-   * should this function blocker be removed, useful when one function adds a
-   * blocker and another must remove it
-   */
-  virtual bool ShouldRemove(const cmListFileFunction&, cmMakefile&)
-  {
-    return false;
-  }
+    /**
+     * should this function blocker be removed, useful when one function adds a
+     * blocker and another must remove it
+     */
+    virtual bool ShouldRemove(const cmListFileFunction&, cmMakefile&)
+    {
+        return false;
+    }
 
-  virtual ~cmFunctionBlocker() {}
+    virtual ~cmFunctionBlocker() {}
 
-  /** Set/Get the context in which this blocker is created.  */
-  void SetStartingContext(cmListFileContext const& lfc)
-  {
-    this->StartingContext = lfc;
-  }
-  cmListFileContext const& GetStartingContext() const
-  {
-    return this->StartingContext;
-  }
+    /** Set/Get the context in which this blocker is created.  */
+    void SetStartingContext(cmListFileContext const& lfc)
+    {
+        this->StartingContext = lfc;
+    }
+    cmListFileContext const& GetStartingContext() const
+    {
+        return this->StartingContext;
+    }
 
 private:
-  cmListFileContext StartingContext;
+    cmListFileContext StartingContext;
 };
 
 #endif

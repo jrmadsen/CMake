@@ -3,7 +3,7 @@
 #ifndef cmExportSetMap_h
 #define cmExportSetMap_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <map>
 #include <string>
@@ -13,20 +13,20 @@ class cmExportSet;
 /// A name -> cmExportSet map with overloaded operator[].
 class cmExportSetMap : public std::map<std::string, cmExportSet*>
 {
-  typedef std::map<std::string, cmExportSet*> derived;
+    typedef std::map<std::string, cmExportSet*> derived;
 
 public:
-  /** \brief Overloaded operator[].
-   *
-   * The operator is overloaded because cmExportSet has no default constructor:
-   * we do not want unnamed export sets.
-   */
-  cmExportSet* operator[](const std::string& name);
+    /** \brief Overloaded operator[].
+     *
+     * The operator is overloaded because cmExportSet has no default
+     * constructor: we do not want unnamed export sets.
+     */
+    cmExportSet* operator[](const std::string& name);
 
-  void clear();
+    void clear();
 
-  /// Overloaded destructor deletes all member export sets.
-  ~cmExportSetMap();
+    /// Overloaded destructor deletes all member export sets.
+    ~cmExportSetMap();
 };
 
 #endif

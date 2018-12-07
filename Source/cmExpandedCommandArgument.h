@@ -3,7 +3,7 @@
 #ifndef cmExpandedCommandArgument_h
 #define cmExpandedCommandArgument_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 
@@ -17,23 +17,23 @@
 class cmExpandedCommandArgument
 {
 public:
-  cmExpandedCommandArgument();
-  cmExpandedCommandArgument(std::string const& value, bool quoted);
+    cmExpandedCommandArgument();
+    cmExpandedCommandArgument(std::string const& value, bool quoted);
 
-  std::string const& GetValue() const;
+    std::string const& GetValue() const;
 
-  bool WasQuoted() const;
+    bool WasQuoted() const;
 
-  bool operator==(const char* value) const;
-  bool operator==(std::string const& value) const;
+    bool operator==(const char* value) const;
+    bool operator==(std::string const& value) const;
 
-  bool empty() const;
+    bool empty() const;
 
-  const char* c_str() const;
+    const char* c_str() const;
 
 private:
-  std::string Value;
-  bool Quoted;
+    std::string Value;
+    bool        Quoted;
 };
 
 #endif

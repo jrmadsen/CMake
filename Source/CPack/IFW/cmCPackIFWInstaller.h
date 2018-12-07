@@ -3,7 +3,7 @@
 #ifndef cmCPackIFWInstaller_h
 #define cmCPackIFWInstaller_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCPackIFWCommon.h"
 
@@ -20,114 +20,114 @@ class cmCPackIFWRepository;
 class cmCPackIFWInstaller : public cmCPackIFWCommon
 {
 public:
-  // Types
+    // Types
 
-  typedef std::map<std::string, cmCPackIFWPackage*> PackagesMap;
-  typedef std::vector<cmCPackIFWRepository*> RepositoriesVector;
-
-public:
-  // Constructor
-
-  /**
-   * Construct installer
-   */
-  cmCPackIFWInstaller();
+    typedef std::map<std::string, cmCPackIFWPackage*> PackagesMap;
+    typedef std::vector<cmCPackIFWRepository*>        RepositoriesVector;
 
 public:
-  // Configuration
+    // Constructor
 
-  /// Name of the product being installed
-  std::string Name;
-
-  /// Version number of the product being installed
-  std::string Version;
-
-  /// Name of the installer as displayed on the title bar
-  std::string Title;
-
-  /// Publisher of the software (as shown in the Windows Control Panel)
-  std::string Publisher;
-
-  /// URL to a page that contains product information on your web site
-  std::string ProductUrl;
-
-  /// Filename for a custom installer icon
-  std::string InstallerApplicationIcon;
-
-  /// Filename for a custom window icon
-  std::string InstallerWindowIcon;
-
-  /// Filename for a logo
-  std::string Logo;
-
-  /// Filename for a watermark
-  std::string Watermark;
-
-  /// Filename for a banner
-  std::string Banner;
-
-  /// Filename for a background
-  std::string Background;
-
-  /// Wizard style name
-  std::string WizardStyle;
-
-  /// Wizard width
-  std::string WizardDefaultWidth;
-
-  /// Wizard height
-  std::string WizardDefaultHeight;
-
-  /// Title color
-  std::string TitleColor;
-
-  /// Name of the default program group in the Windows Start menu
-  std::string StartMenuDir;
-
-  /// Default target directory for installation
-  std::string TargetDir;
-
-  /// Default target directory for installation with administrator rights
-  std::string AdminTargetDir;
-
-  /// Filename of the generated maintenance tool
-  std::string MaintenanceToolName;
-
-  /// Filename for the configuration of the generated maintenance tool
-  std::string MaintenanceToolIniFile;
-
-  /// Set to true if the installation path can contain non-ASCII characters
-  std::string AllowNonAsciiCharacters;
-
-  /// Set to false if the target directory should not be deleted when
-  /// uninstalling
-  std::string RemoveTargetDir;
-
-  /// Set to false if the installation path cannot contain space characters
-  std::string AllowSpaceInPath;
-
-  /// Filename for a custom installer control script
-  std::string ControlScript;
-
-  /// List of resources to include in the installer binary
-  std::vector<std::string> Resources;
+    /**
+     * Construct installer
+     */
+    cmCPackIFWInstaller();
 
 public:
-  // Internal implementation
+    // Configuration
 
-  void ConfigureFromOptions();
+    /// Name of the product being installed
+    std::string Name;
 
-  void GenerateInstallerFile();
+    /// Version number of the product being installed
+    std::string Version;
 
-  void GeneratePackageFiles();
+    /// Name of the installer as displayed on the title bar
+    std::string Title;
 
-  PackagesMap Packages;
-  RepositoriesVector RemoteRepositories;
-  std::string Directory;
+    /// Publisher of the software (as shown in the Windows Control Panel)
+    std::string Publisher;
+
+    /// URL to a page that contains product information on your web site
+    std::string ProductUrl;
+
+    /// Filename for a custom installer icon
+    std::string InstallerApplicationIcon;
+
+    /// Filename for a custom window icon
+    std::string InstallerWindowIcon;
+
+    /// Filename for a logo
+    std::string Logo;
+
+    /// Filename for a watermark
+    std::string Watermark;
+
+    /// Filename for a banner
+    std::string Banner;
+
+    /// Filename for a background
+    std::string Background;
+
+    /// Wizard style name
+    std::string WizardStyle;
+
+    /// Wizard width
+    std::string WizardDefaultWidth;
+
+    /// Wizard height
+    std::string WizardDefaultHeight;
+
+    /// Title color
+    std::string TitleColor;
+
+    /// Name of the default program group in the Windows Start menu
+    std::string StartMenuDir;
+
+    /// Default target directory for installation
+    std::string TargetDir;
+
+    /// Default target directory for installation with administrator rights
+    std::string AdminTargetDir;
+
+    /// Filename of the generated maintenance tool
+    std::string MaintenanceToolName;
+
+    /// Filename for the configuration of the generated maintenance tool
+    std::string MaintenanceToolIniFile;
+
+    /// Set to true if the installation path can contain non-ASCII characters
+    std::string AllowNonAsciiCharacters;
+
+    /// Set to false if the target directory should not be deleted when
+    /// uninstalling
+    std::string RemoveTargetDir;
+
+    /// Set to false if the installation path cannot contain space characters
+    std::string AllowSpaceInPath;
+
+    /// Filename for a custom installer control script
+    std::string ControlScript;
+
+    /// List of resources to include in the installer binary
+    std::vector<std::string> Resources;
+
+public:
+    // Internal implementation
+
+    void ConfigureFromOptions();
+
+    void GenerateInstallerFile();
+
+    void GeneratePackageFiles();
+
+    PackagesMap        Packages;
+    RepositoriesVector RemoteRepositories;
+    std::string        Directory;
 
 protected:
-  void printSkippedOptionWarning(const std::string& optionName,
-                                 const std::string& optionValue);
+    void printSkippedOptionWarning(const std::string& optionName,
+                                   const std::string& optionValue);
 };
 
-#endif // cmCPackIFWInstaller_h
+#endif  // cmCPackIFWInstaller_h

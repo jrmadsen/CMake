@@ -3,7 +3,7 @@
 #ifndef _cmDocumentationFormatter_h
 #define _cmDocumentationFormatter_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <iosfwd>
 
@@ -16,29 +16,29 @@ against this. */
 class cmDocumentationEnums
 {
 public:
-  /** Types of help provided.  */
-  enum Type
-  {
-    None,
-    Version,
-    Usage,
-    Help,
-    Full,
-    ListManuals,
-    ListCommands,
-    ListModules,
-    ListProperties,
-    ListVariables,
-    ListPolicies,
-    ListGenerators,
-    OneManual,
-    OneCommand,
-    OneModule,
-    OneProperty,
-    OneVariable,
-    OnePolicy,
-    OldCustomModules
-  };
+    /** Types of help provided.  */
+    enum Type
+    {
+        None,
+        Version,
+        Usage,
+        Help,
+        Full,
+        ListManuals,
+        ListCommands,
+        ListModules,
+        ListProperties,
+        ListVariables,
+        ListPolicies,
+        ListGenerators,
+        OneManual,
+        OneCommand,
+        OneModule,
+        OneProperty,
+        OneVariable,
+        OnePolicy,
+        OldCustomModules
+    };
 };
 
 class cmDocumentationSection;
@@ -47,20 +47,20 @@ class cmDocumentationSection;
 class cmDocumentationFormatter
 {
 public:
-  cmDocumentationFormatter();
-  virtual ~cmDocumentationFormatter();
-  void PrintFormatted(std::ostream& os, const char* text);
+    cmDocumentationFormatter();
+    virtual ~cmDocumentationFormatter();
+    void PrintFormatted(std::ostream& os, const char* text);
 
-  virtual void PrintSection(std::ostream& os,
-                            cmDocumentationSection const& section);
-  virtual void PrintPreformatted(std::ostream& os, const char* text);
-  virtual void PrintParagraph(std::ostream& os, const char* text);
-  void PrintColumn(std::ostream& os, const char* text);
-  void SetIndent(const char* indent);
+    virtual void PrintSection(std::ostream&                 os,
+                              cmDocumentationSection const& section);
+    virtual void PrintPreformatted(std::ostream& os, const char* text);
+    virtual void PrintParagraph(std::ostream& os, const char* text);
+    void         PrintColumn(std::ostream& os, const char* text);
+    void         SetIndent(const char* indent);
 
 private:
-  int TextWidth;
-  const char* TextIndent;
+    int         TextWidth;
+    const char* TextIndent;
 };
 
 #endif

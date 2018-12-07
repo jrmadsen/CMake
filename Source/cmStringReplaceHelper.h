@@ -13,57 +13,54 @@ class cmMakefile;
 class cmStringReplaceHelper
 {
 public:
-  cmStringReplaceHelper(const std::string& regex,
-                        const std::string& replace_expr,
-                        cmMakefile* makefile = nullptr);
+    cmStringReplaceHelper(const std::string& regex,
+                          const std::string& replace_expr,
+                          cmMakefile*        makefile = nullptr);
 
-  bool IsRegularExpressionValid() const
-  {
-    return this->RegularExpression.is_valid();
-  }
-  bool IsReplaceExpressionValid() const
-  {
-    return this->ValidReplaceExpression;
-  }
+    bool IsRegularExpressionValid() const
+    {
+        return this->RegularExpression.is_valid();
+    }
+    bool IsReplaceExpressionValid() const
+    {
+        return this->ValidReplaceExpression;
+    }
 
-  bool Replace(const std::string& input, std::string& output);
+    bool Replace(const std::string& input, std::string& output);
 
-  const std::string& GetError() { return this->ErrorString; }
+    const std::string& GetError() { return this->ErrorString; }
 
 private:
-  class RegexReplacement
-  {
-  public:
-    RegexReplacement(const char* s)
-      : Number(-1)
-      , Value(s)
+    class RegexReplacement
     {
-    }
-    RegexReplacement(const std::string& s)
-      : Number(-1)
-      , Value(s)
-    {
-    }
-    RegexReplacement(int n)
-      : Number(n)
-      , Value()
-    {
-    }
-    RegexReplacement() {}
+    public:
+        RegexReplacement(const char* s)
+        : Number(-1)
+        , Value(s)
+        {}
+        RegexReplacement(const std::string& s)
+        : Number(-1)
+        , Value(s)
+        {}
+        RegexReplacement(int n)
+        : Number(n)
+        , Value()
+        {}
+        RegexReplacement() {}
 
-    int Number;
-    std::string Value;
-  };
+        int         Number;
+        std::string Value;
+    };
 
-  void ParseReplaceExpression();
+    void ParseReplaceExpression();
 
-  std::string ErrorString;
-  std::string RegExString;
-  cmsys::RegularExpression RegularExpression;
-  bool ValidReplaceExpression = true;
-  std::string ReplaceExpression;
-  std::vector<RegexReplacement> Replacements;
-  cmMakefile* Makefile = nullptr;
+    std::string                   ErrorString;
+    std::string                   RegExString;
+    cmsys::RegularExpression      RegularExpression;
+    bool                          ValidReplaceExpression = true;
+    std::string                   ReplaceExpression;
+    std::vector<RegexReplacement> Replacements;
+    cmMakefile*                   Makefile = nullptr;
 };
 
 #endif

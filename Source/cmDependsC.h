@@ -3,7 +3,7 @@
 #ifndef cmDependsC_h
 #define cmDependsC_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmDepends.h"
 
@@ -22,79 +22,78 @@ class cmLocalGenerator;
  */
 class cmDependsC : public cmDepends
 {
-  CM_DISABLE_COPY(cmDependsC)
+    CM_DISABLE_COPY(cmDependsC)
 
 public:
-  /** Checking instances need to know the build directory name and the
-      relative path from the build directory to the target file.  */
-  cmDependsC();
-  cmDependsC(cmLocalGenerator* lg, const char* targetDir,
-             const std::string& lang,
-             const std::map<std::string, DependencyVector>* validDeps);
+    /** Checking instances need to know the build directory name and the
+        relative path from the build directory to the target file.  */
+    cmDependsC();
+    cmDependsC(cmLocalGenerator* lg, const char* targetDir,
+               const std::string&                             lang,
+               const std::map<std::string, DependencyVector>* validDeps);
 
-  /** Virtual destructor to cleanup subclasses properly.  */
-  ~cmDependsC() override;
+    /** Virtual destructor to cleanup subclasses properly.  */
+    ~cmDependsC() override;
 
 protected:
-  // Implement writing/checking methods required by superclass.
-  bool WriteDependencies(const std::set<std::string>& sources,
-                         const std::string& obj, std::ostream& makeDepends,
-                         std::ostream& internalDepends) override;
+    // Implement writing/checking methods required by superclass.
+    bool WriteDependencies(const std::set<std::string>& sources,
+                           const std::string& obj, std::ostream& makeDepends,
+                           std::ostream& internalDepends) override;
 
-  // Method to scan a single file.
-  void Scan(std::istream& is, const char* directory,
-            const std::string& fullName);
+    // Method to scan a single file.
+    void Scan(std::istream& is, const char* directory,
+              const std::string& fullName);
 
-  // Regular expression to identify C preprocessor include directives.
-  cmsys::RegularExpression IncludeRegexLine;
+    // Regular expression to identify C preprocessor include directives.
+    cmsys::RegularExpression IncludeRegexLine;
 
-  // Regular expressions to choose which include files to scan
-  // recursively and which to complain about not finding.
-  cmsys::RegularExpression IncludeRegexScan;
-  cmsys::RegularExpression IncludeRegexComplain;
-  std::string IncludeRegexLineString;
-  std::string IncludeRegexScanString;
-  std::string IncludeRegexComplainString;
+    // Regular expressions to choose which include files to scan
+    // recursively and which to complain about not finding.
+    cmsys::RegularExpression IncludeRegexScan;
+    cmsys::RegularExpression IncludeRegexComplain;
+    std::string              IncludeRegexLineString;
+    std::string              IncludeRegexScanString;
+    std::string              IncludeRegexComplainString;
 
-  // Regex to transform #include lines.
-  std::string IncludeRegexTransformString;
-  cmsys::RegularExpression IncludeRegexTransform;
-  typedef std::map<std::string, std::string> TransformRulesType;
-  TransformRulesType TransformRules;
-  void SetupTransforms();
-  void ParseTransform(std::string const& xform);
-  void TransformLine(std::string& line);
+    // Regex to transform #include lines.
+    std::string                                IncludeRegexTransformString;
+    cmsys::RegularExpression                   IncludeRegexTransform;
+    typedef std::map<std::string, std::string> TransformRulesType;
+    TransformRulesType                         TransformRules;
+    void                                       SetupTransforms();
+    void ParseTransform(std::string const& xform);
+    void TransformLine(std::string& line);
 
 public:
-  // Data structures for dependency graph walk.
-  struct UnscannedEntry
-  {
-    std::string FileName;
-    std::string QuotedLocation;
-  };
-
-  struct cmIncludeLines
-  {
-    cmIncludeLines()
-      : Used(false)
+    // Data structures for dependency graph walk.
+    struct UnscannedEntry
     {
-    }
-    std::vector<UnscannedEntry> UnscannedEntries;
-    bool Used;
-  };
+        std::string FileName;
+        std::string QuotedLocation;
+    };
+
+    struct cmIncludeLines
+    {
+        cmIncludeLines()
+        : Used(false)
+        {}
+        std::vector<UnscannedEntry> UnscannedEntries;
+        bool                        Used;
+    };
 
 protected:
-  const std::map<std::string, DependencyVector>* ValidDeps;
-  std::set<std::string> Encountered;
-  std::queue<UnscannedEntry> Unscanned;
+    const std::map<std::string, DependencyVector>* ValidDeps;
+    std::set<std::string>                          Encountered;
+    std::queue<UnscannedEntry>                     Unscanned;
 
-  std::map<std::string, cmIncludeLines*> FileCache;
-  std::map<std::string, std::string> HeaderLocationCache;
+    std::map<std::string, cmIncludeLines*> FileCache;
+    std::map<std::string, std::string>     HeaderLocationCache;
 
-  std::string CacheFileName;
+    std::string CacheFileName;
 
-  void WriteCacheFile() const;
-  void ReadCacheFile();
+    void WriteCacheFile() const;
+    void ReadCacheFile();
 };
 
 #endif

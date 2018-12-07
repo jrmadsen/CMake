@@ -3,7 +3,7 @@
 #ifndef cmGlobalVisualStudio15Generator_h
 #define cmGlobalVisualStudio15Generator_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <iosfwd>
 #include <string>
@@ -18,47 +18,47 @@ class cmake;
 class cmGlobalVisualStudio15Generator : public cmGlobalVisualStudio14Generator
 {
 public:
-  cmGlobalVisualStudio15Generator(cmake* cm, const std::string& name,
-                                  const std::string& platformName);
-  static cmGlobalGeneratorFactory* NewFactory();
+    cmGlobalVisualStudio15Generator(cmake* cm, const std::string& name,
+                                    const std::string& platformName);
+    static cmGlobalGeneratorFactory* NewFactory();
 
-  bool MatchesGeneratorName(const std::string& name) const override;
+    bool MatchesGeneratorName(const std::string& name) const override;
 
-  void WriteSLNHeader(std::ostream& fout) override;
+    void WriteSLNHeader(std::ostream& fout) override;
 
-  const char* GetToolsVersion() override { return "15.0"; }
+    const char* GetToolsVersion() override { return "15.0"; }
 
-  bool SetGeneratorInstance(std::string const& i, cmMakefile* mf) override;
+    bool SetGeneratorInstance(std::string const& i, cmMakefile* mf) override;
 
-  bool GetVSInstance(std::string& dir) const;
+    bool GetVSInstance(std::string& dir) const;
 
-  bool IsDefaultToolset(const std::string& version) const override;
-  std::string GetAuxiliaryToolset() const override;
+    bool        IsDefaultToolset(const std::string& version) const override;
+    std::string GetAuxiliaryToolset() const override;
 
 protected:
-  bool InitializeWindows(cmMakefile* mf) override;
-  bool SelectWindowsStoreToolset(std::string& toolset) const override;
+    bool InitializeWindows(cmMakefile* mf) override;
+    bool SelectWindowsStoreToolset(std::string& toolset) const override;
 
-  const char* GetIDEVersion() override { return "15.0"; }
+    const char* GetIDEVersion() override { return "15.0"; }
 
-  // Used to verify that the Desktop toolset for the current generator is
-  // installed on the machine.
-  bool IsWindowsDesktopToolsetInstalled() const override;
+    // Used to verify that the Desktop toolset for the current generator is
+    // installed on the machine.
+    bool IsWindowsDesktopToolsetInstalled() const override;
 
-  // These aren't virtual because we need to check if the selected version
-  // of the toolset is installed
-  bool IsWindowsStoreToolsetInstalled() const;
+    // These aren't virtual because we need to check if the selected version
+    // of the toolset is installed
+    bool IsWindowsStoreToolsetInstalled() const;
 
-  // Check for a Win 8 SDK known to the registry or VS installer tool.
-  bool IsWin81SDKInstalled() const;
+    // Check for a Win 8 SDK known to the registry or VS installer tool.
+    bool IsWin81SDKInstalled() const;
 
-  std::string GetWindows10SDKMaxVersion() const override;
+    std::string GetWindows10SDKMaxVersion() const override;
 
-  std::string FindMSBuildCommand() override;
-  std::string FindDevEnvCommand() override;
+    std::string FindMSBuildCommand() override;
+    std::string FindDevEnvCommand() override;
 
 private:
-  class Factory;
-  mutable cmVSSetupAPIHelper vsSetupAPIHelper;
+    class Factory;
+    mutable cmVSSetupAPIHelper vsSetupAPIHelper;
 };
 #endif

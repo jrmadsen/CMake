@@ -3,41 +3,41 @@
 #ifndef cmProperty_h
 #define cmProperty_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 
 class cmProperty
 {
 public:
-  enum ScopeType
-  {
-    TARGET,
-    SOURCE_FILE,
-    DIRECTORY,
-    GLOBAL,
-    CACHE,
-    TEST,
-    VARIABLE,
-    CACHED_VARIABLE,
-    INSTALL
-  };
+    enum ScopeType
+    {
+        TARGET,
+        SOURCE_FILE,
+        DIRECTORY,
+        GLOBAL,
+        CACHE,
+        TEST,
+        VARIABLE,
+        CACHED_VARIABLE,
+        INSTALL
+    };
 
-  // set this property
-  void Set(const char* value);
+    // set this property
+    void Set(const char* value);
 
-  // append to this property
-  void Append(const char* value, bool asString = false);
+    // append to this property
+    void Append(const char* value, bool asString = false);
 
-  // get the value
-  const char* GetValue() const;
+    // get the value
+    const char* GetValue() const;
 
-  // construct with the value not set
-  cmProperty() { this->ValueHasBeenSet = false; }
+    // construct with the value not set
+    cmProperty() { this->ValueHasBeenSet = false; }
 
 protected:
-  std::string Value;
-  bool ValueHasBeenSet;
+    std::string Value;
+    bool        ValueHasBeenSet;
 };
 
 #endif

@@ -3,7 +3,7 @@
 #ifndef cmNinjaUtilityTargetGenerator_h
 #define cmNinjaUtilityTargetGenerator_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmNinjaTargetGenerator.h"
 
@@ -12,10 +12,10 @@ class cmGeneratorTarget;
 class cmNinjaUtilityTargetGenerator : public cmNinjaTargetGenerator
 {
 public:
-  cmNinjaUtilityTargetGenerator(cmGeneratorTarget* target);
-  ~cmNinjaUtilityTargetGenerator() override;
+    cmNinjaUtilityTargetGenerator(cmGeneratorTarget* target);
+    ~cmNinjaUtilityTargetGenerator() override;
 
-  void Generate() override;
+    void Generate() override;
 };
 
-#endif // ! cmNinjaUtilityTargetGenerator_h
+#endif  // ! cmNinjaUtilityTargetGenerator_h

@@ -3,7 +3,7 @@
 #ifndef cmCTestReadCustomFilesCommand_h
 #define cmCTestReadCustomFilesCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCTestCommand.h"
 
@@ -22,24 +22,24 @@ class cmExecutionStatus;
 class cmCTestReadCustomFilesCommand : public cmCTestCommand
 {
 public:
-  cmCTestReadCustomFilesCommand() {}
+    cmCTestReadCustomFilesCommand() {}
 
-  /**
-   * This is a virtual constructor for the command.
-   */
-  cmCommand* Clone() override
-  {
-    cmCTestReadCustomFilesCommand* ni = new cmCTestReadCustomFilesCommand;
-    ni->CTest = this->CTest;
-    return ni;
-  }
+    /**
+     * This is a virtual constructor for the command.
+     */
+    cmCommand* Clone() override
+    {
+        cmCTestReadCustomFilesCommand* ni = new cmCTestReadCustomFilesCommand;
+        ni->CTest                         = this->CTest;
+        return ni;
+    }
 
-  /**
-   * This is called when the command is first encountered in
-   * the CMakeLists.txt file.
-   */
-  bool InitialPass(std::vector<std::string> const& args,
-                   cmExecutionStatus& status) override;
+    /**
+     * This is called when the command is first encountered in
+     * the CMakeLists.txt file.
+     */
+    bool InitialPass(std::vector<std::string> const& args,
+                     cmExecutionStatus&              status) override;
 };
 
 #endif

@@ -3,13 +3,13 @@
 #ifndef cmMachO_h
 #define cmMachO_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <iosfwd>
 #include <string>
 
 #if !defined(CMAKE_USE_MACH_PARSER)
-#  error "This file may be included only if CMAKE_USE_MACH_PARSER is enabled."
+#    error "This file may be included only if CMAKE_USE_MACH_PARSER is enabled."
 #endif
 
 class cmMachOInternal;
@@ -20,28 +20,28 @@ class cmMachOInternal;
 class cmMachO
 {
 public:
-  /** Construct with the name of the Mach-O input file to parse.  */
-  cmMachO(const char* fname);
+    /** Construct with the name of the Mach-O input file to parse.  */
+    cmMachO(const char* fname);
 
-  /** Destruct.   */
-  ~cmMachO();
+    /** Destruct.   */
+    ~cmMachO();
 
-  /** Get the error message if any.  */
-  std::string const& GetErrorMessage() const;
+    /** Get the error message if any.  */
+    std::string const& GetErrorMessage() const;
 
-  /** Boolean conversion.  True if the Mach-O file is valid.  */
-  operator bool() const { return this->Valid(); }
+    /** Boolean conversion.  True if the Mach-O file is valid.  */
+    operator bool() const { return this->Valid(); }
 
-  /** Get Install name from binary **/
-  bool GetInstallName(std::string& install_name);
+    /** Get Install name from binary **/
+    bool GetInstallName(std::string& install_name);
 
-  /** Print human-readable information about the Mach-O file.  */
-  void PrintInfo(std::ostream& os) const;
+    /** Print human-readable information about the Mach-O file.  */
+    void PrintInfo(std::ostream& os) const;
 
 private:
-  friend class cmMachOInternal;
-  bool Valid() const;
-  cmMachOInternal* Internal;
+    friend class cmMachOInternal;
+    bool             Valid() const;
+    cmMachOInternal* Internal;
 };
 
 #endif

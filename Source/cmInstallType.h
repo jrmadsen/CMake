@@ -8,13 +8,13 @@
  */
 enum cmInstallType
 {
-  cmInstallType_EXECUTABLE,
-  cmInstallType_STATIC_LIBRARY,
-  cmInstallType_SHARED_LIBRARY,
-  cmInstallType_MODULE_LIBRARY,
-  cmInstallType_FILES,
-  cmInstallType_PROGRAMS,
-  cmInstallType_DIRECTORY
+    cmInstallType_EXECUTABLE,
+    cmInstallType_STATIC_LIBRARY,
+    cmInstallType_SHARED_LIBRARY,
+    cmInstallType_MODULE_LIBRARY,
+    cmInstallType_FILES,
+    cmInstallType_PROGRAMS,
+    cmInstallType_DIRECTORY
 };
 
 #endif

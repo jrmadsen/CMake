@@ -3,7 +3,7 @@
 #ifndef cmHexFileConverter_h
 #define cmHexFileConverter_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 /** \class cmHexFileConverter
  * \brief Can detects Intel Hex and Motorola S-record files and convert them
@@ -13,14 +13,14 @@
 class cmHexFileConverter
 {
 public:
-  enum FileType
-  {
-    Binary,
-    IntelHex,
-    MotorolaSrec
-  };
-  static FileType DetermineFileType(const char* inFileName);
-  static bool TryConvert(const char* inFileName, const char* outFileName);
+    enum FileType
+    {
+        Binary,
+        IntelHex,
+        MotorolaSrec
+    };
+    static FileType DetermineFileType(const char* inFileName);
+    static bool     TryConvert(const char* inFileName, const char* outFileName);
 };
 
 #endif

@@ -2,7 +2,7 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #pragma once
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 
@@ -24,11 +24,11 @@ class cmServerBase;
 class cmServerBufferStrategy : public cmConnectionBufferStrategy
 {
 public:
-  std::string BufferMessage(std::string& rawBuffer) override;
-  std::string BufferOutMessage(const std::string& rawBuffer) const override;
+    std::string BufferMessage(std::string& rawBuffer) override;
+    std::string BufferOutMessage(const std::string& rawBuffer) const override;
 
 private:
-  std::string RequestBuffer;
+    std::string RequestBuffer;
 };
 
 /***
@@ -37,17 +37,17 @@ private:
 class cmStdIoConnection : public cmEventBasedConnection
 {
 public:
-  cmStdIoConnection(cmConnectionBufferStrategy* bufferStrategy);
+    cmStdIoConnection(cmConnectionBufferStrategy* bufferStrategy);
 
-  void SetServer(cmServerBase* s) override;
+    void SetServer(cmServerBase* s) override;
 
-  bool OnConnectionShuttingDown() override;
+    bool OnConnectionShuttingDown() override;
 
-  bool OnServeStart(std::string* pString) override;
+    bool OnServeStart(std::string* pString) override;
 
 private:
-  cm::uv_stream_ptr SetupStream(int file_id);
-  cm::uv_stream_ptr ReadStream;
+    cm::uv_stream_ptr SetupStream(int file_id);
+    cm::uv_stream_ptr ReadStream;
 };
 
 /***
@@ -57,11 +57,11 @@ private:
 class cmServerStdIoConnection : public cmStdIoConnection
 {
 public:
-  cmServerStdIoConnection();
+    cmServerStdIoConnection();
 };
 
 class cmServerPipeConnection : public cmPipeConnection
 {
 public:
-  cmServerPipeConnection(const std::string& name);
+    cmServerPipeConnection(const std::string& name);
 };

@@ -3,7 +3,7 @@
 #ifndef cmExportBuildFileGenerator_h
 #define cmExportBuildFileGenerator_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmExportFileGenerator.h"
 #include "cmStateTypes.h"
@@ -29,58 +29,59 @@ class cmLocalGenerator;
 class cmExportBuildFileGenerator : public cmExportFileGenerator
 {
 public:
-  cmExportBuildFileGenerator();
+    cmExportBuildFileGenerator();
 
-  /** Set the list of targets to export.  */
-  void SetTargets(std::vector<std::string> const& targets)
-  {
-    this->Targets = targets;
-  }
-  void GetTargets(std::vector<std::string>& targets) const;
-  void AppendTargets(std::vector<std::string> const& targets)
-  {
-    this->Targets.insert(this->Targets.end(), targets.begin(), targets.end());
-  }
-  void SetExportSet(cmExportSet*);
+    /** Set the list of targets to export.  */
+    void SetTargets(std::vector<std::string> const& targets)
+    {
+        this->Targets = targets;
+    }
+    void GetTargets(std::vector<std::string>& targets) const;
+    void AppendTargets(std::vector<std::string> const& targets)
+    {
+        this->Targets.insert(this->Targets.end(), targets.begin(),
+                             targets.end());
+    }
+    void SetExportSet(cmExportSet*);
 
-  /** Set whether to append generated code to the output file.  */
-  void SetAppendMode(bool append) { this->AppendMode = append; }
+    /** Set whether to append generated code to the output file.  */
+    void SetAppendMode(bool append) { this->AppendMode = append; }
 
-  void Compute(cmLocalGenerator* lg);
+    void Compute(cmLocalGenerator* lg);
 
 protected:
-  // Implement virtual methods from the superclass.
-  bool GenerateMainFile(std::ostream& os) override;
-  void GenerateImportTargetsConfig(
-    std::ostream& os, const std::string& config, std::string const& suffix,
-    std::vector<std::string>& missingTargets) override;
-  cmStateEnums::TargetType GetExportTargetType(
-    cmGeneratorTarget const* target) const;
-  void HandleMissingTarget(std::string& link_libs,
-                           std::vector<std::string>& missingTargets,
-                           cmGeneratorTarget* depender,
-                           cmGeneratorTarget* dependee) override;
+    // Implement virtual methods from the superclass.
+    bool GenerateMainFile(std::ostream& os) override;
+    void GenerateImportTargetsConfig(
+        std::ostream& os, const std::string& config, std::string const& suffix,
+        std::vector<std::string>& missingTargets) override;
+    cmStateEnums::TargetType GetExportTargetType(
+        cmGeneratorTarget const* target) const;
+    void HandleMissingTarget(std::string&              link_libs,
+                             std::vector<std::string>& missingTargets,
+                             cmGeneratorTarget*        depender,
+                             cmGeneratorTarget*        dependee) override;
 
-  void ComplainAboutMissingTarget(cmGeneratorTarget* depender,
-                                  cmGeneratorTarget* dependee,
-                                  int occurrences);
+    void ComplainAboutMissingTarget(cmGeneratorTarget* depender,
+                                    cmGeneratorTarget* dependee,
+                                    int                occurrences);
 
-  /** Fill in properties indicating built file locations.  */
-  void SetImportLocationProperty(const std::string& config,
-                                 std::string const& suffix,
-                                 cmGeneratorTarget* target,
-                                 ImportPropertyMap& properties);
+    /** Fill in properties indicating built file locations.  */
+    void SetImportLocationProperty(const std::string& config,
+                                   std::string const& suffix,
+                                   cmGeneratorTarget* target,
+                                   ImportPropertyMap& properties);
 
-  std::string InstallNameDir(cmGeneratorTarget* target,
-                             const std::string& config) override;
+    std::string InstallNameDir(cmGeneratorTarget* target,
+                               const std::string& config) override;
 
-  std::vector<std::string> FindNamespaces(cmGlobalGenerator* gg,
-                                          const std::string& name);
+    std::vector<std::string> FindNamespaces(cmGlobalGenerator* gg,
+                                            const std::string& name);
 
-  std::vector<std::string> Targets;
-  cmExportSet* ExportSet;
-  std::vector<cmGeneratorTarget*> Exports;
-  cmLocalGenerator* LG;
+    std::vector<std::string>        Targets;
+    cmExportSet*                    ExportSet;
+    std::vector<cmGeneratorTarget*> Exports;
+    cmLocalGenerator*               LG;
 };
 
 #endif

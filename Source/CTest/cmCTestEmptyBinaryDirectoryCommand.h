@@ -3,7 +3,7 @@
 #ifndef cmCTestEmptyBinaryDirectoryCommand_h
 #define cmCTestEmptyBinaryDirectoryCommand_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCTestCommand.h"
 
@@ -22,26 +22,26 @@ class cmExecutionStatus;
 class cmCTestEmptyBinaryDirectoryCommand : public cmCTestCommand
 {
 public:
-  cmCTestEmptyBinaryDirectoryCommand() {}
+    cmCTestEmptyBinaryDirectoryCommand() {}
 
-  /**
-   * This is a virtual constructor for the command.
-   */
-  cmCommand* Clone() override
-  {
-    cmCTestEmptyBinaryDirectoryCommand* ni =
-      new cmCTestEmptyBinaryDirectoryCommand;
-    ni->CTest = this->CTest;
-    ni->CTestScriptHandler = this->CTestScriptHandler;
-    return ni;
-  }
+    /**
+     * This is a virtual constructor for the command.
+     */
+    cmCommand* Clone() override
+    {
+        cmCTestEmptyBinaryDirectoryCommand* ni =
+            new cmCTestEmptyBinaryDirectoryCommand;
+        ni->CTest              = this->CTest;
+        ni->CTestScriptHandler = this->CTestScriptHandler;
+        return ni;
+    }
 
-  /**
-   * This is called when the command is first encountered in
-   * the CMakeLists.txt file.
-   */
-  bool InitialPass(std::vector<std::string> const& args,
-                   cmExecutionStatus& status) override;
+    /**
+     * This is called when the command is first encountered in
+     * the CMakeLists.txt file.
+     */
+    bool InitialPass(std::vector<std::string> const& args,
+                     cmExecutionStatus&              status) override;
 };
 
 #endif

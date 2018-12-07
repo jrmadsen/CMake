@@ -3,7 +3,7 @@
 #ifndef cmcmd_h
 #define cmcmd_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 #include "cmCryptoHash.h"
 
 #include <string>
@@ -12,25 +12,25 @@
 class cmcmd
 {
 public:
-  /**
-   * Execute commands during the build process. Supports options such
-   * as echo, remove file etc.
-   */
-  static int ExecuteCMakeCommand(std::vector<std::string>&);
+    /**
+     * Execute commands during the build process. Supports options such
+     * as echo, remove file etc.
+     */
+    static int ExecuteCMakeCommand(std::vector<std::string>&);
 
 protected:
-  static int HandleCoCompileCommands(std::vector<std::string>& args);
-  static int HashSumFile(std::vector<std::string>& args,
-                         cmCryptoHash::Algo algo);
-  static int SymlinkLibrary(std::vector<std::string>& args);
-  static int SymlinkExecutable(std::vector<std::string>& args);
-  static bool SymlinkInternal(std::string const& file,
-                              std::string const& link);
-  static int ExecuteEchoColor(std::vector<std::string>& args);
-  static int ExecuteLinkScript(std::vector<std::string>& args);
-  static int WindowsCEEnvironment(const char* version,
-                                  const std::string& name);
-  static int VisualStudioLink(std::vector<std::string> const& args, int type);
+    static int  HandleCoCompileCommands(std::vector<std::string>& args);
+    static int  HashSumFile(std::vector<std::string>& args,
+                            cmCryptoHash::Algo        algo);
+    static int  SymlinkLibrary(std::vector<std::string>& args);
+    static int  SymlinkExecutable(std::vector<std::string>& args);
+    static bool SymlinkInternal(std::string const& file,
+                                std::string const& link);
+    static int  ExecuteEchoColor(std::vector<std::string>& args);
+    static int  ExecuteLinkScript(std::vector<std::string>& args);
+    static int  WindowsCEEnvironment(const char*        version,
+                                     const std::string& name);
+    static int VisualStudioLink(std::vector<std::string> const& args, int type);
 };
 
 #endif

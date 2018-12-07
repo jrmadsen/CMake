@@ -6,58 +6,69 @@
 #include <assert.h>
 #include <utility>
 
-cmProperty* cmPropertyMap::GetOrCreateProperty(const std::string& name)
+cmProperty*
+cmPropertyMap::GetOrCreateProperty(const std::string& name)
 {
-  cmPropertyMap::iterator it = this->find(name);
-  cmProperty* prop;
-  if (it == this->end()) {
-    prop = &(*this)[name];
-  } else {
-    prop = &(it->second);
-  }
-  return prop;
+    cmPropertyMap::iterator it = this->find(name);
+    cmProperty*             prop;
+    if(it == this->end())
+    {
+        prop = &(*this)[name];
+    } else
+    {
+        prop = &(it->second);
+    }
+    return prop;
 }
 
-std::vector<std::string> cmPropertyMap::GetPropertyList() const
+std::vector<std::string>
+cmPropertyMap::GetPropertyList() const
 {
-  std::vector<std::string> keyList;
-  for (auto const& i : *this) {
-    keyList.push_back(i.first);
-  }
-  std::sort(keyList.begin(), keyList.end());
-  return keyList;
+    std::vector<std::string> keyList;
+    for(auto const& i : *this)
+    {
+        keyList.push_back(i.first);
+    }
+    std::sort(keyList.begin(), keyList.end());
+    return keyList;
 }
 
-void cmPropertyMap::SetProperty(const std::string& name, const char* value)
+void
+cmPropertyMap::SetProperty(const std::string& name, const char* value)
 {
-  if (!value) {
-    this->erase(name);
-    return;
-  }
+    if(!value)
+    {
+        this->erase(name);
+        return;
+    }
 
-  cmProperty* prop = this->GetOrCreateProperty(name);
-  prop->Set(value);
+    cmProperty* prop = this->GetOrCreateProperty(name);
+    prop->Set(value);
 }
 
-void cmPropertyMap::AppendProperty(const std::string& name, const char* value,
-                                   bool asString)
+void
+cmPropertyMap::AppendProperty(const std::string& name, const char* value,
+                              bool asString)
 {
-  // Skip if nothing to append.
-  if (!value || !*value) {
-    return;
-  }
+    // Skip if nothing to append.
+    if(!value || !*value)
+    {
+        return;
+    }
 
-  cmProperty* prop = this->GetOrCreateProperty(name);
-  prop->Append(value, asString);
+    cmProperty* prop = this->GetOrCreateProperty(name);
+    prop->Append(value, asString);
 }
 
-const char* cmPropertyMap::GetPropertyValue(const std::string& name) const
+const char*
+cmPropertyMap::GetPropertyValue(const std::string& name) const
 {
-  assert(!name.empty());
+    assert(!name.empty());
 
-  cmPropertyMap::const_iterator it = this->find(name);
-  if (it == this->end()) {
-    return nullptr;
-  }
-  return it->second.GetValue();
+    cmPropertyMap::const_iterator it = this->find(name);
+    if(it == this->end())
+    {
+        return nullptr;
+    }
+    return it->second.GetValue();
 }

@@ -3,10 +3,10 @@
 #ifndef cmLocalVisualStudioGenerator_h
 #define cmLocalVisualStudioGenerator_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <map>
-#include <memory> // IWYU pragma: keep
+#include <memory>  // IWYU pragma: keep
 #include <string>
 
 #include "cmGlobalVisualStudioGenerator.h"
@@ -28,33 +28,33 @@ class cmSourceFile;
 class cmLocalVisualStudioGenerator : public cmLocalGenerator
 {
 public:
-  cmLocalVisualStudioGenerator(cmGlobalGenerator* gg, cmMakefile* mf);
-  virtual ~cmLocalVisualStudioGenerator();
+    cmLocalVisualStudioGenerator(cmGlobalGenerator* gg, cmMakefile* mf);
+    virtual ~cmLocalVisualStudioGenerator();
 
-  /** Construct a script from the given list of command lines.  */
-  std::string ConstructScript(cmCustomCommandGenerator const& ccg,
-                              const std::string& newline = "\n");
+    /** Construct a script from the given list of command lines.  */
+    std::string ConstructScript(cmCustomCommandGenerator const& ccg,
+                                const std::string&              newline = "\n");
 
-  /** Label to which to jump in a batch file after a failed step in a
-      sequence of custom commands. */
-  const char* GetReportErrorLabel() const;
+    /** Label to which to jump in a batch file after a failed step in a
+        sequence of custom commands. */
+    const char* GetReportErrorLabel() const;
 
-  cmGlobalVisualStudioGenerator::VSVersion GetVersion() const;
+    cmGlobalVisualStudioGenerator::VSVersion GetVersion() const;
 
-  virtual std::string ComputeLongestObjectDirectory(
-    cmGeneratorTarget const*) const = 0;
+    virtual std::string ComputeLongestObjectDirectory(
+        cmGeneratorTarget const*) const = 0;
 
-  void ComputeObjectFilenames(
-    std::map<cmSourceFile const*, std::string>& mapping,
-    cmGeneratorTarget const* = 0) override;
+    void ComputeObjectFilenames(
+        std::map<cmSourceFile const*, std::string>& mapping,
+        cmGeneratorTarget const* = 0) override;
 
 protected:
-  virtual const char* ReportErrorLabel() const;
-  virtual bool CustomCommandUseLocal() const { return false; }
+    virtual const char* ReportErrorLabel() const;
+    virtual bool        CustomCommandUseLocal() const { return false; }
 
-  /** Construct a custom command to make exe import lib dir.  */
-  std::unique_ptr<cmCustomCommand> MaybeCreateImplibDir(
-    cmGeneratorTarget* target, const std::string& config, bool isFortran);
+    /** Construct a custom command to make exe import lib dir.  */
+    std::unique_ptr<cmCustomCommand> MaybeCreateImplibDir(
+        cmGeneratorTarget* target, const std::string& config, bool isFortran);
 };
 
 #endif

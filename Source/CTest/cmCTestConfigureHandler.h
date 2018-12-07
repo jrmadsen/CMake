@@ -3,7 +3,7 @@
 #ifndef cmCTestConfigureHandler_h
 #define cmCTestConfigureHandler_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmCTestGenericHandler.h"
 
@@ -14,16 +14,16 @@
 class cmCTestConfigureHandler : public cmCTestGenericHandler
 {
 public:
-  typedef cmCTestGenericHandler Superclass;
+    typedef cmCTestGenericHandler Superclass;
 
-  /*
-   * The main entry point for this class
-   */
-  int ProcessHandler() override;
+    /*
+     * The main entry point for this class
+     */
+    int ProcessHandler() override;
 
-  cmCTestConfigureHandler();
+    cmCTestConfigureHandler();
 
-  void Initialize() override;
+    void Initialize() override;
 };
 
 #endif

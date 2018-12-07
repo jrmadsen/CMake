@@ -4,32 +4,36 @@
 
 #include <utility>
 
-void cmPropertyDefinitionMap::DefineProperty(const std::string& name,
-                                             cmProperty::ScopeType scope,
-                                             const char* ShortDescription,
-                                             const char* FullDescription,
-                                             bool chain)
+void
+cmPropertyDefinitionMap::DefineProperty(const std::string&    name,
+                                        cmProperty::ScopeType scope,
+                                        const char*           ShortDescription,
+                                        const char* FullDescription, bool chain)
 {
-  cmPropertyDefinitionMap::iterator it = this->find(name);
-  cmPropertyDefinition* prop;
-  if (it == this->end()) {
-    prop = &(*this)[name];
-    prop->DefineProperty(name, scope, ShortDescription, FullDescription,
-                         chain);
-  }
+    cmPropertyDefinitionMap::iterator it = this->find(name);
+    cmPropertyDefinition*             prop;
+    if(it == this->end())
+    {
+        prop = &(*this)[name];
+        prop->DefineProperty(name, scope, ShortDescription, FullDescription,
+                             chain);
+    }
 }
 
-bool cmPropertyDefinitionMap::IsPropertyDefined(const std::string& name) const
+bool
+cmPropertyDefinitionMap::IsPropertyDefined(const std::string& name) const
 {
-  return this->find(name) != this->end();
+    return this->find(name) != this->end();
 }
 
-bool cmPropertyDefinitionMap::IsPropertyChained(const std::string& name) const
+bool
+cmPropertyDefinitionMap::IsPropertyChained(const std::string& name) const
 {
-  cmPropertyDefinitionMap::const_iterator it = this->find(name);
-  if (it == this->end()) {
-    return false;
-  }
+    cmPropertyDefinitionMap::const_iterator it = this->find(name);
+    if(it == this->end())
+    {
+        return false;
+    }
 
-  return it->second.IsChained();
+    return it->second.IsChained();
 }

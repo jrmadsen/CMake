@@ -6,10 +6,7 @@
 #include "cmCPackArchiveGenerator.h"
 
 cmCPackTXZGenerator::cmCPackTXZGenerator()
-  : cmCPackArchiveGenerator(cmArchiveWrite::CompressXZ, "paxr")
-{
-}
+: cmCPackArchiveGenerator(cmArchiveWrite::CompressXZ, "paxr")
+{}
 
-cmCPackTXZGenerator::~cmCPackTXZGenerator()
-{
-}
+cmCPackTXZGenerator::~cmCPackTXZGenerator() {}

@@ -3,7 +3,7 @@
 #ifndef cmCPackBundleGenerator_h
 #define cmCPackBundleGenerator_h
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
 
@@ -18,20 +18,20 @@
 class cmCPackBundleGenerator : public cmCPackDragNDropGenerator
 {
 public:
-  cmCPackTypeMacro(cmCPackBundleGenerator, cmCPackDragNDropGenerator);
+    cmCPackTypeMacro(cmCPackBundleGenerator, cmCPackDragNDropGenerator);
 
-  cmCPackBundleGenerator();
-  ~cmCPackBundleGenerator() override;
+    cmCPackBundleGenerator();
+    ~cmCPackBundleGenerator() override;
 
 protected:
-  int InitializeInternal() override;
-  const char* GetPackagingInstallPrefix() override;
-  int ConstructBundle();
-  int SignBundle(const std::string& src_dir);
-  int PackageFiles() override;
-  bool SupportsComponentInstallation() const override;
+    int         InitializeInternal() override;
+    const char* GetPackagingInstallPrefix() override;
+    int         ConstructBundle();
+    int         SignBundle(const std::string& src_dir);
+    int         PackageFiles() override;
+    bool        SupportsComponentInstallation() const override;
 
-  std::string InstallPrefix;
+    std::string InstallPrefix;
 };
 
 #endif

@@ -10,107 +10,108 @@
 #include <utility>
 
 cmInstalledFile::cmInstalledFile()
-  : NameExpression(nullptr)
+: NameExpression(nullptr)
+{}
+
+cmInstalledFile::~cmInstalledFile() { delete NameExpression; }
+
+cmInstalledFile::Property::Property() {}
+
+cmInstalledFile::Property::~Property() { cmDeleteAll(this->ValueExpressions); }
+
+void
+cmInstalledFile::SetName(cmMakefile* mf, const std::string& name)
 {
+    cmListFileBacktrace   backtrace = mf->GetBacktrace();
+    cmGeneratorExpression ge(backtrace);
+
+    this->Name           = name;
+    this->NameExpression = ge.Parse(name).release();
 }
 
-cmInstalledFile::~cmInstalledFile()
+std::string const&
+cmInstalledFile::GetName() const
 {
-  delete NameExpression;
+    return this->Name;
 }
 
-cmInstalledFile::Property::Property()
+cmCompiledGeneratorExpression const&
+cmInstalledFile::GetNameExpression() const
 {
+    return *(this->NameExpression);
 }
 
-cmInstalledFile::Property::~Property()
+void
+cmInstalledFile::RemoveProperty(const std::string& prop)
 {
-  cmDeleteAll(this->ValueExpressions);
+    this->Properties.erase(prop);
 }
 
-void cmInstalledFile::SetName(cmMakefile* mf, const std::string& name)
+void
+cmInstalledFile::SetProperty(cmMakefile const* mf, const std::string& prop,
+                             const char* value)
 {
-  cmListFileBacktrace backtrace = mf->GetBacktrace();
-  cmGeneratorExpression ge(backtrace);
-
-  this->Name = name;
-  this->NameExpression = ge.Parse(name).release();
+    this->RemoveProperty(prop);
+    this->AppendProperty(mf, prop, value);
 }
 
-std::string const& cmInstalledFile::GetName() const
+void
+cmInstalledFile::AppendProperty(cmMakefile const* mf, const std::string& prop,
+                                const char* value, bool /*asString*/)
 {
-  return this->Name;
+    cmListFileBacktrace   backtrace = mf->GetBacktrace();
+    cmGeneratorExpression ge(backtrace);
+
+    Property& property = this->Properties[prop];
+    property.ValueExpressions.push_back(ge.Parse(value).release());
 }
 
-cmCompiledGeneratorExpression const& cmInstalledFile::GetNameExpression() const
+bool
+cmInstalledFile::HasProperty(const std::string& prop) const
 {
-  return *(this->NameExpression);
+    return this->Properties.find(prop) != this->Properties.end();
 }
 
-void cmInstalledFile::RemoveProperty(const std::string& prop)
+bool
+cmInstalledFile::GetProperty(const std::string& prop, std::string& value) const
 {
-  this->Properties.erase(prop);
+    PropertyMapType::const_iterator i = this->Properties.find(prop);
+    if(i == this->Properties.end())
+    {
+        return false;
+    }
+
+    Property const& property = i->second;
+
+    std::string output;
+    std::string separator;
+
+    for(auto ve : property.ValueExpressions)
+    {
+        output += separator;
+        output += ve->GetInput();
+        separator = ";";
+    }
+
+    value = output;
+    return true;
 }
 
-void cmInstalledFile::SetProperty(cmMakefile const* mf,
-                                  const std::string& prop, const char* value)
+bool
+cmInstalledFile::GetPropertyAsBool(const std::string& prop) const
 {
-  this->RemoveProperty(prop);
-  this->AppendProperty(mf, prop, value);
+    std::string value;
+    bool        isSet = this->GetProperty(prop, value);
+    return isSet && cmSystemTools::IsOn(value);
 }
 
-void cmInstalledFile::AppendProperty(cmMakefile const* mf,
-                                     const std::string& prop,
-                                     const char* value, bool /*asString*/)
+void
+cmInstalledFile::GetPropertyAsList(const std::string&        prop,
+                                   std::vector<std::string>& list) const
 {
-  cmListFileBacktrace backtrace = mf->GetBacktrace();
-  cmGeneratorExpression ge(backtrace);
+    std::string value;
+    this->GetProperty(prop, value);
 
-  Property& property = this->Properties[prop];
-  property.ValueExpressions.push_back(ge.Parse(value).release());
-}
-
-bool cmInstalledFile::HasProperty(const std::string& prop) const
-{
-  return this->Properties.find(prop) != this->Properties.end();
-}
-
-bool cmInstalledFile::GetProperty(const std::string& prop,
-                                  std::string& value) const
-{
-  PropertyMapType::const_iterator i = this->Properties.find(prop);
-  if (i == this->Properties.end()) {
-    return false;
-  }
-
-  Property const& property = i->second;
-
-  std::string output;
-  std::string separator;
-
-  for (auto ve : property.ValueExpressions) {
-    output += separator;
-    output += ve->GetInput();
-    separator = ";";
-  }
-
-  value = output;
-  return true;
-}
-
-bool cmInstalledFile::GetPropertyAsBool(const std::string& prop) const
-{
-  std::string value;
-  bool isSet = this->GetProperty(prop, value);
-  return isSet && cmSystemTools::IsOn(value);
-}
-
-void cmInstalledFile::GetPropertyAsList(const std::string& prop,
-                                        std::vector<std::string>& list) const
-{
-  std::string value;
-  this->GetProperty(prop, value);
-
-  list.clear();
-  cmSystemTools::ExpandListArgument(value, list);
+    list.clear();
+    cmSystemTools::ExpandListArgument(value, list);
 }
