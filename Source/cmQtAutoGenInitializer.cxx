@@ -1635,7 +1635,7 @@ cmQtAutoGenInitializer::GetUicExecutable()
     }
 
     // Test uic command
-    if(err.empty())
+    if(err.empty() && !this->Uic.Executable.empty())
     {
         if(cmSystemTools::FileExists(this->Uic.Executable, true))
         {
