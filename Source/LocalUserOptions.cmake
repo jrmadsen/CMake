@@ -73,3 +73,33 @@ export(TARGETS ${_CTEST_LIBRARIES}
 set_property(GLOBAL PROPERTY CTEST_PROJECT_LIBRARIES ${_CTEST_LIBRARIES})
 
 ################################################################################
+#
+#       CPACK
+#
+################################################################################
+
+set(_CPACK_LIBRARIES
+    CPackLib
+    ${CMAKE_CURL_LIBRARIES}
+    ${CMAKE_XMLRPC_LIBRARIES}
+)
+
+# check if built or using system
+set(_CPACK_LIBRARY_UTILITIES
+    BZIP2 CURL EXPAT FORM JSONCPP LIBARCHIVE LIBLZMA LIBRHASH LIBUV ZLIB)
+
+# assemble list
+foreach(_PACKAGE ${_CPACK_LIBRARY_UTILITIES})
+    if(NOT CMAKE_USE_SYSTEM_${_PACKAGE} AND ${_PACKAGE}_LIBRARY)
+        list(APPEND _CPACK_LIBRARIES ${${_PACKAGE}_LIBRARY})
+    endif(NOT CMAKE_USE_SYSTEM_${_PACKAGE} AND ${_PACKAGE}_LIBRARY)
+endforeach(_PACKAGE ${_CPACK_LIBRARY_UTILITIES})
+
+list(REMOVE_DUPLICATES _CPACK_LIBRARIES)
+
+export(TARGETS ${_CPACK_LIBRARIES}
+    FILE ${CMAKE_BINARY_DIR}/CPackLibBuild.cmake)
+
+set_property(GLOBAL PROPERTY CPACK_PROJECT_LIBRARIES ${_CPACK_LIBRARIES})
+
+################################################################################
