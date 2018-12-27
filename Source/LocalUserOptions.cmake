@@ -98,21 +98,25 @@ set_property(GLOBAL PROPERTY CPACK_PROJECT_LIBRARIES ${_CPACK_LIBRARIES})
 #       INSTALLATION
 #
 ################################################################################
-include(GNUInstallDirs)
-
 set(_INSTALL_LIBRARIES ${_CMAKE_LIBRARIES} ${_CTEST_LIBRARIES} ${_CPACK_LIBRARIES})
 list(REMOVE_DUPLICATES _INSTALL_LIBRARIES)
-install(TARGETS ${_INSTALL_LIBRARIES}
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    EXPORT CMakeDevelDepends)
-install(EXPORT CMakeDevelDepends
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake)
 
 configure_file(${PROJECT_SOURCE_DIR}/Templates/CMakeDevelConfig.cmake.in
     ${PROJECT_BINARY_DIR}/CMakeDevelConfig.cmake @ONLY)
 
-message(STATUS "Output: ${PROJECT_BINARY_DIR}/CMakeDevelConfig.cmake")
-install(FILES ${PROJECT_BINARY_DIR}/CMakeDevelConfig.cmake
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake)
+option(CMake_INSTALL_Devel "Install libraries for development" OFF)
+if(CMake_INSTALL_Devel)
+    include(GNUInstallDirs)
+
+    install(TARGETS ${_INSTALL_LIBRARIES}
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        EXPORT CMakeDevelDepends)
+
+    install(EXPORT CMakeDevelDepends
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake)
+
+    install(FILES ${PROJECT_BINARY_DIR}/CMakeDevelConfig.cmake
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake)
+endif()
 
 ################################################################################
