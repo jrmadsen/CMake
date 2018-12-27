@@ -421,48 +421,46 @@ cmQtAutoGenInitializer::InitCustomTargets()
 bool
 cmQtAutoGenInitializer::InitMoc()
 {
-    cmMakefile*       makefile = this->Target->Target->GetMakefile();
-    cmLocalGenerator* localGen = this->Target->GetLocalGenerator();
+  cmMakefile* makefile = this->Target->Target->GetMakefile();
+  cmLocalGenerator* localGen = this->Target->GetLocalGenerator();
 
-    // Mocs compilation file
-    this->Moc.MocsCompilation = this->Dir.Build;
-    this->Moc.MocsCompilation += "/mocs_compilation.cpp";
+  // Mocs compilation file
+  this->Moc.MocsCompilation = this->Dir.Build;
+  this->Moc.MocsCompilation += "/mocs_compilation.cpp";
 
-    // Moc predefs command
-    if(this->Target->GetPropertyAsBool("AUTOMOC_COMPILER_PREDEFINES") &&
-       (this->QtVersion >= IntegerVersion(5, 8)))
-    {
-        this->Moc.PredefsCmd = makefile->GetSafeDefinition(
-            "CMAKE_CXX_COMPILER_PREDEFINES_COMMAND");
-    }
+  // Moc predefs command
+  if (this->Target->GetPropertyAsBool("AUTOMOC_COMPILER_PREDEFINES") &&
+      (this->QtVersion >= IntegerVersion(5, 8))) {
+    this->Moc.PredefsCmd =
+      makefile->GetSafeDefinition("CMAKE_CXX_COMPILER_PREDEFINES_COMMAND");
+  }
 
-    // Moc includes
-    {
-        bool const appendImplicit = (this->QtVersion.Major == 5);
-        auto       GetIncludeDirs = [this, localGen, appendImplicit](
-                                  std::string const& cfg) -> std::string {
-            // Get the include dirs for this target, without stripping the
-            // implicit include dirs off, see
-            // https://gitlab.kitware.com/cmake/cmake/issues/13667
-            std::vector<std::string> dirs;
-            localGen->GetIncludeDirectories(dirs, this->Target, "CXX", cfg,
-                                            false, appendImplicit);
-            return cmJoin(dirs, ";");
-        };
+  // Moc includes
+  {
+    // We need to disable this until we have all implicit includes available.
+    // See issue #18669.
+    // bool const appendImplicit = (this->QtVersion.Major == 5);
 
-        // Default configuration include directories
-        this->Moc.Includes = GetIncludeDirs(this->ConfigDefault);
-        // Other configuration settings
-        if(this->MultiConfig)
-        {
-            for(std::string const& cfg : this->ConfigsList)
-            {
-                std::string dirs = GetIncludeDirs(cfg);
-                if(dirs != this->Moc.Includes)
-                {
-                    this->Moc.ConfigIncludes[cfg] = std::move(dirs);
-                }
-            }
+    auto GetIncludeDirs = [this,
+                           localGen](std::string const& cfg) -> std::string {
+      bool const appendImplicit = false;
+      // Get the include dirs for this target, without stripping the implicit
+      // include dirs off, see
+      // https://gitlab.kitware.com/cmake/cmake/issues/13667
+      std::vector<std::string> dirs;
+      localGen->GetIncludeDirectories(dirs, this->Target, "CXX", cfg, false,
+                                      appendImplicit);
+      return cmJoin(dirs, ";");
+    };
+
+    // Default configuration include directories
+    this->Moc.Includes = GetIncludeDirs(this->ConfigDefault);
+    // Other configuration settings
+    if (this->MultiConfig) {
+      for (std::string const& cfg : this->ConfigsList) {
+        std::string dirs = GetIncludeDirs(cfg);
+        if (dirs != this->Moc.Includes) {
+          this->Moc.ConfigIncludes[cfg] = std::move(dirs);
         }
     }
 

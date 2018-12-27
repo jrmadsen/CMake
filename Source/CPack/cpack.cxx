@@ -93,6 +93,15 @@ cpackDefinitionArgument(const char* argument, const char* cValue,
     return 1;
 }
 
+static void cpackProgressCallback(const char* message, float progress,
+                                  void* clientdata)
+{
+  (void)progress;
+  (void)clientdata;
+
+  std::cout << "-- " << message << std::endl;
+}
+
 // this is CPack.
 int
 main(int argc, char const* const* argv)
@@ -104,23 +113,178 @@ main(int argc, char const* const* argv)
     cmsys::ConsoleBuf::Manager consoleErr(std::cerr, true);
     consoleErr.SetUTF8Pipes();
 #endif
-    cmsys::Encoding::CommandLineArguments args =
-        cmsys::Encoding::CommandLineArguments::Main(argc, argv);
-    argc = args.argc();
-    argv = args.argv();
+  cmsys::Encoding::CommandLineArguments args =
+    cmsys::Encoding::CommandLineArguments::Main(argc, argv);
+  argc = args.argc();
+  argv = args.argv();
 
-    cmSystemTools::EnableMSVCDebugHook();
-    cmSystemTools::InitializeLibUV();
-    cmSystemTools::FindCMakeResources(argv[0]);
-    cmCPackLog log;
+  cmSystemTools::EnableMSVCDebugHook();
+  cmSystemTools::InitializeLibUV();
+  cmSystemTools::FindCMakeResources(argv[0]);
+  cmCPackLog log;
 
-    log.SetErrorPrefix("CPack Error: ");
-    log.SetWarningPrefix("CPack Warning: ");
-    log.SetOutputPrefix("CPack: ");
-    log.SetVerbosePrefix("CPack Verbose: ");
+  log.SetErrorPrefix("CPack Error: ");
+  log.SetWarningPrefix("CPack Warning: ");
+  log.SetOutputPrefix("CPack: ");
+  log.SetVerbosePrefix("CPack Verbose: ");
 
-    if(cmSystemTools::GetCurrentWorkingDirectory().empty())
-    {
+  if (cmSystemTools::GetCurrentWorkingDirectory().empty()) {
+    cmCPack_Log(&log, cmCPackLog::LOG_ERROR,
+                "Current working directory cannot be established."
+                  << std::endl);
+    return 1;
+  }
+
+  std::string generator;
+  bool help = false;
+  bool helpVersion = false;
+  bool verbose = false;
+  bool trace = false;
+  bool traceExpand = false;
+  bool debug = false;
+  std::string helpFull;
+  std::string helpMAN;
+  std::string helpHTML;
+
+  std::string cpackProjectName;
+  std::string cpackProjectDirectory;
+  std::string cpackBuildConfig;
+  std::string cpackProjectVersion;
+  std::string cpackProjectPatch;
+  std::string cpackProjectVendor;
+  std::string cpackConfigFile;
+
+  cpackDefinitions definitions;
+  definitions.Log = &log;
+
+  cpackConfigFile.clear();
+
+  cmsys::CommandLineArguments arg;
+  arg.Initialize(argc, argv);
+  typedef cmsys::CommandLineArguments argT;
+  // Help arguments
+  arg.AddArgument("--help", argT::NO_ARGUMENT, &help, "CPack help");
+  arg.AddArgument("--help-full", argT::SPACE_ARGUMENT, &helpFull,
+                  "CPack help");
+  arg.AddArgument("--help-html", argT::SPACE_ARGUMENT, &helpHTML,
+                  "CPack help");
+  arg.AddArgument("--help-man", argT::SPACE_ARGUMENT, &helpMAN, "CPack help");
+  arg.AddArgument("--version", argT::NO_ARGUMENT, &helpVersion, "CPack help");
+
+  arg.AddArgument("-V", argT::NO_ARGUMENT, &verbose, "CPack verbose");
+  arg.AddArgument("--verbose", argT::NO_ARGUMENT, &verbose, "-V");
+  arg.AddArgument("--debug", argT::NO_ARGUMENT, &debug, "-V");
+  arg.AddArgument("--config", argT::SPACE_ARGUMENT, &cpackConfigFile,
+                  "CPack configuration file");
+  arg.AddArgument("--trace", argT::NO_ARGUMENT, &trace,
+                  "Put underlying cmake scripts in trace mode.");
+  arg.AddArgument("--trace-expand", argT::NO_ARGUMENT, &traceExpand,
+                  "Put underlying cmake scripts in expanded trace mode.");
+  arg.AddArgument("-C", argT::SPACE_ARGUMENT, &cpackBuildConfig,
+                  "CPack build configuration");
+  arg.AddArgument("-G", argT::SPACE_ARGUMENT, &generator, "CPack generator");
+  arg.AddArgument("-P", argT::SPACE_ARGUMENT, &cpackProjectName,
+                  "CPack project name");
+  arg.AddArgument("-R", argT::SPACE_ARGUMENT, &cpackProjectVersion,
+                  "CPack project version");
+  arg.AddArgument("-B", argT::SPACE_ARGUMENT, &cpackProjectDirectory,
+                  "CPack project directory");
+  arg.AddArgument("--patch", argT::SPACE_ARGUMENT, &cpackProjectPatch,
+                  "CPack project patch");
+  arg.AddArgument("--vendor", argT::SPACE_ARGUMENT, &cpackProjectVendor,
+                  "CPack project vendor");
+  arg.AddCallback("-D", argT::SPACE_ARGUMENT, cpackDefinitionArgument,
+                  &definitions, "CPack Definitions");
+  arg.SetUnknownArgumentCallback(cpackUnknownArgument);
+
+  // Parse command line
+  int parsed = arg.Parse();
+
+  // Setup logging
+  if (verbose) {
+    log.SetVerbose(verbose);
+    cmCPack_Log(&log, cmCPackLog::LOG_OUTPUT, "Enable Verbose" << std::endl);
+  }
+  if (debug) {
+    log.SetDebug(debug);
+    cmCPack_Log(&log, cmCPackLog::LOG_OUTPUT, "Enable Debug" << std::endl);
+  }
+
+  cmCPack_Log(&log, cmCPackLog::LOG_VERBOSE,
+              "Read CPack config file: " << cpackConfigFile << std::endl);
+
+  cmake cminst(cmake::RoleScript);
+  cminst.SetHomeDirectory("");
+  cminst.SetHomeOutputDirectory("");
+  cminst.SetProgressCallback(cpackProgressCallback, nullptr);
+  cminst.GetCurrentSnapshot().SetDefaultDefinitions();
+  cmGlobalGenerator cmgg(&cminst);
+  cmMakefile globalMF(&cmgg, cminst.GetCurrentSnapshot());
+#if defined(__CYGWIN__)
+  globalMF.AddDefinition("CMAKE_LEGACY_CYGWIN_WIN32", "0");
+#endif
+
+  if (trace) {
+    cminst.SetTrace(true);
+  }
+  if (traceExpand) {
+    cminst.SetTrace(true);
+    cminst.SetTraceExpand(true);
+  }
+
+  bool cpackConfigFileSpecified = true;
+  if (cpackConfigFile.empty()) {
+    cpackConfigFile = cmSystemTools::GetCurrentWorkingDirectory();
+    cpackConfigFile += "/CPackConfig.cmake";
+    cpackConfigFileSpecified = false;
+  }
+
+  cmCPackGeneratorFactory generators;
+  generators.SetLogger(&log);
+  cmCPackGenerator* cpackGenerator = nullptr;
+
+  cmDocumentation doc;
+  doc.addCPackStandardDocSections();
+  /* Were we invoked to display doc or to do some work ?
+   * Unlike cmake launching cpack with zero argument
+   * should launch cpack using "cpackConfigFile" if it exists
+   * in the current directory.
+   */
+  help = doc.CheckOptions(argc, argv, "-G") && argc != 1;
+
+  // This part is used for cpack documentation lookup as well.
+  cminst.AddCMakePaths();
+
+  if (parsed && !help) {
+    // find out which system cpack is running on, so it can setup the search
+    // paths, so FIND_XXX() commands can be used in scripts
+    std::string systemFile =
+      globalMF.GetModulesFile("CMakeDetermineSystem.cmake");
+    if (!globalMF.ReadListFile(systemFile.c_str())) {
+      cmCPack_Log(&log, cmCPackLog::LOG_ERROR,
+                  "Error reading CMakeDetermineSystem.cmake" << std::endl);
+      return 1;
+    }
+
+    systemFile =
+      globalMF.GetModulesFile("CMakeSystemSpecificInformation.cmake");
+    if (!globalMF.ReadListFile(systemFile.c_str())) {
+      cmCPack_Log(&log, cmCPackLog::LOG_ERROR,
+                  "Error reading CMakeSystemSpecificInformation.cmake"
+                    << std::endl);
+      return 1;
+    }
+
+    if (!cpackBuildConfig.empty()) {
+      globalMF.AddDefinition("CPACK_BUILD_CONFIG", cpackBuildConfig.c_str());
+    }
+
+    if (cmSystemTools::FileExists(cpackConfigFile)) {
+      cpackConfigFile = cmSystemTools::CollapseFullPath(cpackConfigFile);
+      cmCPack_Log(&log, cmCPackLog::LOG_VERBOSE,
+                  "Read CPack configuration file: " << cpackConfigFile
+                                                    << std::endl);
+      if (!globalMF.ReadListFile(cpackConfigFile.c_str())) {
         cmCPack_Log(&log, cmCPackLog::LOG_ERROR,
                     "Current working directory cannot be established."
                         << std::endl);
