@@ -6,9 +6,9 @@
 
 #include "cmGlobalGenerator.h"
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmStateTypes.h"
 #include "cmSystemTools.h"
-#include "cmake.h"
 
 class cmExecutionStatus;
 
@@ -103,14 +103,33 @@ cmBuildCommand::MainSignature(std::vector<std::string> const& args)
             cmake::AUTHOR_WARNING,
             "Ignoring PROJECT_NAME option because it has no effect.");
     }
+  }
 
-    std::string makecommand =
-        this->Makefile->GetGlobalGenerator()->GenerateCMakeBuildCommand(
-            target, configuration, "", this->Makefile->IgnoreErrorsCMP0061());
+  // If null/empty CONFIGURATION argument, cmake --build uses 'Debug'
+  // in the currently implemented multi-configuration global generators...
+  // so we put this code here to end up with the same default configuration
+  // as the original 2-arg build_command signature:
+  //
+  if (configuration.empty()) {
+    cmSystemTools::GetEnv("CMAKE_CONFIG_TYPE", configuration);
+  }
+  if (configuration.empty()) {
+    configuration = "Release";
+  }
 
-    this->Makefile->AddDefinition(variable, makecommand.c_str());
+  if (!project_name.empty()) {
+    this->Makefile->IssueMessage(
+      MessageType::AUTHOR_WARNING,
+      "Ignoring PROJECT_NAME option because it has no effect.");
+  }
 
-    return true;
+  std::string makecommand =
+    this->Makefile->GetGlobalGenerator()->GenerateCMakeBuildCommand(
+      target, configuration, "", this->Makefile->IgnoreErrorsCMP0061());
+
+  this->Makefile->AddDefinition(variable, makecommand.c_str());
+
+  return true;
 }
 
 bool

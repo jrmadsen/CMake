@@ -12,22 +12,23 @@
 #include "cmListFileCache.h"
 #include "cmLocalGenerator.h"
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmSourceFile.h"
 #include "cmSourceFileLocationKind.h"
 #include "cmSystemTools.h"
-#include "cmake.h"
 
 cmGeneratorExpressionEvaluationFile::cmGeneratorExpressionEvaluationFile(
-    const std::string&                             input,
-    std::unique_ptr<cmCompiledGeneratorExpression> outputFileExpr,
-    std::unique_ptr<cmCompiledGeneratorExpression> condition,
-    bool inputIsContent, cmPolicies::PolicyStatus policyStatusCMP0070)
-: Input(input)
-, OutputFileExpr(std::move(outputFileExpr))
-, Condition(std::move(condition))
-, InputIsContent(inputIsContent)
-, PolicyStatusCMP0070(policyStatusCMP0070)
-{}
+  std::string input,
+  std::unique_ptr<cmCompiledGeneratorExpression> outputFileExpr,
+  std::unique_ptr<cmCompiledGeneratorExpression> condition,
+  bool inputIsContent, cmPolicies::PolicyStatus policyStatusCMP0070)
+  : Input(std::move(input))
+  , OutputFileExpr(std::move(outputFileExpr))
+  , Condition(std::move(condition))
+  , InputIsContent(inputIsContent)
+  , PolicyStatusCMP0070(policyStatusCMP0070)
+{
+}
 
 void
 cmGeneratorExpressionEvaluationFile::Generate(
@@ -55,19 +56,14 @@ cmGeneratorExpressionEvaluationFile::Generate(
             return;
         }
     }
-
-    std::string outputFileName = this->OutputFileExpr->Evaluate(
-        lg, config, false, nullptr, nullptr, nullptr, lang);
-    const std::string& outputContent = inputExpression->Evaluate(
-        lg, config, false, nullptr, nullptr, nullptr, lang);
-
-    if(cmSystemTools::FileIsFullPath(outputFileName))
-    {
-        outputFileName = cmSystemTools::CollapseFullPath(outputFileName);
-    } else
-    {
-        outputFileName =
-            this->FixRelativePath(outputFileName, PathForOutput, lg);
+    if (condResult != "1") {
+      std::ostringstream e;
+      e << "Evaluation file condition \"" << rawCondition
+        << "\" did "
+           "not evaluate to valid content. Got \""
+        << condResult << "\".";
+      lg->IssueMessage(MessageType::FATAL_ERROR, e.str());
+      return;
     }
 
     std::map<std::string, std::string>::iterator it =
@@ -100,6 +96,26 @@ cmGeneratorExpressionEvaluationFile::Generate(
     {
         cmSystemTools::SetPermissions(outputFileName.c_str(), perm);
     }
+    std::ostringstream e;
+    e << "Evaluation file to be written multiple times with different "
+         "content. "
+         "This is generally caused by the content evaluating the "
+         "configuration type, language, or location of object files:\n "
+      << outputFileName;
+    lg->IssueMessage(MessageType::FATAL_ERROR, e.str());
+    return;
+  }
+
+  lg->GetMakefile()->AddCMakeOutputFile(outputFileName);
+  this->Files.push_back(outputFileName);
+  outputFiles[outputFileName] = outputContent;
+
+  cmGeneratedFileStream fout(outputFileName);
+  fout.SetCopyIfDifferent(true);
+  fout << outputContent;
+  if (fout.Close() && perm) {
+    cmSystemTools::SetPermissions(outputFileName.c_str(), perm);
+  }
 }
 
 void
@@ -132,32 +148,26 @@ cmGeneratorExpressionEvaluationFile::CreateOutputFile(cmLocalGenerator*  lg,
 void
 cmGeneratorExpressionEvaluationFile::Generate(cmLocalGenerator* lg)
 {
-    mode_t      perm = 0;
-    std::string inputContent;
-    if(this->InputIsContent)
-    {
-        inputContent = this->Input;
-    } else
-    {
-        std::string inputFileName = this->Input;
-        if(cmSystemTools::FileIsFullPath(inputFileName))
-        {
-            inputFileName = cmSystemTools::CollapseFullPath(inputFileName);
-        } else
-        {
-            inputFileName =
-                this->FixRelativePath(inputFileName, PathForInput, lg);
-        }
-        lg->GetMakefile()->AddCMakeDependFile(inputFileName);
-        cmSystemTools::GetPermissions(inputFileName.c_str(), perm);
-        cmsys::ifstream fin(inputFileName.c_str());
-        if(!fin)
-        {
-            std::ostringstream e;
-            e << "Evaluation file \"" << inputFileName << "\" cannot be read.";
-            lg->IssueMessage(cmake::FATAL_ERROR, e.str());
-            return;
-        }
+  mode_t perm = 0;
+  std::string inputContent;
+  if (this->InputIsContent) {
+    inputContent = this->Input;
+  } else {
+    std::string inputFileName = this->Input;
+    if (cmSystemTools::FileIsFullPath(inputFileName)) {
+      inputFileName = cmSystemTools::CollapseFullPath(inputFileName);
+    } else {
+      inputFileName = this->FixRelativePath(inputFileName, PathForInput, lg);
+    }
+    lg->GetMakefile()->AddCMakeDependFile(inputFileName);
+    cmSystemTools::GetPermissions(inputFileName.c_str(), perm);
+    cmsys::ifstream fin(inputFileName.c_str());
+    if (!fin) {
+      std::ostringstream e;
+      e << "Evaluation file \"" << inputFileName << "\" cannot be read.";
+      lg->IssueMessage(MessageType::FATAL_ERROR, e.str());
+      return;
+    }
 
         std::string line;
         std::string sep;
@@ -231,32 +241,8 @@ cmGeneratorExpressionEvaluationFile::FixRelativePath(
         "For compatibility with older versions of CMake, the previous "
         "undefined behavior will be used."
         ;
-            /* clang-format on */
-            lg->IssueMessage(cmake::AUTHOR_WARNING, w.str());
-        }
-            CM_FALLTHROUGH;
-        case cmPolicies::OLD:
-            // OLD behavior is to use the relative path unchanged,
-            // which ends up being used relative to the working dir.
-            resultPath = relativePath;
-            break;
-        case cmPolicies::REQUIRED_IF_USED:
-        case cmPolicies::REQUIRED_ALWAYS:
-        case cmPolicies::NEW:
-            // NEW behavior is to interpret the relative path with respect
-            // to the current source or binary directory.
-            switch(role)
-            {
-                case PathForInput:
-                    resultPath = cmSystemTools::CollapseFullPath(
-                        relativePath, lg->GetCurrentSourceDirectory());
-                    break;
-                case PathForOutput:
-                    resultPath = cmSystemTools::CollapseFullPath(
-                        relativePath, lg->GetCurrentBinaryDirectory());
-                    break;
-            }
-            break;
+      /* clang-format on */
+      lg->IssueMessage(MessageType::AUTHOR_WARNING, w.str());
     }
     return resultPath;
 }

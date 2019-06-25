@@ -11,7 +11,7 @@
 #include <ostream>
 #include <string>
 
-cmCTestConfigureHandler::cmCTestConfigureHandler() {}
+cmCTestConfigureHandler::cmCTestConfigureHandler() = default;
 
 void
 cmCTestConfigureHandler::Initialize()
@@ -48,21 +48,14 @@ cmCTestConfigureHandler::ProcessHandler()
         return -1;
     }
 
-    auto        elapsed_time_start = std::chrono::steady_clock::now();
-    std::string output;
-    int         retVal = 0;
-    int         res    = 0;
-    if(!this->CTest->GetShowOnly())
-    {
-        cmGeneratedFileStream os;
-        if(!this->StartResultingXML(cmCTest::PartConfigure, "Configure", os))
-        {
-            cmCTestLog(this->CTest, ERROR_MESSAGE,
-                       "Cannot open configure file" << std::endl);
-            return 1;
-        }
-        std::string start_time      = this->CTest->CurrentTime();
-        auto        start_time_time = std::chrono::system_clock::now();
+    cmGeneratedFileStream ofs;
+    this->StartLogFile("Configure", ofs);
+    cmCTestOptionalLog(this->CTest, HANDLER_VERBOSE_OUTPUT,
+                       "Configure with command: " << cCommand << std::endl,
+                       this->Quiet);
+    res = this->CTest->RunMakeCommand(cCommand, output, &retVal,
+                                      buildDirectory.c_str(),
+                                      cmDuration::zero(), ofs);
 
         cmGeneratedFileStream ofs;
         this->StartLogFile("Configure", ofs);

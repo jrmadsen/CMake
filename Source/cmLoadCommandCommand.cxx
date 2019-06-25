@@ -28,62 +28,60 @@ TrapsForSignalsCFunction(int sig);
 class cmLoadedCommand : public cmCommand
 {
 public:
-    cmLoadedCommand()
-    {
-        memset(&this->info, 0, sizeof(this->info));
-        this->info.CAPI = &cmStaticCAPI;
+  cmLoadedCommand()
+  {
+    memset(&this->info, 0, sizeof(this->info));
+    this->info.CAPI = &cmStaticCAPI;
+  }
+
+  //! clean up any memory allocated by the plugin
+  ~cmLoadedCommand() override;
+
+  /**
+   * This is a virtual constructor for the command.
+   */
+  cmCommand* Clone() override
+  {
+    cmLoadedCommand* newC = new cmLoadedCommand;
+    // we must copy when we clone
+    memcpy(&newC->info, &this->info, sizeof(info));
+    return newC;
+  }
+
+  /**
+   * This is called when the command is first encountered in
+   * the CMakeLists.txt file.
+   */
+  bool InitialPass(std::vector<std::string> const& args,
+                   cmExecutionStatus&) override;
+
+  /**
+   * This is called at the end after all the information
+   * specified by the command is accumulated. Most commands do
+   * not implement this method.  At this point, reading and
+   * writing to the cache can be done.
+   */
+  void FinalPass() override;
+  bool HasFinalPass() const override
+  {
+    return this->info.FinalPass != nullptr;
+  }
+
+  static const char* LastName;
+  static void TrapsForSignals(int sig)
+  {
+    fprintf(stderr, "CMake loaded command %s crashed with signal: %d.\n",
+            cmLoadedCommand::LastName, sig);
+  }
+  static void InstallSignalHandlers(const char* name, int remove = 0)
+  {
+    cmLoadedCommand::LastName = name;
+    if (!name) {
+      cmLoadedCommand::LastName = "????";
     }
 
-    ///! clean up any memory allocated by the plugin
-    ~cmLoadedCommand() override;
-
-    /**
-     * This is a virtual constructor for the command.
-     */
-    cmCommand* Clone() override
-    {
-        cmLoadedCommand* newC = new cmLoadedCommand;
-        // we must copy when we clone
-        memcpy(&newC->info, &this->info, sizeof(info));
-        return newC;
-    }
-
-    /**
-     * This is called when the command is first encountered in
-     * the CMakeLists.txt file.
-     */
-    bool InitialPass(std::vector<std::string> const& args,
-                     cmExecutionStatus&) override;
-
-    /**
-     * This is called at the end after all the information
-     * specified by the command is accumulated. Most commands do
-     * not implement this method.  At this point, reading and
-     * writing to the cache can be done.
-     */
-    void FinalPass() override;
-    bool HasFinalPass() const override
-    {
-        return this->info.FinalPass != nullptr;
-    }
-
-    static const char* LastName;
-    static void        TrapsForSignals(int sig)
-    {
-        fprintf(stderr, "CMake loaded command %s crashed with signal: %d.\n",
-                cmLoadedCommand::LastName, sig);
-    }
-    static void InstallSignalHandlers(const char* name, int remove = 0)
-    {
-        cmLoadedCommand::LastName = name;
-        if(!name)
-        {
-            cmLoadedCommand::LastName = "????";
-        }
-
-        if(!remove)
-        {
-            signal(SIGSEGV, TrapsForSignalsCFunction);
+    if (!remove) {
+      signal(SIGSEGV, TrapsForSignalsCFunction);
 #ifdef SIGBUS
             signal(SIGBUS, TrapsForSignalsCFunction);
 #endif

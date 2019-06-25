@@ -11,11 +11,11 @@
 #include "cmGeneratorTarget.h"
 #include "cmLinkItem.h"
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmPolicies.h"
 #include "cmStateTypes.h"
 #include "cmSystemTools.h"
 #include "cmTarget.h"
-#include "cmake.h"
 
 cmExportBuildAndroidMKGenerator::cmExportBuildAndroidMKGenerator()
 {
@@ -103,95 +103,47 @@ cmExportBuildAndroidMKGenerator::GenerateInterfaceProperties(
           << "The export will only work with CMP0022 set to NEW.";
         target->Makefile->IssueMessage(cmake::AUTHOR_WARNING, w.str());
     }
-    if(!properties.empty())
-    {
-        os << "LOCAL_CPP_FEATURES := rtti exceptions\n";
-        for(auto const& property : properties)
-        {
-            if(property.first == "INTERFACE_COMPILE_OPTIONS")
-            {
-                os << "LOCAL_CPP_FEATURES += ";
-                os << (property.second) << "\n";
-            } else if(property.first == "INTERFACE_LINK_LIBRARIES")
-            {
-                std::string                     staticLibs;
-                std::string                     sharedLibs;
-                std::string                     ldlibs;
-                cmLinkInterfaceLibraries const* linkIFace =
-                    target->GetLinkInterfaceLibraries(config, target, false);
-                for(cmLinkItem const& item : linkIFace->Libraries)
-                {
-                    cmGeneratorTarget const* gt  = item.Target;
-                    std::string const&       lib = item.AsStr();
-                    if(gt)
-                    {
-                        if(gt->GetType() == cmStateEnums::SHARED_LIBRARY ||
-                           gt->GetType() == cmStateEnums::MODULE_LIBRARY)
-                        {
-                            sharedLibs += " " + lib;
-                        } else
-                        {
-                            staticLibs += " " + lib;
-                        }
-                    } else
-                    {
-                        bool relpath = false;
-                        if(type == cmExportBuildAndroidMKGenerator::INSTALL)
-                        {
-                            relpath = lib.substr(0, 3) == "../";
-                        }
-                        // check for full path or if it already has a -l, or
-                        // in the case of an install check for relative paths
-                        // if it is full or a link library then use string
-                        // directly
-                        if(cmSystemTools::FileIsFullPath(lib) ||
-                           lib.substr(0, 2) == "-l" || relpath)
-                        {
-                            ldlibs += " " + lib;
-                            // if it is not a path and does not have a -l then
-                            // add -l
-                        } else if(!lib.empty())
-                        {
-                            ldlibs += " -l" + lib;
-                        }
-                    }
-                }
-                if(!sharedLibs.empty())
-                {
-                    os << "LOCAL_SHARED_LIBRARIES :=" << sharedLibs << "\n";
-                }
-                if(!staticLibs.empty())
-                {
-                    os << "LOCAL_STATIC_LIBRARIES :=" << staticLibs << "\n";
-                }
-                if(!ldlibs.empty())
-                {
-                    os << "LOCAL_EXPORT_LDLIBS :=" << ldlibs << "\n";
-                }
-            } else if(property.first == "INTERFACE_INCLUDE_DIRECTORIES")
-            {
-                std::string              includes = property.second;
-                std::vector<std::string> includeList;
-                cmSystemTools::ExpandListArgument(includes, includeList);
-                os << "LOCAL_EXPORT_C_INCLUDES := ";
-                std::string end;
-                for(std::string const& i : includeList)
-                {
-                    os << end << i;
-                    end = "\\\n";
-                }
-                os << "\n";
-            } else if(property.first == "INTERFACE_LINK_OPTIONS")
-            {
-                os << "LOCAL_EXPORT_LDFLAGS := ";
-                std::vector<std::string> linkFlagsList;
-                cmSystemTools::ExpandListArgument(property.second,
-                                                  linkFlagsList);
-                os << cmJoin(linkFlagsList, " ") << "\n";
-            } else
-            {
-                os << "# " << property.first << " " << (property.second)
-                   << "\n";
+    w << " set to OLD for target " << target->Target->GetName() << ". "
+      << "The export will only work with CMP0022 set to NEW.";
+    target->Makefile->IssueMessage(MessageType::AUTHOR_WARNING, w.str());
+  }
+  if (!properties.empty()) {
+    os << "LOCAL_CPP_FEATURES := rtti exceptions\n";
+    for (auto const& property : properties) {
+      if (property.first == "INTERFACE_COMPILE_OPTIONS") {
+        os << "LOCAL_CPP_FEATURES += ";
+        os << (property.second) << "\n";
+      } else if (property.first == "INTERFACE_LINK_LIBRARIES") {
+        std::string staticLibs;
+        std::string sharedLibs;
+        std::string ldlibs;
+        cmLinkInterfaceLibraries const* linkIFace =
+          target->GetLinkInterfaceLibraries(config, target, false);
+        for (cmLinkItem const& item : linkIFace->Libraries) {
+          cmGeneratorTarget const* gt = item.Target;
+          std::string const& lib = item.AsStr();
+          if (gt) {
+
+            if (gt->GetType() == cmStateEnums::SHARED_LIBRARY ||
+                gt->GetType() == cmStateEnums::MODULE_LIBRARY) {
+              sharedLibs += " " + lib;
+            } else {
+              staticLibs += " " + lib;
+            }
+          } else {
+            bool relpath = false;
+            if (type == cmExportBuildAndroidMKGenerator::INSTALL) {
+              relpath = lib.substr(0, 3) == "../";
+            }
+            // check for full path or if it already has a -l, or
+            // in the case of an install check for relative paths
+            // if it is full or a link library then use string directly
+            if (cmSystemTools::FileIsFullPath(lib) ||
+                lib.substr(0, 2) == "-l" || relpath) {
+              ldlibs += " " + lib;
+              // if it is not a path and does not have a -l then add -l
+            } else if (!lib.empty()) {
+              ldlibs += " -l" + lib;
             }
         }
     }

@@ -21,34 +21,44 @@
  */
 class cmGlobVerificationManager
 {
-public:
-    cmGlobVerificationManager() {}
-
 protected:
-    ///! Save verification script for given makefile.
-    ///! Saves to output <path>/<CMakeFilesDirectory>/VerifyGlobs.cmake
-    bool SaveVerificationScript(const std::string& path);
+  //! Save verification script for given makefile.
+  //! Saves to output <path>/<CMakeFilesDirectory>/VerifyGlobs.cmake
+  bool SaveVerificationScript(const std::string& path);
 
-    ///! Add an entry into the glob cache
-    void AddCacheEntry(bool recurse, bool listDirectories, bool followSymlinks,
-                       const std::string&              relative,
-                       const std::string&              expression,
-                       const std::vector<std::string>& files,
-                       const std::string&              variable,
-                       const cmListFileBacktrace&      bt);
+  //! Add an entry into the glob cache
+  void AddCacheEntry(bool recurse, bool listDirectories, bool followSymlinks,
+                     const std::string& relative,
+                     const std::string& expression,
+                     const std::vector<std::string>& files,
+                     const std::string& variable,
+                     const cmListFileBacktrace& bt);
 
-    ///! Clear the glob cache for state reset.
-    void Reset();
+  //! Clear the glob cache for state reset.
+  void Reset();
 
-    ///! Check targets should be written in generated build system.
-    bool DoWriteVerifyTarget() const;
+  //! Check targets should be written in generated build system.
+  bool DoWriteVerifyTarget() const;
 
-    ///! Get the paths to the generated script and stamp files
-    std::string const& GetVerifyScript() const { return this->VerifyScript; }
-    std::string const& GetVerifyStamp() const { return this->VerifyStamp; }
+  //! Get the paths to the generated script and stamp files
+  std::string const& GetVerifyScript() const { return this->VerifyScript; }
+  std::string const& GetVerifyStamp() const { return this->VerifyStamp; }
 
 private:
-    struct CacheEntryKey
+  struct CacheEntryKey
+  {
+    const bool Recurse;
+    const bool ListDirectories;
+    const bool FollowSymlinks;
+    const std::string Relative;
+    const std::string Expression;
+    CacheEntryKey(const bool rec, const bool l, const bool s, std::string rel,
+                  std::string e)
+      : Recurse(rec)
+      , ListDirectories(l)
+      , FollowSymlinks(s)
+      , Relative(std::move(rel))
+      , Expression(std::move(e))
     {
         const bool        Recurse;
         const bool        ListDirectories;
@@ -67,15 +77,12 @@ private:
         void PrintGlobCommand(std::ostream& out, const std::string& cmdVar);
     };
 
-    struct CacheEntryValue
-    {
-        bool                                                     Initialized;
-        std::vector<std::string>                                 Files;
-        std::vector<std::pair<std::string, cmListFileBacktrace>> Backtraces;
-        CacheEntryValue()
-        : Initialized(false)
-        {}
-    };
+  struct CacheEntryValue
+  {
+    bool Initialized = false;
+    std::vector<std::string> Files;
+    std::vector<std::pair<std::string, cmListFileBacktrace>> Backtraces;
+  };
 
     typedef std::map<CacheEntryKey, CacheEntryValue> CacheEntryMap;
     CacheEntryMap                                    Cache;

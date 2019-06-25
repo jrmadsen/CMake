@@ -10,6 +10,7 @@
 #include "cmWorkingDirectory.h"
 
 #include <cstring>
+#include <map>
 #include <ostream>
 #include <utility>
 #include <vector>
@@ -21,7 +22,7 @@ cmCPackArchiveGenerator::cmCPackArchiveGenerator(cmArchiveWrite::Compress t,
     this->ArchiveFormat = format;
 }
 
-cmCPackArchiveGenerator::~cmCPackArchiveGenerator() {}
+cmCPackArchiveGenerator::~cmCPackArchiveGenerator() = default;
 
 std::string
 cmCPackArchiveGenerator::GetArchiveComponentFileName(
@@ -112,25 +113,25 @@ cmCPackArchiveGenerator::addOneComponentToArchive(cmArchiveWrite&   archive,
  * an declare and open the associated
  * cmArchiveWrite 'archive' object.
  */
-#define DECLARE_AND_OPEN_ARCHIVE(filename, archive)                            \
-    cmGeneratedFileStream gf;                                                  \
-    gf.Open((filename), false, true);                                          \
-    if(!GenerateHeader(&gf))                                                   \
-    {                                                                          \
-        cmCPackLogger(cmCPackLog::LOG_ERROR,                                   \
-                      "Problem to generate Header for archive <"               \
-                          << (filename) << ">." << std::endl);                 \
-        return 0;                                                              \
-    }                                                                          \
-    cmArchiveWrite archive(gf, this->Compress, this->ArchiveFormat);           \
-    if(!(archive))                                                             \
-    {                                                                          \
-        cmCPackLogger(cmCPackLog::LOG_ERROR,                                   \
-                      "Problem to create archive <"                            \
-                          << (filename) << ">, ERROR = "                       \
-                          << (archive).GetError() << std::endl);               \
-        return 0;                                                              \
-    }
+#define DECLARE_AND_OPEN_ARCHIVE(filename, archive)                           \
+  cmGeneratedFileStream gf;                                                   \
+  gf.Open((filename), false, true);                                           \
+  if (!GenerateHeader(&gf)) {                                                 \
+    cmCPackLogger(cmCPackLog::LOG_ERROR,                                      \
+                  "Problem to generate Header for archive <"                  \
+                    << (filename) << ">." << std::endl);                      \
+    return 0;                                                                 \
+  }                                                                           \
+  cmArchiveWrite archive(gf, this->Compress, this->ArchiveFormat);            \
+  do {                                                                        \
+    if (!(archive)) {                                                         \
+      cmCPackLogger(cmCPackLog::LOG_ERROR,                                    \
+                    "Problem to create archive <"                             \
+                      << (filename) << ">, ERROR = " << (archive).GetError()  \
+                      << std::endl);                                          \
+      return 0;                                                               \
+    }                                                                         \
+  } while (false)
 
 int
 cmCPackArchiveGenerator::PackageComponents(bool ignoreGroup)

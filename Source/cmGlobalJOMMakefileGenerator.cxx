@@ -6,6 +6,7 @@
 #include "cmLocalUnixMakefileGenerator3.h"
 #include "cmMakefile.h"
 #include "cmState.h"
+#include "cmake.h"
 
 cmGlobalJOMMakefileGenerator::cmGlobalJOMMakefileGenerator(cmake* cm)
 : cmGlobalUnixMakefileGenerator3(cm)
@@ -57,20 +58,19 @@ cmGlobalJOMMakefileGenerator::PrintCompilerAdvice(std::ostream&      os,
     this->cmGlobalUnixMakefileGenerator3::PrintCompilerAdvice(os, lang, envVar);
 }
 
-void
+std::vector<cmGlobalGenerator::GeneratedMakeCommand>
 cmGlobalJOMMakefileGenerator::GenerateBuildCommand(
-    std::vector<std::string>& makeCommand, const std::string& makeProgram,
-    const std::string& projectName, const std::string& projectDir,
-    const std::string& targetName, const std::string& config, bool fast,
-    int jobs, bool verbose, std::vector<std::string> const& makeOptions)
+  const std::string& makeProgram, const std::string& projectName,
+  const std::string& projectDir, std::vector<std::string> const& targetNames,
+  const std::string& config, bool fast, int jobs, bool verbose,
+  std::vector<std::string> const& makeOptions)
 {
     std::vector<std::string> jomMakeOptions;
 
-    // Since we have full control over the invocation of JOM, let us
-    // make it quiet.
-    jomMakeOptions.push_back(this->MakeSilentFlag);
-    jomMakeOptions.insert(jomMakeOptions.end(), makeOptions.begin(),
-                          makeOptions.end());
+  // Since we have full control over the invocation of JOM, let us
+  // make it quiet.
+  jomMakeOptions.push_back(this->MakeSilentFlag);
+  cmAppend(jomMakeOptions, makeOptions);
 
     // JOM does parallel builds by default, the -j is only needed if a specific
     // number is given
@@ -80,7 +80,7 @@ cmGlobalJOMMakefileGenerator::GenerateBuildCommand(
         jobs = cmake::NO_BUILD_PARALLEL_LEVEL;
     }
 
-    cmGlobalUnixMakefileGenerator3::GenerateBuildCommand(
-        makeCommand, makeProgram, projectName, projectDir, targetName, config,
-        fast, jobs, verbose, jomMakeOptions);
+  return cmGlobalUnixMakefileGenerator3::GenerateBuildCommand(
+    makeProgram, projectName, projectDir, targetNames, config, fast, jobs,
+    verbose, jomMakeOptions);
 }

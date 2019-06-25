@@ -6,8 +6,8 @@
 #include "cmExecutionStatus.h"
 #include "cmExpandedCommandArgument.h"
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmSystemTools.h"
-#include "cmake.h"
 
 #include <memory>  // IWYU pragma: keep
 
@@ -28,94 +28,72 @@ cmWhileFunctionBlocker::IsFunctionBlocked(const cmListFileFunction& lff,
                                           cmMakefile&               mf,
                                           cmExecutionStatus&        inStatus)
 {
-    // at end of for each execute recorded commands
-    if(lff.Name.Lower == "while")
-    {
-        // record the number of while commands past this one
-        this->Depth++;
-    } else if(lff.Name.Lower == "endwhile")
-    {
-        // if this is the endwhile for this while loop then execute
-        if(!this->Depth)
-        {
-            // Remove the function blocker for this scope or bail.
-            std::unique_ptr<cmFunctionBlocker> fb(
-                mf.RemoveFunctionBlocker(this, lff));
-            if(!fb.get())
-            {
-                return false;
-            }
+  // at end of for each execute recorded commands
+  if (lff.Name.Lower == "while") {
+    // record the number of while commands past this one
+    this->Depth++;
+  } else if (lff.Name.Lower == "endwhile") {
+    // if this is the endwhile for this while loop then execute
+    if (!this->Depth) {
+      // Remove the function blocker for this scope or bail.
+      std::unique_ptr<cmFunctionBlocker> fb(
+        mf.RemoveFunctionBlocker(this, lff));
+      if (!fb) {
+        return false;
+      }
 
-            std::string errorString;
+      std::string errorString;
 
-            std::vector<cmExpandedCommandArgument> expandedArguments;
-            mf.ExpandArguments(this->Args, expandedArguments);
-            cmake::MessageType messageType;
+      std::vector<cmExpandedCommandArgument> expandedArguments;
+      mf.ExpandArguments(this->Args, expandedArguments);
+      MessageType messageType;
 
-            cmListFileContext execContext = this->GetStartingContext();
+      cmListFileContext execContext = this->GetStartingContext();
 
-            cmCommandContext commandContext;
-            commandContext.Line = execContext.Line;
-            commandContext.Name = execContext.Name;
+      cmCommandContext commandContext;
+      commandContext.Line = execContext.Line;
+      commandContext.Name = execContext.Name;
 
-            cmConditionEvaluator conditionEvaluator(
-                mf, this->GetStartingContext(),
-                mf.GetBacktrace(commandContext));
+      cmConditionEvaluator conditionEvaluator(mf, this->GetStartingContext(),
+                                              mf.GetBacktrace(commandContext));
 
-            bool isTrue = conditionEvaluator.IsTrue(expandedArguments,
-                                                    errorString, messageType);
+      bool isTrue =
+        conditionEvaluator.IsTrue(expandedArguments, errorString, messageType);
 
-            while(isTrue)
-            {
-                if(!errorString.empty())
-                {
-                    std::string err = "had incorrect arguments: ";
-                    for(cmListFileArgument const& arg : this->Args)
-                    {
-                        err += (arg.Delim ? "\"" : "");
-                        err += arg.Value;
-                        err += (arg.Delim ? "\"" : "");
-                        err += " ";
-                    }
-                    err += "(";
-                    err += errorString;
-                    err += ").";
-                    mf.IssueMessage(messageType, err);
-                    if(messageType == cmake::FATAL_ERROR)
-                    {
-                        cmSystemTools::SetFatalErrorOccured();
-                        return true;
-                    }
-                }
+      while (isTrue) {
+        if (!errorString.empty()) {
+          std::string err = "had incorrect arguments: ";
+          for (cmListFileArgument const& arg : this->Args) {
+            err += (arg.Delim ? "\"" : "");
+            err += arg.Value;
+            err += (arg.Delim ? "\"" : "");
+            err += " ";
+          }
+          err += "(";
+          err += errorString;
+          err += ").";
+          mf.IssueMessage(messageType, err);
+          if (messageType == MessageType::FATAL_ERROR) {
+            cmSystemTools::SetFatalErrorOccured();
+            return true;
+          }
+        }
 
-                // Invoke all the functions that were collected in the block.
-                for(cmListFileFunction const& fn : this->Functions)
-                {
-                    cmExecutionStatus status;
-                    mf.ExecuteCommand(fn, status);
-                    if(status.GetReturnInvoked())
-                    {
-                        inStatus.SetReturnInvoked();
-                        return true;
-                    }
-                    if(status.GetBreakInvoked())
-                    {
-                        return true;
-                    }
-                    if(status.GetContinueInvoked())
-                    {
-                        break;
-                    }
-                    if(cmSystemTools::GetFatalErrorOccured())
-                    {
-                        return true;
-                    }
-                }
-                expandedArguments.clear();
-                mf.ExpandArguments(this->Args, expandedArguments);
-                isTrue = conditionEvaluator.IsTrue(expandedArguments,
-                                                   errorString, messageType);
-            }
+        // Invoke all the functions that were collected in the block.
+        for (cmListFileFunction const& fn : this->Functions) {
+          cmExecutionStatus status;
+          mf.ExecuteCommand(fn, status);
+          if (status.GetReturnInvoked()) {
+            inStatus.SetReturnInvoked();
+            return true;
+          }
+          if (status.GetBreakInvoked()) {
+            return true;
+          }
+          if (status.GetContinueInvoked()) {
+            break;
+          }
+          if (cmSystemTools::GetFatalErrorOccured()) {
             return true;
         }
         // decrement for each nested while that ends

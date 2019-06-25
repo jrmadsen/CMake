@@ -60,187 +60,177 @@ struct cmDocumentationEntry;
 class cmGlobalUnixMakefileGenerator3 : public cmGlobalCommonGenerator
 {
 public:
-    cmGlobalUnixMakefileGenerator3(cmake* cm);
-    static cmGlobalGeneratorFactory* NewFactory()
-    {
-        return new cmGlobalGeneratorSimpleFactory<
-            cmGlobalUnixMakefileGenerator3>();
-    }
+  cmGlobalUnixMakefileGenerator3(cmake* cm);
+  static cmGlobalGeneratorFactory* NewFactory()
+  {
+    return new cmGlobalGeneratorSimpleFactory<
+      cmGlobalUnixMakefileGenerator3>();
+  }
 
-    ///! Get the name for the generator.
-    std::string GetName() const override
-    {
-        return cmGlobalUnixMakefileGenerator3::GetActualName();
-    }
-    static std::string GetActualName() { return "Unix Makefiles"; }
+  //! Get the name for the generator.
+  std::string GetName() const override
+  {
+    return cmGlobalUnixMakefileGenerator3::GetActualName();
+  }
+  static std::string GetActualName() { return "Unix Makefiles"; }
 
-    /**
-     * Utilized by the generator factory to determine if this generator
-     * supports toolsets.
-     */
-    static bool SupportsToolset() { return false; }
+  /**
+   * Utilized by the generator factory to determine if this generator
+   * supports toolsets.
+   */
+  static bool SupportsToolset() { return false; }
 
-    /**
-     * Utilized by the generator factory to determine if this generator
-     * supports platforms.
-     */
-    static bool SupportsPlatform() { return false; }
+  /**
+   * Utilized by the generator factory to determine if this generator
+   * supports platforms.
+   */
+  static bool SupportsPlatform() { return false; }
 
-    /** Get the documentation entry for this generator.  */
-    static void GetDocumentation(cmDocumentationEntry& entry);
+  /** Get the documentation entry for this generator.  */
+  static void GetDocumentation(cmDocumentationEntry& entry);
 
-    cmLocalGenerator* CreateLocalGenerator(cmMakefile* mf) override;
+  cmLocalGenerator* CreateLocalGenerator(cmMakefile* mf) override;
 
-    /**
-     * Try to determine system information such as shared library
-     * extension, pthreads, byte order etc.
-     */
-    void EnableLanguage(std::vector<std::string> const& languages, cmMakefile*,
-                        bool                            optional) override;
+  /**
+   * Try to determine system information such as shared library
+   * extension, pthreads, byte order etc.
+   */
+  void EnableLanguage(std::vector<std::string> const& languages, cmMakefile*,
+                      bool optional) override;
 
-    void Configure() override;
+  void Configure() override;
 
-    /**
-     * Generate the all required files for building this project/tree. This
-     * basically creates a series of LocalGenerators for each directory and
-     * requests that they Generate.
-     */
-    void Generate() override;
+  /**
+   * Generate the all required files for building this project/tree. This
+   * basically creates a series of LocalGenerators for each directory and
+   * requests that they Generate.
+   */
+  void Generate() override;
 
-    void WriteMainCMakefileLanguageRules(cmGeneratedFileStream& cmakefileStream,
-                                         std::vector<cmLocalGenerator*>&);
+  void WriteMainCMakefileLanguageRules(cmGeneratedFileStream& cmakefileStream,
+                                       std::vector<cmLocalGenerator*>&);
 
-    // write out the help rule listing the valid targets
-    void WriteHelpRule(std::ostream& ruleFileStream,
-                       cmLocalUnixMakefileGenerator3*);
+  // write out the help rule listing the valid targets
+  void WriteHelpRule(std::ostream& ruleFileStream,
+                     cmLocalUnixMakefileGenerator3*);
 
-    // write the top level target rules
-    void WriteConvenienceRules(std::ostream&          ruleFileStream,
-                               std::set<std::string>& emitted);
+  // write the top level target rules
+  void WriteConvenienceRules(std::ostream& ruleFileStream,
+                             std::set<std::string>& emitted);
 
-    /** Get the command to use for a target that has no rule.  This is
-        used for multiple output dependencies and for cmake_force.  */
-    std::string GetEmptyRuleHackCommand() { return this->EmptyRuleHackCommand; }
+  /** Get the command to use for a target that has no rule.  This is
+      used for multiple output dependencies and for cmake_force.  */
+  std::string GetEmptyRuleHackCommand() { return this->EmptyRuleHackCommand; }
 
-    /** Get the fake dependency to use when a rule has no real commands
-        or dependencies.  */
-    std::string GetEmptyRuleHackDepends() { return this->EmptyRuleHackDepends; }
+  /** Get the fake dependency to use when a rule has no real commands
+      or dependencies.  */
+  std::string GetEmptyRuleHackDepends() { return this->EmptyRuleHackDepends; }
 
-    // change the build command for speed
-    void GenerateBuildCommand(std::vector<std::string>& makeCommand,
-                              const std::string&        makeProgram,
-                              const std::string&        projectName,
-                              const std::string&        projectDir,
-                              const std::string&        targetName,
-                              const std::string& config, bool fast, int jobs,
-                              bool                            verbose,
-                              std::vector<std::string> const& makeOptions =
-                                  std::vector<std::string>()) override;
+  // change the build command for speed
+  std::vector<GeneratedMakeCommand> GenerateBuildCommand(
+    const std::string& makeProgram, const std::string& projectName,
+    const std::string& projectDir, std::vector<std::string> const& targetNames,
+    const std::string& config, bool fast, int jobs, bool verbose,
+    std::vector<std::string> const& makeOptions =
+      std::vector<std::string>()) override;
 
-    /** Record per-target progress information.  */
-    void RecordTargetProgress(cmMakefileTargetGenerator* tg);
+  /** Record per-target progress information.  */
+  void RecordTargetProgress(cmMakefileTargetGenerator* tg);
 
-    void AddCXXCompileCommand(const std::string& sourceFile,
-                              const std::string& workingDirectory,
-                              const std::string& compileCommand);
+  void AddCXXCompileCommand(const std::string& sourceFile,
+                            const std::string& workingDirectory,
+                            const std::string& compileCommand);
 
-    /** Does the make tool tolerate .NOTPARALLEL? */
-    virtual bool AllowNotParallel() const { return true; }
+  /** Does the make tool tolerate .NOTPARALLEL? */
+  virtual bool AllowNotParallel() const { return true; }
 
-    /** Does the make tool tolerate .DELETE_ON_ERROR? */
-    virtual bool AllowDeleteOnError() const { return true; }
+  /** Does the make tool tolerate .DELETE_ON_ERROR? */
+  virtual bool AllowDeleteOnError() const { return true; }
 
-    bool IsIPOSupported() const override { return true; }
+  bool IsIPOSupported() const override { return true; }
 
-    void ComputeTargetObjectDirectory(cmGeneratorTarget* gt) const override;
+  void ComputeTargetObjectDirectory(cmGeneratorTarget* gt) const override;
 
-    std::string IncludeDirective;
-    bool        DefineWindowsNULL;
-    bool        PassMakeflags;
-    bool        UnixCD;
+  std::string IncludeDirective;
+  bool DefineWindowsNULL;
+  bool PassMakeflags;
+  bool UnixCD;
 
 protected:
-    void WriteMainMakefile2();
-    void WriteMainCMakefile();
+  void WriteMainMakefile2();
+  void WriteMainCMakefile();
 
-    void WriteConvenienceRules2(std::ostream& ruleFileStream,
-                                cmLocalUnixMakefileGenerator3*);
+  void WriteConvenienceRules2(std::ostream& ruleFileStream,
+                              cmLocalUnixMakefileGenerator3*);
 
-    void WriteDirectoryRule2(std::ostream&                  ruleFileStream,
-                             cmLocalUnixMakefileGenerator3* lg,
-                             const char* pass, bool check_all,
-                             bool check_relink);
-    void WriteDirectoryRules2(std::ostream&                  ruleFileStream,
-                              cmLocalUnixMakefileGenerator3* lg);
+  void WriteDirectoryRule2(std::ostream& ruleFileStream,
+                           cmLocalUnixMakefileGenerator3* lg, const char* pass,
+                           bool check_all, bool check_relink,
+                           std::vector<std::string> const& commands = {});
+  void WriteDirectoryRules2(std::ostream& ruleFileStream,
+                            cmLocalUnixMakefileGenerator3* lg);
 
-    void AppendGlobalTargetDepends(std::vector<std::string>& depends,
-                                   cmGeneratorTarget*        target);
+  void AppendGlobalTargetDepends(std::vector<std::string>& depends,
+                                 cmGeneratorTarget* target);
 
-    // Target name hooks for superclass.
-    const char* GetAllTargetName() const override { return "all"; }
-    const char* GetInstallTargetName() const override { return "install"; }
-    const char* GetInstallLocalTargetName() const override
-    {
-        return "install/local";
-    }
-    const char* GetInstallStripTargetName() const override
-    {
-        return "install/strip";
-    }
-    const char* GetPreinstallTargetName() const override
-    {
-        return "preinstall";
-    }
-    const char* GetTestTargetName() const override { return "test"; }
-    const char* GetPackageTargetName() const override { return "package"; }
-    const char* GetPackageSourceTargetName() const override
-    {
-        return "package_source";
-    }
-    const char* GetEditCacheTargetName() const override { return "edit_cache"; }
-    const char* GetRebuildCacheTargetName() const override
-    {
-        return "rebuild_cache";
-    }
-    const char* GetCleanTargetName() const override { return "clean"; }
+  // Target name hooks for superclass.
+  const char* GetAllTargetName() const override { return "all"; }
+  const char* GetInstallTargetName() const override { return "install"; }
+  const char* GetInstallLocalTargetName() const override
+  {
+    return "install/local";
+  }
+  const char* GetInstallStripTargetName() const override
+  {
+    return "install/strip";
+  }
+  const char* GetPreinstallTargetName() const override { return "preinstall"; }
+  const char* GetTestTargetName() const override { return "test"; }
+  const char* GetPackageTargetName() const override { return "package"; }
+  const char* GetPackageSourceTargetName() const override
+  {
+    return "package_source";
+  }
+  const char* GetEditCacheTargetName() const override { return "edit_cache"; }
+  const char* GetRebuildCacheTargetName() const override
+  {
+    return "rebuild_cache";
+  }
+  const char* GetCleanTargetName() const override { return "clean"; }
 
-    bool CheckALLOW_DUPLICATE_CUSTOM_TARGETS() const override { return true; }
+  bool CheckALLOW_DUPLICATE_CUSTOM_TARGETS() const override { return true; }
 
-    // Some make programs (Borland) do not keep a rule if there are no
-    // dependencies or commands.  This is a problem for creating rules
-    // that might not do anything but might have other dependencies
-    // added later.  If non-empty this variable holds a fake dependency
-    // that can be added.
-    std::string EmptyRuleHackDepends;
+  // Some make programs (Borland) do not keep a rule if there are no
+  // dependencies or commands.  This is a problem for creating rules
+  // that might not do anything but might have other dependencies
+  // added later.  If non-empty this variable holds a fake dependency
+  // that can be added.
+  std::string EmptyRuleHackDepends;
 
-    // Some make programs (Watcom) do not like rules with no commands.
-    // If non-empty this variable holds a bogus command that may be put
-    // in the rule to satisfy the make program.
-    std::string EmptyRuleHackCommand;
+  // Some make programs (Watcom) do not like rules with no commands.
+  // If non-empty this variable holds a bogus command that may be put
+  // in the rule to satisfy the make program.
+  std::string EmptyRuleHackCommand;
 
-    // Store per-target progress counters.
-    struct TargetProgress
-    {
-        TargetProgress()
-        : NumberOfActions(0)
-        {}
-        unsigned long              NumberOfActions;
-        std::string                VariableFile;
-        std::vector<unsigned long> Marks;
-        void                       WriteProgressVariables(unsigned long  total,
-                                                          unsigned long& current);
-    };
-    typedef std::map<cmGeneratorTarget const*, TargetProgress,
-                     cmGeneratorTarget::StrictTargetComparison>
-                    ProgressMapType;
-    ProgressMapType ProgressMap;
+  // Store per-target progress counters.
+  struct TargetProgress
+  {
+    unsigned long NumberOfActions = 0;
+    std::string VariableFile;
+    std::vector<unsigned long> Marks;
+    void WriteProgressVariables(unsigned long total, unsigned long& current);
+  };
+  typedef std::map<cmGeneratorTarget const*, TargetProgress,
+                   cmGeneratorTarget::StrictTargetComparison>
+    ProgressMapType;
+  ProgressMapType ProgressMap;
 
-    size_t CountProgressMarksInTarget(
-        cmGeneratorTarget const*            target,
-        std::set<cmGeneratorTarget const*>& emitted);
-    size_t CountProgressMarksInAll(cmLocalGenerator* lg);
+  size_t CountProgressMarksInTarget(
+    cmGeneratorTarget const* target,
+    std::set<cmGeneratorTarget const*>& emitted);
+  size_t CountProgressMarksInAll(cmLocalGenerator* lg);
 
-    cmGeneratedFileStream* CommandDatabase;
+  cmGeneratedFileStream* CommandDatabase;
 
 private:
     const char* GetBuildIgnoreErrorsFlag() const override { return "-i"; }

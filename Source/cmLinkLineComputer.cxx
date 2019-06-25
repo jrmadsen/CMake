@@ -11,6 +11,7 @@
 #include "cmOutputConverter.h"
 #include "cmStateDirectory.h"
 #include "cmStateTypes.h"
+#include "cmSystemTools.h"
 
 cmLinkLineComputer::cmLinkLineComputer(cmOutputConverter*      outputConverter,
                                        cmStateDirectory const& stateDir)
@@ -21,7 +22,7 @@ cmLinkLineComputer::cmLinkLineComputer(cmOutputConverter*      outputConverter,
 , Relink(false)
 {}
 
-cmLinkLineComputer::~cmLinkLineComputer() {}
+cmLinkLineComputer::~cmLinkLineComputer() = default;
 
 void
 cmLinkLineComputer::SetUseWatcomQuote(bool useWatcomQuote)
@@ -44,15 +45,13 @@ cmLinkLineComputer::SetRelink(bool relink)
 std::string
 cmLinkLineComputer::ConvertToLinkReference(std::string const& lib) const
 {
-    std::string relLib = lib;
+  std::string relLib = lib;
 
-    if(cmOutputConverter::ContainedInDirectory(
-           this->StateDir.GetCurrentBinary(), lib, this->StateDir))
-    {
-        relLib = cmOutputConverter::ForceToRelativePath(
-            this->StateDir.GetCurrentBinary(), lib);
-    }
-    return relLib;
+  if (this->StateDir.ContainsBoth(this->StateDir.GetCurrentBinary(), lib)) {
+    relLib = cmSystemTools::ForceToRelativePath(
+      this->StateDir.GetCurrentBinary(), lib);
+  }
+  return relLib;
 }
 
 std::string

@@ -23,7 +23,7 @@ cmCPackIFWPackage::CompareStruct::CompareStruct()
 {}
 
 //------------------------------------------------------- DependenceStruct ---
-cmCPackIFWPackage::DependenceStruct::DependenceStruct() {}
+cmCPackIFWPackage::DependenceStruct::DependenceStruct() = default;
 
 cmCPackIFWPackage::DependenceStruct::DependenceStruct(
     const std::string& dependence)
@@ -416,25 +416,21 @@ cmCPackIFWPackage::ConfigureFromPrefix(const std::string& prefix)
         this->ExpandListArgument(value, this->DisplayName);
     }
 
-    // Description
-    option = prefix + "DESCRIPTION";
-    if(this->IsSetToEmpty(option))
-    {
-        this->Description.clear();
-    } else if(const char* value = this->GetOption(option))
-    {
-        this->ExpandListArgument(value, this->Description);
-    }
+  // Display name
+  option = prefix + "DISPLAY_NAME";
+  if (this->IsSetToEmpty(option)) {
+    this->DisplayName.clear();
+  } else if (const char* value = this->GetOption(option)) {
+    cmCPackIFWPackage::ExpandListArgument(value, this->DisplayName);
+  }
 
-    // Release date
-    option = prefix + "RELEASE_DATE";
-    if(this->IsSetToEmpty(option))
-    {
-        this->ReleaseDate.clear();
-    } else if(const char* value = this->GetOption(option))
-    {
-        this->ReleaseDate = value;
-    }
+  // Description
+  option = prefix + "DESCRIPTION";
+  if (this->IsSetToEmpty(option)) {
+    this->Description.clear();
+  } else if (const char* value = this->GetOption(option)) {
+    cmCPackIFWPackage::ExpandListArgument(value, this->Description);
+  }
 
     // Sorting priority
     option = prefix + "SORTING_PRIORITY";

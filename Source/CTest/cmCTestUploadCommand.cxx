@@ -6,27 +6,19 @@
 #include <vector>
 
 #include "cmCTest.h"
-#include "cmCTestGenericHandler.h"
 #include "cmCTestUploadHandler.h"
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmSystemTools.h"
-#include "cmake.h"
 
 cmCTestGenericHandler*
 cmCTestUploadCommand::InitializeHandler()
 {
-    cmCTestGenericHandler* handler =
-        this->CTest->GetInitializedHandler("upload");
-    if(!handler)
-    {
-        this->SetError(
-            "internal CTest error. Cannot instantiate upload handler");
-        return nullptr;
-    }
-    static_cast<cmCTestUploadHandler*>(handler)->SetFiles(this->Files);
-
-    handler->SetQuiet(this->Quiet);
-    return handler;
+  cmCTestUploadHandler* handler = this->CTest->GetUploadHandler();
+  handler->Initialize();
+  handler->SetFiles(this->Files);
+  handler->SetQuiet(this->Quiet);
+  return handler;
 }
 
 bool
@@ -73,6 +65,13 @@ cmCTestUploadCommand::CheckArgumentValue(std::string const& arg)
         this->ArgumentDoing = ArgumentDoingError;
         return false;
     }
+    std::ostringstream e;
+    e << "File \"" << arg << "\" does not exist. Cannot submit "
+      << "a non-existent file.";
+    this->Makefile->IssueMessage(MessageType::FATAL_ERROR, e.str());
+    this->ArgumentDoing = ArgumentDoingError;
+    return false;
+  }
 
     // Look for other arguments.
     return this->Superclass::CheckArgumentValue(arg);

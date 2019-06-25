@@ -8,6 +8,7 @@
 #include "cmInstalledFile.h"
 #include "cmListFileCache.h"
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmPolicies.h"
 #include "cmProperty.h"
 #include "cmPropertyDefinition.h"
@@ -268,22 +269,33 @@ cmGetPropertyCommand::HandleDirectoryMode()
         }
     }
 
-    if(this->PropertyName == "DEFINITIONS")
-    {
-        switch(mf->GetPolicyStatus(cmPolicies::CMP0059))
-        {
-            case cmPolicies::WARN:
-                mf->IssueMessage(
-                    cmake::AUTHOR_WARNING,
-                    cmPolicies::GetPolicyWarning(cmPolicies::CMP0059));
-                CM_FALLTHROUGH;
-            case cmPolicies::OLD:
-                return this->StoreResult(mf->GetDefineFlagsCMP0059());
-            case cmPolicies::NEW:
-            case cmPolicies::REQUIRED_ALWAYS:
-            case cmPolicies::REQUIRED_IF_USED:
-                break;
-        }
+    // The local generators are associated with collapsed paths.
+    dir = cmSystemTools::CollapseFullPath(dir);
+
+    // Lookup the generator.
+    mf = this->Makefile->GetGlobalGenerator()->FindMakefile(dir);
+    if (!mf) {
+      // Could not find the directory.
+      this->SetError(
+        "DIRECTORY scope provided but requested directory was not found. "
+        "This could be because the directory argument was invalid or, "
+        "it is valid but has not been processed yet.");
+      return false;
+    }
+  }
+
+  if (this->PropertyName == "DEFINITIONS") {
+    switch (mf->GetPolicyStatus(cmPolicies::CMP0059)) {
+      case cmPolicies::WARN:
+        mf->IssueMessage(MessageType::AUTHOR_WARNING,
+                         cmPolicies::GetPolicyWarning(cmPolicies::CMP0059));
+        CM_FALLTHROUGH;
+      case cmPolicies::OLD:
+        return this->StoreResult(mf->GetDefineFlagsCMP0059());
+      case cmPolicies::NEW:
+      case cmPolicies::REQUIRED_ALWAYS:
+      case cmPolicies::REQUIRED_IF_USED:
+        break;
     }
 
     // Get the property.

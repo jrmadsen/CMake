@@ -21,9 +21,9 @@ class cmSourceFile;
 class cmLocalCommonGenerator : public cmLocalGenerator
 {
 public:
-    cmLocalCommonGenerator(cmGlobalGenerator* gg, cmMakefile* mf,
-                           std::string const& wd);
-    ~cmLocalCommonGenerator() override;
+  cmLocalCommonGenerator(cmGlobalGenerator* gg, cmMakefile* mf,
+                         std::string wd);
+  ~cmLocalCommonGenerator() override;
 
     std::string const& GetConfigName() { return this->ConfigName; }
 

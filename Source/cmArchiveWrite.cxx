@@ -53,9 +53,12 @@ class cmArchiveWrite::Entry
 public:
     Entry()
     : Object(archive_entry_new())
-    {}
-    ~Entry() { archive_entry_free(this->Object); }
-    operator struct archive_entry*() { return this->Object; }
+  {
+  }
+  ~Entry() { archive_entry_free(this->Object); }
+  Entry(const Entry&) = delete;
+  Entry& operator=(const Entry&) = delete;
+  operator struct archive_entry*() { return this->Object; }
 };
 
 struct cmArchiveWrite::Callback
@@ -173,7 +176,37 @@ cmArchiveWrite::cmArchiveWrite(std::ostream& os, Compress c,
         this->Error = "archive_write_set_bytes_in_last_block: ";
         this->Error += cm_archive_error_string(this->Archive);
         return;
-    }
+      }
+      break;
+    case CompressZstd:
+      if (archive_write_add_filter_zstd(this->Archive) != ARCHIVE_OK) {
+        this->Error = "archive_write_add_filter_zstd: ";
+        this->Error += cm_archive_error_string(this->Archive);
+        return;
+      }
+      break;
+  }
+#if !defined(_WIN32) || defined(__CYGWIN__)
+  if (archive_read_disk_set_standard_lookup(this->Disk) != ARCHIVE_OK) {
+    this->Error = "archive_read_disk_set_standard_lookup: ";
+    this->Error += cm_archive_error_string(this->Archive);
+    return;
+  }
+#endif
+
+  if (archive_write_set_format_by_name(this->Archive, format.c_str()) !=
+      ARCHIVE_OK) {
+    this->Error = "archive_write_set_format_by_name: ";
+    this->Error += cm_archive_error_string(this->Archive);
+    return;
+  }
+
+  // do not pad the last block!!
+  if (archive_write_set_bytes_in_last_block(this->Archive, 1)) {
+    this->Error = "archive_write_set_bytes_in_last_block: ";
+    this->Error += cm_archive_error_string(this->Archive);
+    return;
+  }
 
     if(archive_write_open(
            this->Archive, this, nullptr,
@@ -196,15 +229,11 @@ bool
 cmArchiveWrite::Add(std::string path, size_t skip, const char* prefix,
                     bool recursive)
 {
-    if(this->Okay())
-    {
-        if(!path.empty() && path[path.size() - 1] == '/')
-        {
-            path.erase(path.size() - 1);
-        }
-        this->AddPath(path.c_str(), skip, prefix, recursive);
-    }
-    return this->Okay();
+  if (!path.empty() && path.back() == '/') {
+    path.erase(path.size() - 1);
+  }
+  this->AddPath(path.c_str(), skip, prefix, recursive);
+  return this->Okay();
 }
 
 bool
@@ -247,23 +276,43 @@ cmArchiveWrite::AddPath(const char* path, size_t skip, const char* prefix,
 bool
 cmArchiveWrite::AddFile(const char* file, size_t skip, const char* prefix)
 {
-    // Skip the file if we have no name for it.  This may happen on a
-    // top-level directory, which does not need to be included anyway.
-    if(skip >= strlen(file))
-    {
-        return true;
-    }
-    const char* out = file + skip;
+  this->Error = "";
+  // Skip the file if we have no name for it.  This may happen on a
+  // top-level directory, which does not need to be included anyway.
+  if (skip >= strlen(file)) {
+    return true;
+  }
+  const char* out = file + skip;
 
     cmLocaleRAII localeRAII;
     static_cast<void>(localeRAII);
 
-    // Meta-data.
-    std::string dest = prefix ? prefix : "";
-    dest += out;
-    if(this->Verbose)
-    {
-        std::cout << dest << "\n";
+  // Meta-data.
+  std::string dest = prefix ? prefix : "";
+  dest += out;
+  if (this->Verbose) {
+    std::cout << dest << "\n";
+  }
+  Entry e;
+  cm_archive_entry_copy_sourcepath(e, file);
+  cm_archive_entry_copy_pathname(e, dest);
+  if (archive_read_disk_entry_from_file(this->Disk, e, -1, nullptr) !=
+      ARCHIVE_OK) {
+    this->Error = "Unable to read from file '";
+    this->Error += file;
+    this->Error += "': ";
+    this->Error += cm_archive_error_string(this->Disk);
+    return false;
+  }
+  if (!this->MTime.empty()) {
+    time_t now;
+    time(&now);
+    time_t t = cm_get_date(now, this->MTime.c_str());
+    if (t == -1) {
+      this->Error = "unable to parse mtime '";
+      this->Error += this->MTime;
+      this->Error += "'";
+      return false;
     }
     Entry e;
     cm_archive_entry_copy_sourcepath(e, file);

@@ -93,39 +93,34 @@ cmTargetPropCommandBase::ProcessContentArgs(
 {
     std::string const& scope = args[argIndex];
 
-    if(scope != "PUBLIC" && scope != "PRIVATE" && scope != "INTERFACE")
-    {
-        this->SetError("called with invalid arguments");
-        return false;
-    }
-    if(this->Target->GetType() == cmStateEnums::INTERFACE_LIBRARY &&
-       scope != "INTERFACE")
-    {
-        this->SetError(
-            "may only set INTERFACE properties on INTERFACE targets");
-        return false;
-    }
-    if(this->Target->IsImported() && scope != "INTERFACE")
-    {
-        this->SetError("may only set INTERFACE properties on IMPORTED targets");
-        return false;
-    }
+  if (scope != "PUBLIC" && scope != "PRIVATE" && scope != "INTERFACE") {
+    this->SetError("called with invalid arguments");
+    return false;
+  }
 
     ++argIndex;
 
     std::vector<std::string> content;
 
-    for(unsigned int i = argIndex; i < args.size(); ++i, ++argIndex)
-    {
-        if(args[i] == "PUBLIC" || args[i] == "PRIVATE" ||
-           args[i] == "INTERFACE")
-        {
-            return this->PopulateTargetProperies(scope, content, prepend,
-                                                 system);
-        }
-        content.push_back(args[i]);
+  for (unsigned int i = argIndex; i < args.size(); ++i, ++argIndex) {
+    if (args[i] == "PUBLIC" || args[i] == "PRIVATE" ||
+        args[i] == "INTERFACE") {
+      break;
     }
-    return this->PopulateTargetProperies(scope, content, prepend, system);
+    content.push_back(args[i]);
+  }
+  if (!content.empty()) {
+    if (this->Target->GetType() == cmStateEnums::INTERFACE_LIBRARY &&
+        scope != "INTERFACE") {
+      this->SetError("may only set INTERFACE properties on INTERFACE targets");
+      return false;
+    }
+    if (this->Target->IsImported() && scope != "INTERFACE") {
+      this->SetError("may only set INTERFACE properties on IMPORTED targets");
+      return false;
+    }
+  }
+  return this->PopulateTargetProperies(scope, content, prepend, system);
 }
 
 bool
@@ -133,16 +128,12 @@ cmTargetPropCommandBase::PopulateTargetProperies(
     const std::string& scope, const std::vector<std::string>& content,
     bool prepend, bool system)
 {
-    if(scope == "PRIVATE" || scope == "PUBLIC")
-    {
-        if(!this->HandleDirectContent(this->Target, content, prepend, system))
-        {
-            return false;
-        }
-    }
-    if(scope == "INTERFACE" || scope == "PUBLIC")
-    {
-        this->HandleInterfaceContent(this->Target, content, prepend, system);
+  if (content.empty()) {
+    return true;
+  }
+  if (scope == "PRIVATE" || scope == "PUBLIC") {
+    if (!this->HandleDirectContent(this->Target, content, prepend, system)) {
+      return false;
     }
     return true;
 }

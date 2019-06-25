@@ -34,9 +34,10 @@ public:
                      cmExecutionStatus&              status) override;
 
 private:
-    bool HandleSetMode(std::vector<std::string> const& args);
-    bool HandleGetMode(std::vector<std::string> const& args);
-    bool HandleVersionMode(std::vector<std::string> const& args);
+  bool HandleSetMode(std::vector<std::string> const& args);
+  bool HandleGetMode(std::vector<std::string> const& args);
+  bool HandleVersionMode(std::vector<std::string> const& args);
+  bool HandleGetWarningMode(std::vector<std::string> const& args);
 };
 
 #endif

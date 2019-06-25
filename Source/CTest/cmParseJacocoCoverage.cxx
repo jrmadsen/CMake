@@ -17,88 +17,68 @@ public:
     XMLParser(cmCTest* ctest, cmCTestCoverageHandlerContainer& cont)
     : CTest(ctest)
     , Coverage(cont)
-    {
-        this->FilePath.clear();
-        this->PackagePath.clear();
-        this->PackageName.clear();
-    }
-
-    ~XMLParser() override {}
+  {
+  }
 
 protected:
-    void EndElement(const std::string& /*name*/) override {}
+  void EndElement(const std::string& /*name*/) override {}
 
-    void StartElement(const std::string& name, const char** atts) override
-    {
-        if(name == "package")
-        {
-            this->PackageName = atts[1];
-            this->PackagePath.clear();
-        } else if(name == "sourcefile")
-        {
-            std::string fileName = atts[1];
+  void StartElement(const std::string& name, const char** atts) override
+  {
+    if (name == "package") {
+      this->PackageName = atts[1];
+      this->PackagePath.clear();
+    } else if (name == "sourcefile") {
+      this->FilePath.clear();
+      std::string fileName = atts[1];
 
-            if(this->PackagePath.empty())
-            {
-                if(!this->FindPackagePath(fileName))
-                {
-                    cmCTestLog(this->CTest, ERROR_MESSAGE,
-                               "Cannot find file: " << this->PackageName << "/"
-                                                    << fileName << std::endl);
-                    this->Coverage.Error++;
-                    return;
-                }
-            }
+      if (this->PackagePath.empty()) {
+        if (!this->FindPackagePath(fileName)) {
+          cmCTestLog(this->CTest, ERROR_MESSAGE,
+                     "Cannot find file: " << this->PackageName << "/"
+                                          << fileName << std::endl);
+          this->Coverage.Error++;
+          return;
+        }
+      }
 
-            cmCTestOptionalLog(this->CTest, HANDLER_VERBOSE_OUTPUT,
-                               "Reading file: " << fileName << std::endl,
-                               this->Coverage.Quiet);
+      cmCTestOptionalLog(this->CTest, HANDLER_VERBOSE_OUTPUT,
+                         "Reading file: " << fileName << std::endl,
+                         this->Coverage.Quiet);
 
-            this->FilePath = this->PackagePath + "/" + fileName;
-            cmsys::ifstream fin(this->FilePath.c_str());
-            if(!fin)
-            {
-                cmCTestLog(this->CTest, ERROR_MESSAGE,
-                           "Jacoco Coverage: Error opening " << this->FilePath
-                                                             << std::endl);
-            }
-            std::string    line;
-            FileLinesType& curFileLines =
-                this->Coverage.TotalCoverage[this->FilePath];
-            if(fin)
-            {
-                curFileLines.push_back(-1);
-            }
-            while(cmSystemTools::GetLineFromStream(fin, line))
-            {
-                curFileLines.push_back(-1);
-            }
-        } else if(name == "line")
-        {
-            int tagCount = 0;
-            int nr       = -1;
-            int ci       = -1;
-            while(true)
-            {
-                if(strcmp(atts[tagCount], "ci") == 0)
-                {
-                    ci = atoi(atts[tagCount + 1]);
-                } else if(strcmp(atts[tagCount], "nr") == 0)
-                {
-                    nr = atoi(atts[tagCount + 1]);
-                }
-                if(ci > -1 && nr > 0)
-                {
-                    FileLinesType& curFileLines =
-                        this->Coverage.TotalCoverage[this->FilePath];
-                    if(!curFileLines.empty())
-                    {
-                        curFileLines[nr - 1] = ci;
-                    }
-                    break;
-                }
-                ++tagCount;
-            }
+      this->FilePath = this->PackagePath + "/" + fileName;
+      cmsys::ifstream fin(this->FilePath.c_str());
+      if (!fin) {
+        cmCTestLog(this->CTest, ERROR_MESSAGE,
+                   "Jacoco Coverage: Error opening " << this->FilePath
+                                                     << std::endl);
+      }
+      std::string line;
+      FileLinesType& curFileLines =
+        this->Coverage.TotalCoverage[this->FilePath];
+      if (fin) {
+        curFileLines.push_back(-1);
+      }
+      while (cmSystemTools::GetLineFromStream(fin, line)) {
+        curFileLines.push_back(-1);
+      }
+    } else if (name == "line") {
+      int tagCount = 0;
+      int nr = -1;
+      int ci = -1;
+      while (true) {
+        if (strcmp(atts[tagCount], "ci") == 0) {
+          ci = atoi(atts[tagCount + 1]);
+        } else if (strcmp(atts[tagCount], "nr") == 0) {
+          nr = atoi(atts[tagCount + 1]);
+        }
+        if (ci > -1 && nr > 0) {
+          FileLinesType& curFileLines =
+            this->Coverage.TotalCoverage[this->FilePath];
+          if (!curFileLines.empty()) {
+            curFileLines[nr - 1] = ci;
+          }
+          break;
         }
     }
 

@@ -15,7 +15,7 @@ cmSearchPath::cmSearchPath(cmFindCommon* findCmd)
 : FC(findCmd)
 {}
 
-cmSearchPath::~cmSearchPath() {}
+cmSearchPath::~cmSearchPath() = default;
 
 void
 cmSearchPath::ExtractWithout(const std::set<std::string>& ignore,
@@ -153,31 +153,24 @@ cmSearchPath::AddEnvPrefixPath(const std::string& variable, bool stripBin)
 void
 cmSearchPath::AddSuffixes(const std::vector<std::string>& suffixes)
 {
-    std::vector<std::string> inPaths;
-    inPaths.swap(this->Paths);
-    this->Paths.reserve(inPaths.size() * (suffixes.size() + 1));
+  std::vector<std::string> inPaths;
+  inPaths.swap(this->Paths);
+  this->Paths.reserve(inPaths.size() * (suffixes.size() + 1));
 
-    for(std::string& inPath : inPaths)
-    {
-        cmSystemTools::ConvertToUnixSlashes(inPath);
+  for (std::string& inPath : inPaths) {
+    cmSystemTools::ConvertToUnixSlashes(inPath);
 
-        // if *i is only / then do not add a //
-        // this will get incorrectly considered a network
-        // path on windows and cause huge delays.
-        std::string p = inPath;
-        if(!p.empty() && *p.rbegin() != '/')
-        {
-            p += "/";
-        }
+    // if *i is only / then do not add a //
+    // this will get incorrectly considered a network
+    // path on windows and cause huge delays.
+    std::string p = inPath;
+    if (!p.empty() && p.back() != '/') {
+      p += "/";
+    }
 
-        // Combine with all the suffixes
-        for(std::string const& suffix : suffixes)
-        {
-            this->Paths.push_back(p + suffix);
-        }
-
-        // And now the original w/o any suffix
-        this->Paths.push_back(std::move(inPath));
+    // Combine with all the suffixes
+    for (std::string const& suffix : suffixes) {
+      this->Paths.push_back(p + suffix);
     }
 }
 
@@ -185,20 +178,37 @@ void
 cmSearchPath::AddPrefixPaths(const std::vector<std::string>& paths,
                              const char*                     base)
 {
-    assert(this->FC != nullptr);
+  assert(this->FC != nullptr);
 
-    // default for programs
-    std::string subdir = "bin";
+  // default for programs
+  std::string subdir = "bin";
 
-    if(this->FC->CMakePathName == "INCLUDE")
-    {
-        subdir = "include";
-    } else if(this->FC->CMakePathName == "LIBRARY")
-    {
-        subdir = "lib";
-    } else if(this->FC->CMakePathName == "FRAMEWORK")
-    {
-        subdir.clear();  // ? what to do for frameworks ?
+  if (this->FC->CMakePathName == "INCLUDE") {
+    subdir = "include";
+  } else if (this->FC->CMakePathName == "LIBRARY") {
+    subdir = "lib";
+  } else if (this->FC->CMakePathName == "FRAMEWORK") {
+    subdir.clear(); // ? what to do for frameworks ?
+  }
+
+  for (std::string const& path : paths) {
+    std::string dir = path;
+    if (!subdir.empty() && !dir.empty() && dir.back() != '/') {
+      dir += "/";
+    }
+    if (subdir == "include" || subdir == "lib") {
+      const char* arch =
+        this->FC->Makefile->GetDefinition("CMAKE_LIBRARY_ARCHITECTURE");
+      if (arch && *arch) {
+        this->AddPathInternal(dir + subdir + "/" + arch, base);
+      }
+    }
+    std::string add = dir + subdir;
+    if (add != "/") {
+      this->AddPathInternal(add, base);
+    }
+    if (subdir == "bin") {
+      this->AddPathInternal(dir + "sbin", base);
     }
 
     for(std::string const& path : paths)

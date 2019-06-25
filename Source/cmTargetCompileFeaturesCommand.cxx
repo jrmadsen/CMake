@@ -6,7 +6,7 @@
 
 #include "cmAlgorithms.h"
 #include "cmMakefile.h"
-#include "cmake.h"
+#include "cmMessageType.h"
 
 class cmExecutionStatus;
 class cmTarget;
@@ -21,11 +21,11 @@ cmTargetCompileFeaturesCommand::InitialPass(
 void
 cmTargetCompileFeaturesCommand::HandleMissingTarget(const std::string& name)
 {
-    std::ostringstream e;
-    e << "Cannot specify compile features for target \"" << name
-      << "\" "
-         "which is not built by this project.";
-    this->Makefile->IssueMessage(cmake::FATAL_ERROR, e.str());
+  std::ostringstream e;
+  e << "Cannot specify compile features for target \"" << name
+    << "\" "
+       "which is not built by this project.";
+  this->Makefile->IssueMessage(MessageType::FATAL_ERROR, e.str());
 }
 
 std::string

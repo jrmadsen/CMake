@@ -11,20 +11,13 @@
 class cmExecutionStatus
 {
 public:
-    cmExecutionStatus()
-    : ReturnInvoked(false)
-    , BreakInvoked(false)
-    , ContinueInvoked(false)
-    , NestedError(false)
-    {}
-
-    void Clear()
-    {
-        this->ReturnInvoked   = false;
-        this->BreakInvoked    = false;
-        this->ContinueInvoked = false;
-        this->NestedError     = false;
-    }
+  void Clear()
+  {
+    this->ReturnInvoked = false;
+    this->BreakInvoked = false;
+    this->ContinueInvoked = false;
+    this->NestedError = false;
+  }
 
     void SetReturnInvoked() { this->ReturnInvoked = true; }
     bool GetReturnInvoked() const { return this->ReturnInvoked; }
@@ -39,10 +32,10 @@ public:
     bool GetNestedError() const { return this->NestedError; }
 
 private:
-    bool ReturnInvoked;
-    bool BreakInvoked;
-    bool ContinueInvoked;
-    bool NestedError;
+  bool ReturnInvoked = false;
+  bool BreakInvoked = false;
+  bool ContinueInvoked = false;
+  bool NestedError = false;
 };
 
 #endif

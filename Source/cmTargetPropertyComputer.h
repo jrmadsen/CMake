@@ -80,18 +80,16 @@ private:
                 return ComputeLocationForBuild(tgt);
             }
 
-            // Support "LOCATION_<CONFIG>".
-            if(cmHasLiteralPrefix(prop, "LOCATION_"))
-            {
-                if(!tgt->IsImported() &&
-                   !HandleLocationPropertyPolicy(tgt->GetName(), messenger,
-                                                 context))
-                {
-                    return nullptr;
-                }
-                const char* configName = prop.c_str() + 9;
-                return ComputeLocation(tgt, configName);
-            }
+      // Support "LOCATION_<CONFIG>".
+      if (cmHasLiteralPrefix(prop, "LOCATION_")) {
+        if (!tgt->IsImported() &&
+            !HandleLocationPropertyPolicy(tgt->GetName(), messenger,
+                                          context)) {
+          return nullptr;
+        }
+        std::string configName = prop.substr(9);
+        return ComputeLocation(tgt, configName);
+      }
 
             // Support "<CONFIG>_LOCATION".
             if(cmHasLiteralSuffix(prop, "_LOCATION") &&

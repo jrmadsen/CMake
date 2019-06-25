@@ -15,7 +15,10 @@ cmXMLWriter::cmXMLWriter(std::ostream& output, std::size_t level)
 , IsContent(false)
 {}
 
-cmXMLWriter::~cmXMLWriter() { assert(this->Indent == 0); }
+void cmXMLWriter::StartDocument(const char* encoding)
+{
+  this->Output << R"(<?xml version="1.0" encoding=")" << encoding << "\"?>";
+}
 
 void
 cmXMLWriter::StartDocument(const char* encoding)

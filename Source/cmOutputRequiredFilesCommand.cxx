@@ -24,124 +24,109 @@ class cmExecutionStatus;
 class cmDependInformation
 {
 public:
-    /**
-     * Construct with dependency generation marked not done; instance
-     * not placed in cmMakefile's list.
-     */
-    cmDependInformation()
-    : DependDone(false)
-    , SourceFile(nullptr)
-    {}
+  /**
+   * Construct with dependency generation marked not done; instance
+   * not placed in cmMakefile's list.
+   */
+  cmDependInformation() = default;
 
-    /**
-     * The set of files on which this one depends.
-     */
-    typedef std::set<cmDependInformation*> DependencySetType;
-    DependencySetType                      DependencySet;
+  /**
+   * The set of files on which this one depends.
+   */
+  typedef std::set<cmDependInformation*> DependencySetType;
+  DependencySetType DependencySet;
 
-    /**
-     * This flag indicates whether dependency checking has been
-     * performed for this file.
-     */
-    bool DependDone;
+  /**
+   * This flag indicates whether dependency checking has been
+   * performed for this file.
+   */
+  bool DependDone = false;
 
-    /**
-     * If this object corresponds to a cmSourceFile instance, this points
-     * to it.
-     */
-    const cmSourceFile* SourceFile;
+  /**
+   * If this object corresponds to a cmSourceFile instance, this points
+   * to it.
+   */
+  const cmSourceFile* SourceFile = nullptr;
 
-    /**
-     * Full path to this file.
-     */
-    std::string FullPath;
+  /**
+   * Full path to this file.
+   */
+  std::string FullPath;
 
-    /**
-     * Full path not including file name.
-     */
-    std::string PathOnly;
+  /**
+   * Full path not including file name.
+   */
+  std::string PathOnly;
 
-    /**
-     * Name used to #include this file.
-     */
-    std::string IncludeName;
+  /**
+   * Name used to #include this file.
+   */
+  std::string IncludeName;
 
-    /**
-     * This method adds the dependencies of another file to this one.
-     */
-    void AddDependencies(cmDependInformation* info)
-    {
-        if(this != info)
-        {
-            this->DependencySet.insert(info);
-        }
+  /**
+   * This method adds the dependencies of another file to this one.
+   */
+  void AddDependencies(cmDependInformation* info)
+  {
+    if (this != info) {
+      this->DependencySet.insert(info);
     }
 };
 
 class cmLBDepend
 {
 public:
-    /**
-     * Construct the object with verbose turned off.
-     */
-    cmLBDepend()
-    {
-        this->Verbose = false;
-        this->IncludeFileRegularExpression.compile("^.*$");
-        this->ComplainFileRegularExpression.compile("^$");
-    }
+  /**
+   * Construct the object with verbose turned off.
+   */
+  cmLBDepend()
+  {
+    this->Verbose = false;
+    this->IncludeFileRegularExpression.compile("^.*$");
+    this->ComplainFileRegularExpression.compile("^$");
+  }
 
-    /**
-     * Destructor.
-     */
-    ~cmLBDepend() { cmDeleteAll(this->DependInformationMap); }
+  /**
+   * Destructor.
+   */
+  ~cmLBDepend() { cmDeleteAll(this->DependInformationMap); }
 
-    /**
-     * Set the makefile that is used as a source of classes.
-     */
-    void SetMakefile(cmMakefile* makefile)
-    {
-        this->Makefile = makefile;
+  cmLBDepend(const cmLBDepend&) = delete;
+  cmLBDepend& operator=(const cmLBDepend&) = delete;
 
-        // Now extract the include file regular expression from the makefile.
-        this->IncludeFileRegularExpression.compile(
-            this->Makefile->GetIncludeRegularExpression());
-        this->ComplainFileRegularExpression.compile(
-            this->Makefile->GetComplainRegularExpression());
+  /**
+   * Set the makefile that is used as a source of classes.
+   */
+  void SetMakefile(cmMakefile* makefile)
+  {
+    this->Makefile = makefile;
 
-        // Now extract any include paths from the targets
-        std::set<std::string>    uniqueIncludes;
-        std::vector<std::string> orderedAndUniqueIncludes;
-        cmTargets&               targets = this->Makefile->GetTargets();
-        for(auto const& target : targets)
-        {
-            const char* incDirProp =
-                target.second.GetProperty("INCLUDE_DIRECTORIES");
-            if(!incDirProp)
-            {
-                continue;
-            }
+    // Now extract the include file regular expression from the makefile.
+    this->IncludeFileRegularExpression.compile(
+      this->Makefile->GetIncludeRegularExpression());
+    this->ComplainFileRegularExpression.compile(
+      this->Makefile->GetComplainRegularExpression());
 
-            std::string incDirs = cmGeneratorExpression::Preprocess(
-                incDirProp,
-                cmGeneratorExpression::StripAllGeneratorExpressions);
+    // Now extract any include paths from the targets
+    std::set<std::string> uniqueIncludes;
+    std::vector<std::string> orderedAndUniqueIncludes;
+    for (auto const& target : this->Makefile->GetTargets()) {
+      const char* incDirProp =
+        target.second.GetProperty("INCLUDE_DIRECTORIES");
+      if (!incDirProp) {
+        continue;
+      }
 
-            std::vector<std::string> includes;
-            cmSystemTools::ExpandListArgument(incDirs, includes);
+      std::string incDirs = cmGeneratorExpression::Preprocess(
+        incDirProp, cmGeneratorExpression::StripAllGeneratorExpressions);
 
-            for(std::string& path : includes)
-            {
-                this->Makefile->ExpandVariablesInString(path);
-                if(uniqueIncludes.insert(path).second)
-                {
-                    orderedAndUniqueIncludes.push_back(path);
-                }
-            }
-        }
+      std::vector<std::string> includes;
+      cmSystemTools::ExpandListArgument(incDirs, includes);
 
-        for(std::string const& inc : orderedAndUniqueIncludes)
-        {
-            this->AddSearchPath(inc);
+      for (std::string& path : includes) {
+        this->Makefile->ExpandVariablesInString(path);
+        if (uniqueIncludes.insert(path).second) {
+          orderedAndUniqueIncludes.push_back(path);
         }
     }
 
@@ -153,29 +138,49 @@ public:
         this->IncludeDirectories.push_back(path);
     }
 
-    /**
-     * Generate dependencies for the file given.  Returns a pointer to
-     * the cmDependInformation object for the file.
-     */
-    const cmDependInformation* FindDependencies(const char* file)
-    {
-        cmDependInformation* info = this->GetDependInformation(file, nullptr);
-        this->GenerateDependInformation(info);
-        return info;
+protected:
+  /**
+   * Compute the depend information for this class.
+   */
+
+  void DependWalk(cmDependInformation* info)
+  {
+    cmsys::ifstream fin(info->FullPath.c_str());
+    if (!fin) {
+      cmSystemTools::Error("error can not open " + info->FullPath);
+      return;
     }
 
-protected:
-    /**
-     * Compute the depend information for this class.
-     */
-
-    void DependWalk(cmDependInformation* info)
-    {
-        cmsys::ifstream fin(info->FullPath.c_str());
-        if(!fin)
-        {
-            cmSystemTools::Error("error can not open ", info->FullPath.c_str());
-            return;
+    std::string line;
+    while (cmSystemTools::GetLineFromStream(fin, line)) {
+      if (cmHasLiteralPrefix(line, "#include")) {
+        // if it is an include line then create a string class
+        size_t qstart = line.find('\"', 8);
+        size_t qend;
+        // if a quote is not found look for a <
+        if (qstart == std::string::npos) {
+          qstart = line.find('<', 8);
+          // if a < is not found then move on
+          if (qstart == std::string::npos) {
+            cmSystemTools::Error("unknown include directive " + line);
+            continue;
+          }
+          qend = line.find('>', qstart + 1);
+        } else {
+          qend = line.find('\"', qstart + 1);
+        }
+        // extract the file being included
+        std::string includeFile = line.substr(qstart + 1, qend - qstart - 1);
+        // see if the include matches the regular expression
+        if (!this->IncludeFileRegularExpression.find(includeFile)) {
+          if (this->Verbose) {
+            std::string message = "Skipping ";
+            message += includeFile;
+            message += " for file ";
+            message += info->FullPath;
+            cmSystemTools::Error(message);
+          }
+          continue;
         }
 
         std::string line;
@@ -302,16 +307,14 @@ protected:
             }
         }
     }
+    // Make sure we don't visit the same file more than once.
+    info->DependDone = true;
 
-    /**
-     * Add a dependency.  Possibly walk it for more dependencies.
-     */
-    void AddDependency(cmDependInformation* info, const char* file)
-    {
-        cmDependInformation* dependInfo =
-            this->GetDependInformation(file, info->PathOnly.c_str());
-        this->GenerateDependInformation(dependInfo);
-        info->AddDependencies(dependInfo);
+    const std::string& path = info->FullPath;
+    if (path.empty()) {
+      cmSystemTools::Error(
+        "Attempt to find dependencies for file without path!");
+      return;
     }
 
     /**
@@ -368,35 +371,18 @@ protected:
             }
         }
 
-        if(!found)
-        {
-            // Try to find the file amongst the sources
-            cmSourceFile* srcFile = this->Makefile->GetSource(
-                cmSystemTools::GetFilenameWithoutExtension(path));
-            if(srcFile)
-            {
-                if(srcFile->GetFullPath() == path)
-                {
-                    found = true;
-                } else
-                {
-                    // try to guess which include path to use
-                    for(std::string incpath : this->IncludeDirectories)
-                    {
-                        if(!incpath.empty() &&
-                           incpath[incpath.size() - 1] != '/')
-                        {
-                            incpath = incpath + "/";
-                        }
-                        incpath = incpath + path;
-                        if(srcFile->GetFullPath() == incpath)
-                        {
-                            // set the path to the guessed path
-                            info->FullPath = incpath;
-                            found          = true;
-                        }
-                    }
-                }
+    if (!found) {
+      // Try to find the file amongst the sources
+      cmSourceFile* srcFile = this->Makefile->GetSource(
+        cmSystemTools::GetFilenameWithoutExtension(path));
+      if (srcFile) {
+        if (srcFile->GetFullPath() == path) {
+          found = true;
+        } else {
+          // try to guess which include path to use
+          for (std::string incpath : this->IncludeDirectories) {
+            if (!incpath.empty() && incpath.back() != '/') {
+              incpath = incpath + "/";
             }
         }
 
@@ -416,31 +402,56 @@ protected:
         }
     }
 
-    /**
-     * Get an instance of cmDependInformation corresponding to the given file
-     * name.
-     */
-    cmDependInformation* GetDependInformation(const char* file,
-                                              const char* extraPath)
-    {
-        // Get the full path for the file so that lookup is unambiguous.
-        std::string fullPath = this->FullPath(file, extraPath);
+    if (!found) {
+      // Couldn't find any dependency information.
+      if (this->ComplainFileRegularExpression.find(info->IncludeName)) {
+        cmSystemTools::Error("error cannot find dependencies for " + path);
+      } else {
+        // Destroy the name of the file so that it won't be output as a
+        // dependency.
+        info->FullPath.clear();
+      }
+    }
+  }
 
-        // Try to find the file's instance of cmDependInformation.
-        DependInformationMapType::const_iterator result =
-            this->DependInformationMap.find(fullPath);
-        if(result != this->DependInformationMap.end())
-        {
-            // Found an instance, return it.
-            return result->second;
-        }
-        // Didn't find an instance.  Create a new one and save it.
-        cmDependInformation* info = new cmDependInformation;
-        info->FullPath            = fullPath;
-        info->PathOnly            = cmSystemTools::GetFilenamePath(fullPath);
-        info->IncludeName         = file;
-        this->DependInformationMap[fullPath] = info;
-        return info;
+  /**
+   * Get an instance of cmDependInformation corresponding to the given file
+   * name.
+   */
+  cmDependInformation* GetDependInformation(const char* file,
+                                            const char* extraPath)
+  {
+    // Get the full path for the file so that lookup is unambiguous.
+    std::string fullPath = this->FullPath(file, extraPath);
+
+    // Try to find the file's instance of cmDependInformation.
+    DependInformationMapType::const_iterator result =
+      this->DependInformationMap.find(fullPath);
+    if (result != this->DependInformationMap.end()) {
+      // Found an instance, return it.
+      return result->second;
+    }
+    // Didn't find an instance.  Create a new one and save it.
+    cmDependInformation* info = new cmDependInformation;
+    info->FullPath = fullPath;
+    info->PathOnly = cmSystemTools::GetFilenamePath(fullPath);
+    info->IncludeName = file;
+    this->DependInformationMap[fullPath] = info;
+    return info;
+  }
+
+  /**
+   * Find the full path name for the given file name.
+   * This uses the include directories.
+   * TODO: Cache path conversions to reduce FileExists calls.
+   */
+  std::string FullPath(const char* fname, const char* extraPath)
+  {
+    DirectoryToFileToPathMapType::iterator m;
+    if (extraPath) {
+      m = this->DirectoryToFileToPathMap.find(extraPath);
+    } else {
+      m = this->DirectoryToFileToPathMap.find("");
     }
 
     /**
@@ -469,50 +480,31 @@ protected:
             }
         }
 
-        if(cmSystemTools::FileExists(fname, true))
-        {
-            std::string fp = cmSystemTools::CollapseFullPath(fname);
-            this->DirectoryToFileToPathMap[extraPath ? extraPath : ""][fname] =
-                fp;
-            return fp;
-        }
+    for (std::string path : this->IncludeDirectories) {
+      if (!path.empty() && path.back() != '/') {
+        path = path + "/";
+      }
+      path = path + fname;
+      if (cmSystemTools::FileExists(path, true) &&
+          !cmSystemTools::FileIsDirectory(path)) {
+        std::string fp = cmSystemTools::CollapseFullPath(path);
+        this->DirectoryToFileToPathMap[extraPath ? extraPath : ""][fname] = fp;
+        return fp;
+      }
+    }
 
-        for(std::string path : this->IncludeDirectories)
-        {
-            if(!path.empty() && path[path.size() - 1] != '/')
-            {
-                path = path + "/";
-            }
-            path = path + fname;
-            if(cmSystemTools::FileExists(path, true) &&
-               !cmSystemTools::FileIsDirectory(path))
-            {
-                std::string fp = cmSystemTools::CollapseFullPath(path);
-                this->DirectoryToFileToPathMap[extraPath ? extraPath : ""]
-                                              [fname] = fp;
-                return fp;
-            }
-        }
-
-        if(extraPath)
-        {
-            std::string path = extraPath;
-            if(!path.empty() && path[path.size() - 1] != '/')
-            {
-                path = path + "/";
-            }
-            path = path + fname;
-            if(cmSystemTools::FileExists(path, true) &&
-               !cmSystemTools::FileIsDirectory(path))
-            {
-                std::string fp = cmSystemTools::CollapseFullPath(path);
-                this->DirectoryToFileToPathMap[extraPath][fname] = fp;
-                return fp;
-            }
-        }
-
-        // Couldn't find the file.
-        return std::string(fname);
+    if (extraPath) {
+      std::string path = extraPath;
+      if (!path.empty() && path.back() != '/') {
+        path = path + "/";
+      }
+      path = path + fname;
+      if (cmSystemTools::FileExists(path, true) &&
+          !cmSystemTools::FileIsDirectory(path)) {
+        std::string fp = cmSystemTools::CollapseFullPath(path);
+        this->DirectoryToFileToPathMap[extraPath][fname] = fp;
+        return fp;
+      }
     }
 
     cmMakefile*                                Makefile;

@@ -68,6 +68,8 @@ cmVariableRequiresCommand::InitialPass(std::vector<std::string> const& args,
         }
         cmSystemTools::Error(message.c_str());
     }
+    cmSystemTools::Error(message);
+  }
 
     return true;
 }

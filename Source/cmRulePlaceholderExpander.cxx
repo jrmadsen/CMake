@@ -10,14 +10,15 @@
 #include "cmSystemTools.h"
 
 cmRulePlaceholderExpander::cmRulePlaceholderExpander(
-    std::map<std::string, std::string> const& compilers,
-    std::map<std::string, std::string> const& variableMappings,
-    std::string const& compilerSysroot, std::string const& linkerSysroot)
-: Compilers(compilers)
-, VariableMappings(variableMappings)
-, CompilerSysroot(compilerSysroot)
-, LinkerSysroot(linkerSysroot)
-{}
+  std::map<std::string, std::string> compilers,
+  std::map<std::string, std::string> variableMappings,
+  std::string compilerSysroot, std::string linkerSysroot)
+  : Compilers(std::move(compilers))
+  , VariableMappings(std::move(variableMappings))
+  , CompilerSysroot(std::move(compilerSysroot))
+  , LinkerSysroot(std::move(linkerSysroot))
+{
+}
 
 cmRulePlaceholderExpander::RuleVariables::RuleVariables()
 {
@@ -79,12 +80,41 @@ cmRulePlaceholderExpander::ExpandRuleVariable(
             return replaceValues.Object;
         }
     }
-    if(replaceValues.ObjectDir)
-    {
-        if(variable == "OBJECT_DIR")
-        {
-            return replaceValues.ObjectDir;
-        }
+  }
+  if (replaceValues.Defines && variable == "DEFINES") {
+    return replaceValues.Defines;
+  }
+  if (replaceValues.Includes && variable == "INCLUDES") {
+    return replaceValues.Includes;
+  }
+  if (replaceValues.SwiftLibraryName) {
+    if (variable == "SWIFT_LIBRARY_NAME") {
+      return replaceValues.SwiftLibraryName;
+    }
+  }
+  if (replaceValues.SwiftModule) {
+    if (variable == "SWIFT_MODULE") {
+      return replaceValues.SwiftModule;
+    }
+  }
+  if (replaceValues.SwiftModuleName) {
+    if (variable == "SWIFT_MODULE_NAME") {
+      return replaceValues.SwiftModuleName;
+    }
+  }
+  if (replaceValues.SwiftOutputFileMap) {
+    if (variable == "SWIFT_OUTPUT_FILE_MAP") {
+      return replaceValues.SwiftOutputFileMap;
+    }
+  }
+  if (replaceValues.SwiftSources) {
+    if (variable == "SWIFT_SOURCES") {
+      return replaceValues.SwiftSources;
+    }
+  }
+  if (replaceValues.TargetPDB) {
+    if (variable == "TARGET_PDB") {
+      return replaceValues.TargetPDB;
     }
     if(replaceValues.ObjectFileDir)
     {
@@ -100,16 +130,25 @@ cmRulePlaceholderExpander::ExpandRuleVariable(
             return replaceValues.Objects;
         }
     }
-    if(replaceValues.ObjectsQuoted)
-    {
-        if(variable == "OBJECTS_QUOTED")
-        {
-            return replaceValues.ObjectsQuoted;
-        }
+  }
+
+  if (replaceValues.Target) {
+    if (variable == "TARGET_QUOTED") {
+      std::string targetQuoted = replaceValues.Target;
+      if (!targetQuoted.empty() && targetQuoted.front() != '\"') {
+        targetQuoted = '\"';
+        targetQuoted += replaceValues.Target;
+        targetQuoted += '\"';
+      }
+      return targetQuoted;
     }
-    if(replaceValues.Defines && variable == "DEFINES")
-    {
-        return replaceValues.Defines;
+    if (variable == "TARGET_UNQUOTED") {
+      std::string unquoted = replaceValues.Target;
+      std::string::size_type sz = unquoted.size();
+      if (sz > 2 && unquoted.front() == '\"' && unquoted.back() == '\"') {
+        unquoted = unquoted.substr(1, sz - 2);
+      }
+      return unquoted;
     }
     if(replaceValues.Includes && variable == "INCLUDES")
     {

@@ -45,8 +45,8 @@ public:
     }
 
 private:
-    bool SawBeginExpression;
-    bool SawGeneratorExpression;
+  bool SawBeginExpression = false;
+  bool SawGeneratorExpression = false;
 };
 
 #endif

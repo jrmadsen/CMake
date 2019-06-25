@@ -16,14 +16,15 @@ class cmStateDirectory;
 
 class cmNinjaLinkLineComputer : public cmLinkLineComputer
 {
-    CM_DISABLE_COPY(cmNinjaLinkLineComputer)
-
 public:
     cmNinjaLinkLineComputer(cmOutputConverter*            outputConverter,
                             cmStateDirectory const&       stateDir,
                             cmGlobalNinjaGenerator const* gg);
 
-    std::string ConvertToLinkReference(std::string const& input) const override;
+  cmNinjaLinkLineComputer(cmNinjaLinkLineComputer const&) = delete;
+  cmNinjaLinkLineComputer& operator=(cmNinjaLinkLineComputer const&) = delete;
+
+  std::string ConvertToLinkReference(std::string const& input) const override;
 
 private:
     cmGlobalNinjaGenerator const* GG;

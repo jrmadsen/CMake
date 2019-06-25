@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "cmMakefile.h"
+#include "cmRange.h"
 #include "cmSystemTools.h"
 
 class cmExecutionStatus;
@@ -15,10 +16,28 @@ bool
 cmAddSubDirectoryCommand::InitialPass(std::vector<std::string> const& args,
                                       cmExecutionStatus&)
 {
-    if(args.empty())
-    {
-        this->SetError("called with incorrect number of arguments");
-        return false;
+  if (args.empty()) {
+    this->SetError("called with incorrect number of arguments");
+    return false;
+  }
+
+  // store the binpath
+  std::string const& srcArg = args.front();
+  std::string binArg;
+
+  bool excludeFromAll = false;
+
+  // process the rest of the arguments looking for optional args
+  for (std::string const& arg : cmMakeRange(args).advance(1)) {
+    if (arg == "EXCLUDE_FROM_ALL") {
+      excludeFromAll = true;
+      continue;
+    }
+    if (binArg.empty()) {
+      binArg = arg;
+    } else {
+      this->SetError("called with incorrect number of arguments");
+      return false;
     }
 
     // store the binpath
@@ -47,25 +66,17 @@ cmAddSubDirectoryCommand::InitialPass(std::vector<std::string> const& args,
         }
     }
 
-    // Compute the full path to the specified source directory.
-    // Interpret a relative path with respect to the current source directory.
-    std::string srcPath;
-    if(cmSystemTools::FileIsFullPath(srcArg))
-    {
-        srcPath = srcArg;
-    } else
-    {
-        srcPath = this->Makefile->GetCurrentSourceDirectory();
-        srcPath += "/";
-        srcPath += srcArg;
+    // Remove the CurrentDirectory from the srcPath and replace it
+    // with the CurrentOutputDirectory.
+    const std::string& src = this->Makefile->GetCurrentSourceDirectory();
+    const std::string& bin = this->Makefile->GetCurrentBinaryDirectory();
+    size_t srcLen = src.length();
+    size_t binLen = bin.length();
+    if (srcLen > 0 && src.back() == '/') {
+      --srcLen;
     }
-    if(!cmSystemTools::FileIsDirectory(srcPath))
-    {
-        std::string error = "given source \"";
-        error += srcArg;
-        error += "\" which is not an existing directory.";
-        this->SetError(error);
-        return false;
+    if (binLen > 0 && bin.back() == '/') {
+      --binLen;
     }
     srcPath = cmSystemTools::CollapseFullPath(srcPath);
 

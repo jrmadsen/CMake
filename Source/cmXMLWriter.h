@@ -16,14 +16,15 @@
 
 class cmXMLWriter
 {
-    CM_DISABLE_COPY(cmXMLWriter)
-
 public:
     cmXMLWriter(std::ostream& output, std::size_t level = 0);
     ~cmXMLWriter();
 
-    void StartDocument(const char* encoding = "UTF-8");
-    void EndDocument();
+  cmXMLWriter(cmXMLWriter const&) = delete;
+  cmXMLWriter& operator=(cmXMLWriter const&) = delete;
+
+  void StartDocument(const char* encoding = "UTF-8");
+  void EndDocument();
 
     void StartElement(std::string const& name);
     void EndElement();
@@ -131,10 +132,12 @@ class cmXMLDocument
 public:
     cmXMLDocument(cmXMLWriter& xml)
     : xmlwr(xml)
-    {
-        xmlwr.StartDocument();
-    }
-    ~cmXMLDocument() { xmlwr.EndDocument(); }
+  {
+    xmlwr.StartDocument();
+  }
+  ~cmXMLDocument() { xmlwr.EndDocument(); }
+  cmXMLDocument(const cmXMLDocument&) = delete;
+  cmXMLDocument& operator=(const cmXMLDocument&) = delete;
 
 private:
     friend class cmXMLElement;
@@ -156,26 +159,31 @@ public:
     }
     cmXMLElement(cmXMLDocument& doc, const char* tag)
     : xmlwr(doc.xmlwr)
-    {
-        xmlwr.StartElement(tag);
-    }
-    ~cmXMLElement() { xmlwr.EndElement(); }
+  {
+    xmlwr.StartElement(tag);
+  }
+  ~cmXMLElement() { xmlwr.EndElement(); }
 
-    template <typename T>
-    cmXMLElement& Attribute(const char* name, T const& value)
-    {
-        xmlwr.Attribute(name, value);
-        return *this;
-    }
-    template <typename T> void Content(T const& content)
-    {
-        xmlwr.Content(content);
-    }
-    template <typename T> void Element(std::string const& name, T const& value)
-    {
-        xmlwr.Element(name, value);
-    }
-    void Comment(const char* comment) { xmlwr.Comment(comment); }
+  cmXMLElement(const cmXMLElement&) = delete;
+  cmXMLElement& operator=(const cmXMLElement&) = delete;
+
+  template <typename T>
+  cmXMLElement& Attribute(const char* name, T const& value)
+  {
+    xmlwr.Attribute(name, value);
+    return *this;
+  }
+  template <typename T>
+  void Content(T const& content)
+  {
+    xmlwr.Content(content);
+  }
+  template <typename T>
+  void Element(std::string const& name, T const& value)
+  {
+    xmlwr.Element(name, value);
+  }
+  void Comment(const char* comment) { xmlwr.Comment(comment); }
 
 private:
     cmXMLWriter& xmlwr;

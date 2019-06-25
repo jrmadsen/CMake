@@ -16,9 +16,7 @@
 #include <string.h>
 #include <vector>
 
-cmExtraKateGenerator::cmExtraKateGenerator()
-: cmExternalMakefileProjectGenerator()
-{}
+cmExtraKateGenerator::cmExtraKateGenerator() = default;
 
 cmExternalMakefileProjectGeneratorFactory*
 cmExtraKateGenerator::GetFactory()
@@ -81,11 +79,11 @@ void
 cmExtraKateGenerator::WriteTargets(const cmLocalGenerator* lg,
                                    cmGeneratedFileStream&  fout) const
 {
-    cmMakefile const* mf   = lg->GetMakefile();
-    const std::string make = mf->GetRequiredDefinition("CMAKE_MAKE_PROGRAM");
-    const std::string makeArgs =
-        mf->GetSafeDefinition("CMAKE_KATE_MAKE_ARGUMENTS");
-    std::string const& homeOutputDir = lg->GetBinaryDirectory();
+  cmMakefile const* mf = lg->GetMakefile();
+  const std::string& make = mf->GetRequiredDefinition("CMAKE_MAKE_PROGRAM");
+  const std::string& makeArgs =
+    mf->GetSafeDefinition("CMAKE_KATE_MAKE_ARGUMENTS");
+  std::string const& homeOutputDir = lg->GetBinaryDirectory();
 
     /* clang-format off */
   fout <<
@@ -219,11 +217,11 @@ cmExtraKateGenerator::AppendTarget(cmGeneratedFileStream& fout,
 {
     static char JsonSep = ' ';
 
-    fout << "\t\t\t" << JsonSep << "{\"name\":\"" << target
-         << "\", "
-            "\"build_cmd\":\""
-         << make << " -C \\\"" << (this->UseNinja ? homeOutputDir : path)
-         << "\\\" " << makeArgs << " " << target << "\"}\n";
+  fout << "\t\t\t" << JsonSep << R"({"name":")" << target
+       << "\", "
+          "\"build_cmd\":\""
+       << make << " -C \\\"" << (this->UseNinja ? homeOutputDir : path)
+       << "\\\" " << makeArgs << " " << target << "\"}\n";
 
     JsonSep = ',';
 }
@@ -256,12 +254,11 @@ cmExtraKateGenerator::GenerateFilesString(const cmLocalGenerator* lg) const
         return "\"git\": 1 ";
     }
 
-    s = lg->GetSourceDirectory();
-    s += "/.svn";
-    if(cmSystemTools::FileExists(s))
-    {
-        return "\"svn\": 1 ";
-    }
+    const std::vector<cmSourceFile*>& sources = makefile->GetSourceFiles();
+    for (cmSourceFile* sf : sources) {
+      if (sf->GetIsGenerated()) {
+        continue;
+      }
 
     s = lg->GetSourceDirectory();
     s += "/";
@@ -322,18 +319,15 @@ cmExtraKateGenerator::GenerateProjectName(const std::string& name,
 std::string
 cmExtraKateGenerator::GetPathBasename(const std::string& path) const
 {
-    std::string outputBasename = path;
-    while(!outputBasename.empty() &&
-          (outputBasename[outputBasename.size() - 1] == '/' ||
-           outputBasename[outputBasename.size() - 1] == '\\'))
-    {
-        outputBasename.resize(outputBasename.size() - 1);
-    }
-    std::string::size_type loc = outputBasename.find_last_of("/\\");
-    if(loc != std::string::npos)
-    {
-        outputBasename = outputBasename.substr(loc + 1);
-    }
+  std::string outputBasename = path;
+  while (!outputBasename.empty() &&
+         (outputBasename.back() == '/' || outputBasename.back() == '\\')) {
+    outputBasename.resize(outputBasename.size() - 1);
+  }
+  std::string::size_type loc = outputBasename.find_last_of("/\\");
+  if (loc != std::string::npos) {
+    outputBasename = outputBasename.substr(loc + 1);
+  }
 
-    return outputBasename;
+  return outputBasename;
 }

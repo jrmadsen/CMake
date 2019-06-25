@@ -15,6 +15,7 @@
 #include "cmGlobalGenerator.h"
 #include "cmMakefile.h"
 #include "cmProcessOutput.h"
+#include "cmState.h"
 #include "cmStateSnapshot.h"
 #include "cmSystemTools.h"
 #include "cmXMLWriter.h"
@@ -171,7 +172,7 @@ cmCTestLaunch::HandleRealArg(const char* arg)
         return;
     }
 #endif
-    this->RealArgs.push_back(arg);
+  this->RealArgs.emplace_back(arg);
 }
 
 void
@@ -319,57 +320,49 @@ cmCTestLaunch::Run()
 void
 cmCTestLaunch::LoadLabels()
 {
-    if(this->OptionBuildDir.empty() || this->OptionTargetName.empty())
-    {
-        return;
-    }
+  if (this->OptionBuildDir.empty() || this->OptionTargetName.empty()) {
+    return;
+  }
 
-    // Labels are listed in per-target files.
-    std::string fname = this->OptionBuildDir;
-    fname += cmake::GetCMakeFilesDirectory();
-    fname += "/";
-    fname += this->OptionTargetName;
-    fname += ".dir/Labels.txt";
+  // Labels are listed in per-target files.
+  std::string fname = this->OptionBuildDir;
+  fname += "/CMakeFiles";
+  fname += "/";
+  fname += this->OptionTargetName;
+  fname += ".dir/Labels.txt";
 
-    // We are interested in per-target labels for this source file.
-    std::string source = this->OptionSource;
-    cmSystemTools::ConvertToUnixSlashes(source);
+  // We are interested in per-target labels for this source file.
+  std::string source = this->OptionSource;
+  cmSystemTools::ConvertToUnixSlashes(source);
 
-    // Load the labels file.
-    cmsys::ifstream fin(fname.c_str(), std::ios::in | std::ios::binary);
-    if(!fin)
-    {
-        return;
+  // Load the labels file.
+  cmsys::ifstream fin(fname.c_str(), std::ios::in | std::ios::binary);
+  if (!fin) {
+    return;
+  }
+  bool inTarget = true;
+  bool inSource = false;
+  std::string line;
+  while (cmSystemTools::GetLineFromStream(fin, line)) {
+    if (line.empty() || line[0] == '#') {
+      // Ignore blank and comment lines.
+      continue;
     }
-    bool        inTarget = true;
-    bool        inSource = false;
-    std::string line;
-    while(cmSystemTools::GetLineFromStream(fin, line))
-    {
-        if(line.empty() || line[0] == '#')
-        {
-            // Ignore blank and comment lines.
-            continue;
-        }
-        if(line[0] == ' ')
-        {
-            // Label lines appear indented by one space.
-            if(inTarget || inSource)
-            {
-                this->Labels.insert(line.c_str() + 1);
-            }
-        } else if(!this->OptionSource.empty() && !inSource)
-        {
-            // Non-indented lines specify a source file name.  The first one
-            // is the end of the target-wide labels.  Use labels following a
-            // matching source.
-            inTarget = false;
-            inSource = this->SourceMatches(line, source);
-        } else
-        {
-            return;
-        }
+    if (line[0] == ' ') {
+      // Label lines appear indented by one space.
+      if (inTarget || inSource) {
+        this->Labels.insert(line.substr(1));
+      }
+    } else if (!this->OptionSource.empty() && !inSource) {
+      // Non-indented lines specify a source file name.  The first one
+      // is the end of the target-wide labels.  Use labels following a
+      // matching source.
+      inTarget = false;
+      inSource = this->SourceMatches(line, source);
+    } else {
+      return;
     }
+  }
 }
 
 bool
@@ -609,22 +602,21 @@ cmCTestLaunch::CheckResults()
 void
 cmCTestLaunch::LoadScrapeRules()
 {
-    if(this->ScrapeRulesLoaded)
-    {
-        return;
-    }
-    this->ScrapeRulesLoaded = true;
+  if (this->ScrapeRulesLoaded) {
+    return;
+  }
+  this->ScrapeRulesLoaded = true;
 
-    // Common compiler warning formats.  These are much simpler than the
-    // full log-scraping expressions because we do not need to extract
-    // file and line information.
-    this->RegexWarning.push_back("(^|[ :])[Ww][Aa][Rr][Nn][Ii][Nn][Gg]");
-    this->RegexWarning.push_back("(^|[ :])[Rr][Ee][Mm][Aa][Rr][Kk]");
-    this->RegexWarning.push_back("(^|[ :])[Nn][Oo][Tt][Ee]");
+  // Common compiler warning formats.  These are much simpler than the
+  // full log-scraping expressions because we do not need to extract
+  // file and line information.
+  this->RegexWarning.emplace_back("(^|[ :])[Ww][Aa][Rr][Nn][Ii][Nn][Gg]");
+  this->RegexWarning.emplace_back("(^|[ :])[Rr][Ee][Mm][Aa][Rr][Kk]");
+  this->RegexWarning.emplace_back("(^|[ :])[Nn][Oo][Tt][Ee]");
 
-    // Load custom match rules given to us by CTest.
-    this->LoadScrapeRules("Warning", this->RegexWarning);
-    this->LoadScrapeRules("WarningSuppress", this->RegexWarningSuppress);
+  // Load custom match rules given to us by CTest.
+  this->LoadScrapeRules("Warning", this->RegexWarning);
+  this->LoadScrapeRules("WarningSuppress", this->RegexWarningSuppress);
 }
 
 void
@@ -710,17 +702,16 @@ cmCTestLaunch::Main(int argc, const char* const argv[])
 void
 cmCTestLaunch::LoadConfig()
 {
-    cmake cm(cmake::RoleScript);
-    cm.SetHomeDirectory("");
-    cm.SetHomeOutputDirectory("");
-    cm.GetCurrentSnapshot().SetDefaultDefinitions();
-    cmGlobalGenerator gg(&cm);
-    cmMakefile        mf(&gg, cm.GetCurrentSnapshot());
-    std::string       fname = this->LogDir;
-    fname += "CTestLaunchConfig.cmake";
-    if(cmSystemTools::FileExists(fname) && mf.ReadListFile(fname.c_str()))
-    {
-        this->SourceDir = mf.GetSafeDefinition("CTEST_SOURCE_DIRECTORY");
-        cmSystemTools::ConvertToUnixSlashes(this->SourceDir);
-    }
+  cmake cm(cmake::RoleScript, cmState::CTest);
+  cm.SetHomeDirectory("");
+  cm.SetHomeOutputDirectory("");
+  cm.GetCurrentSnapshot().SetDefaultDefinitions();
+  cmGlobalGenerator gg(&cm);
+  cmMakefile mf(&gg, cm.GetCurrentSnapshot());
+  std::string fname = this->LogDir;
+  fname += "CTestLaunchConfig.cmake";
+  if (cmSystemTools::FileExists(fname) && mf.ReadListFile(fname)) {
+    this->SourceDir = mf.GetSafeDefinition("CTEST_SOURCE_DIRECTORY");
+    cmSystemTools::ConvertToUnixSlashes(this->SourceDir);
+  }
 }

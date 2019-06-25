@@ -15,13 +15,15 @@ class cmStateDirectory;
 
 class cmMSVC60LinkLineComputer : public cmLinkLineComputer
 {
-    CM_DISABLE_COPY(cmMSVC60LinkLineComputer)
-
 public:
     cmMSVC60LinkLineComputer(cmOutputConverter*      outputConverter,
                              cmStateDirectory const& stateDir);
 
-    std::string ConvertToLinkReference(std::string const& input) const override;
+  cmMSVC60LinkLineComputer(cmMSVC60LinkLineComputer const&) = delete;
+  cmMSVC60LinkLineComputer& operator=(cmMSVC60LinkLineComputer const&) =
+    delete;
+
+  std::string ConvertToLinkReference(std::string const& input) const override;
 };
 
 #endif

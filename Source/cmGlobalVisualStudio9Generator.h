@@ -13,22 +13,14 @@
 class cmGlobalVisualStudio9Generator : public cmGlobalVisualStudio8Generator
 {
 public:
-    cmGlobalVisualStudio9Generator(cmake* cm, const std::string& name,
-                                   const std::string& platformName);
-    static cmGlobalGeneratorFactory* NewFactory();
+  static cmGlobalGeneratorFactory* NewFactory();
 
-    /**
-     * Try to determine system information such as shared library
-     * extension, pthreads, byte order etc.
-     */
-    void WriteSLNHeader(std::ostream& fout) override;
-
-    /**
-     * Where does this version of Visual Studio look for macros for the
-     * current user? Returns the empty string if this version of Visual
-     * Studio does not implement support for VB macros.
-     */
-    std::string GetUserMacrosDirectory() override;
+  /**
+   * Where does this version of Visual Studio look for macros for the
+   * current user? Returns the empty string if this version of Visual
+   * Studio does not implement support for VB macros.
+   */
+  std::string GetUserMacrosDirectory() override;
 
     /**
      * What is the reg key path to "vsmacros" for this version of Visual
@@ -37,7 +29,8 @@ public:
     std::string GetUserMacrosRegKeyBase() override;
 
 protected:
-    const char* GetIDEVersion() override { return "9.0"; }
+  cmGlobalVisualStudio9Generator(cmake* cm, const std::string& name,
+                                 std::string const& platformInGeneratorName);
 
 private:
     class Factory;

@@ -7,6 +7,7 @@
 #include <set>
 #include <stdio.h>
 #include <string.h>
+#include <utility>
 
 #include "cmGlobalGenerator.h"
 #include "cmMakefile.h"
@@ -201,57 +202,54 @@ cmFindLibraryCommand::FindLibrary()
 
 struct cmFindLibraryHelper
 {
-    cmFindLibraryHelper(cmMakefile* mf);
+  cmFindLibraryHelper(cmMakefile* mf);
 
-    // Context information.
-    cmMakefile*        Makefile;
-    cmGlobalGenerator* GG;
+  // Context information.
+  cmMakefile* Makefile;
+  cmGlobalGenerator* GG;
 
-    // List of valid prefixes and suffixes.
-    std::vector<std::string> Prefixes;
-    std::vector<std::string> Suffixes;
-    std::string              PrefixRegexStr;
-    std::string              SuffixRegexStr;
+  // List of valid prefixes and suffixes.
+  std::vector<std::string> Prefixes;
+  std::vector<std::string> Suffixes;
+  std::string PrefixRegexStr;
+  std::string SuffixRegexStr;
 
-    // Keep track of the best library file found so far.
-    typedef std::vector<std::string>::size_type size_type;
-    std::string                                 BestPath;
+  // Keep track of the best library file found so far.
+  typedef std::vector<std::string>::size_type size_type;
+  std::string BestPath;
 
-    // Support for OpenBSD shared library naming: lib<name>.so.<major>.<minor>
-    bool OpenBSD;
+  // Support for OpenBSD shared library naming: lib<name>.so.<major>.<minor>
+  bool OpenBSD;
 
-    // Current names under consideration.
-    struct Name
-    {
-        bool                     TryRaw;
-        std::string              Raw;
-        cmsys::RegularExpression Regex;
-        Name()
-        : TryRaw(false)
-        {}
-    };
-    std::vector<Name> Names;
+  // Current names under consideration.
+  struct Name
+  {
+    bool TryRaw = false;
+    std::string Raw;
+    cmsys::RegularExpression Regex;
+  };
+  std::vector<Name> Names;
 
-    // Current full path under consideration.
-    std::string TestPath;
+  // Current full path under consideration.
+  std::string TestPath;
 
-    void RegexFromLiteral(std::string& out, std::string const& in);
-    void RegexFromList(std::string& out, std::vector<std::string> const& in);
-    size_type GetPrefixIndex(std::string const& prefix)
-    {
-        return std::find(this->Prefixes.begin(), this->Prefixes.end(), prefix) -
-               this->Prefixes.begin();
-    }
-    size_type GetSuffixIndex(std::string const& suffix)
-    {
-        return std::find(this->Suffixes.begin(), this->Suffixes.end(), suffix) -
-               this->Suffixes.begin();
-    }
-    bool HasValidSuffix(std::string const& name);
-    void AddName(std::string const& name);
-    void SetName(std::string const& name);
-    bool CheckDirectory(std::string const& path);
-    bool CheckDirectoryForName(std::string const& path, Name& name);
+  void RegexFromLiteral(std::string& out, std::string const& in);
+  void RegexFromList(std::string& out, std::vector<std::string> const& in);
+  size_type GetPrefixIndex(std::string const& prefix)
+  {
+    return std::find(this->Prefixes.begin(), this->Prefixes.end(), prefix) -
+      this->Prefixes.begin();
+  }
+  size_type GetSuffixIndex(std::string const& suffix)
+  {
+    return std::find(this->Suffixes.begin(), this->Suffixes.end(), suffix) -
+      this->Suffixes.begin();
+  }
+  bool HasValidSuffix(std::string const& name);
+  void AddName(std::string const& name);
+  void SetName(std::string const& name);
+  bool CheckDirectory(std::string const& path);
+  bool CheckDirectoryForName(std::string const& path, Name& name);
 };
 
 cmFindLibraryHelper::cmFindLibraryHelper(cmMakefile* mf)

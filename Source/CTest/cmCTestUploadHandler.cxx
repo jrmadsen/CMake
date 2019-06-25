@@ -2,6 +2,7 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmCTestUploadHandler.h"
 
+#include "cmCTest.h"
 #include "cmGeneratedFileStream.h"
 #include "cmVersion.h"
 #include "cmXMLWriter.h"
@@ -18,8 +19,7 @@ cmCTestUploadHandler::Initialize()
     this->Files.clear();
 }
 
-void
-cmCTestUploadHandler::SetFiles(const cmCTest::SetOfStrings& files)
+void cmCTestUploadHandler::SetFiles(std::set<std::string> const& files)
 {
     this->Files = files;
 }
@@ -38,21 +38,22 @@ cmCTestUploadHandler::ProcessHandler()
     std::string buildname = cmCTest::SafeBuildIdField(
         this->CTest->GetCTestConfiguration("BuildName"));
 
-    cmXMLWriter xml(ofs);
-    xml.StartDocument();
-    xml.ProcessingInstruction("xml-stylesheet",
-                              "type=\"text/xsl\" "
-                              "href=\"Dart/Source/Server/XSL/Build.xsl "
-                              "<file:///Dart/Source/Server/XSL/Build.xsl> \"");
-    xml.StartElement("Site");
-    xml.Attribute("BuildName", buildname);
-    xml.Attribute("BuildStamp", this->CTest->GetCurrentTag() + "-" +
-                                    this->CTest->GetTestModelString());
-    xml.Attribute("Name", this->CTest->GetCTestConfiguration("Site"));
-    xml.Attribute("Generator",
-                  std::string("ctest") + cmVersion::GetCMakeVersion());
-    this->CTest->AddSiteProperties(xml);
-    xml.StartElement("Upload");
+  cmXMLWriter xml(ofs);
+  xml.StartDocument();
+  xml.ProcessingInstruction("xml-stylesheet",
+                            "type=\"text/xsl\" "
+                            "href=\"Dart/Source/Server/XSL/Build.xsl "
+                            "<file:///Dart/Source/Server/XSL/Build.xsl> \"");
+  xml.StartElement("Site");
+  xml.Attribute("BuildName", buildname);
+  xml.Attribute("BuildStamp",
+                this->CTest->GetCurrentTag() + "-" +
+                  this->CTest->GetTestModelString());
+  xml.Attribute("Name", this->CTest->GetCTestConfiguration("Site"));
+  xml.Attribute("Generator",
+                std::string("ctest-") + cmVersion::GetCMakeVersion());
+  this->CTest->AddSiteProperties(xml);
+  xml.StartElement("Upload");
 
     for(std::string const& file : this->Files)
     {

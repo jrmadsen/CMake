@@ -42,31 +42,32 @@ class cmGeneratorTarget;
 
 struct cmGeneratorExpressionDAGChecker
 {
-    cmGeneratorExpressionDAGChecker(const cmListFileBacktrace&        backtrace,
-                                    cmGeneratorTarget const*          target,
-                                    const std::string&                property,
-                                    const GeneratorExpressionContent* content,
-                                    cmGeneratorExpressionDAGChecker*  parent);
-    cmGeneratorExpressionDAGChecker(cmGeneratorTarget const*          target,
-                                    const std::string&                property,
-                                    const GeneratorExpressionContent* content,
-                                    cmGeneratorExpressionDAGChecker*  parent);
+  cmGeneratorExpressionDAGChecker(cmListFileBacktrace backtrace,
+                                  cmGeneratorTarget const* target,
+                                  std::string property,
+                                  const GeneratorExpressionContent* content,
+                                  cmGeneratorExpressionDAGChecker* parent);
+  cmGeneratorExpressionDAGChecker(cmGeneratorTarget const* target,
+                                  std::string property,
+                                  const GeneratorExpressionContent* content,
+                                  cmGeneratorExpressionDAGChecker* parent);
 
-    enum Result
-    {
-        DAG,
-        SELF_REFERENCE,
-        CYCLIC_REFERENCE,
-        ALREADY_SEEN
-    };
+  enum Result
+  {
+    DAG,
+    SELF_REFERENCE,
+    CYCLIC_REFERENCE,
+    ALREADY_SEEN
+  };
 
-    Result Check() const;
+  Result Check() const;
 
-    void ReportError(cmGeneratorExpressionContext* context,
-                     const std::string&            expr);
+  void ReportError(cmGeneratorExpressionContext* context,
+                   const std::string& expr);
 
-    bool EvaluatingGenexExpression();
-    bool EvaluatingLinkLibraries(cmGeneratorTarget const* tgt = nullptr);
+  bool EvaluatingGenexExpression();
+  bool EvaluatingPICExpression();
+  bool EvaluatingLinkLibraries(cmGeneratorTarget const* tgt = nullptr);
 
 #define DECLARE_TRANSITIVE_PROPERTY_METHOD(METHOD) bool METHOD() const;
 

@@ -51,23 +51,48 @@ cmSetSourceFilesPropertiesCommand::RunCommand(
     std::vector<std::string>::const_iterator propbeg,
     std::vector<std::string>::const_iterator propend, std::string& errors)
 {
-    std::vector<std::string>                 propertyPairs;
-    bool                                     generated = false;
-    std::vector<std::string>::const_iterator j;
-    // build the property pairs
-    for(j = propbeg; j != propend; ++j)
-    {
-        // old style allows for specifier before PROPERTIES keyword
-        if(*j == "ABSTRACT")
-        {
-            propertyPairs.push_back("ABSTRACT");
-            propertyPairs.push_back("1");
-        } else if(*j == "WRAP_EXCLUDE")
-        {
-            propertyPairs.push_back("WRAP_EXCLUDE");
-            propertyPairs.push_back("1");
-        } else if(*j == "GENERATED")
-        {
+  std::vector<std::string> propertyPairs;
+  bool generated = false;
+  std::vector<std::string>::const_iterator j;
+  // build the property pairs
+  for (j = propbeg; j != propend; ++j) {
+    // old style allows for specifier before PROPERTIES keyword
+    if (*j == "ABSTRACT") {
+      propertyPairs.emplace_back("ABSTRACT");
+      propertyPairs.emplace_back("1");
+    } else if (*j == "WRAP_EXCLUDE") {
+      propertyPairs.emplace_back("WRAP_EXCLUDE");
+      propertyPairs.emplace_back("1");
+    } else if (*j == "GENERATED") {
+      generated = true;
+      propertyPairs.emplace_back("GENERATED");
+      propertyPairs.emplace_back("1");
+    } else if (*j == "COMPILE_FLAGS") {
+      propertyPairs.emplace_back("COMPILE_FLAGS");
+      ++j;
+      if (j == propend) {
+        errors = "called with incorrect number of arguments "
+                 "COMPILE_FLAGS with no flags";
+        return false;
+      }
+      propertyPairs.push_back(*j);
+    } else if (*j == "OBJECT_DEPENDS") {
+      propertyPairs.emplace_back("OBJECT_DEPENDS");
+      ++j;
+      if (j == propend) {
+        errors = "called with incorrect number of arguments "
+                 "OBJECT_DEPENDS with no dependencies";
+        return false;
+      }
+      propertyPairs.push_back(*j);
+    } else if (*j == "PROPERTIES") {
+      // now loop through the rest of the arguments, new style
+      ++j;
+      while (j != propend) {
+        propertyPairs.push_back(*j);
+        if (*j == "GENERATED") {
+          ++j;
+          if (j != propend && cmSystemTools::IsOn(*j)) {
             generated = true;
             propertyPairs.push_back("GENERATED");
             propertyPairs.push_back("1");

@@ -2,11 +2,13 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmInstallFilesCommand.h"
 
+#include "cmAlgorithms.h"
 #include "cmGeneratorExpression.h"
 #include "cmGlobalGenerator.h"
 #include "cmInstallFilesGenerator.h"
 #include "cmInstallGenerator.h"
 #include "cmMakefile.h"
+#include "cmRange.h"
 #include "cmSystemTools.h"
 
 class cmExecutionStatus;
@@ -16,33 +18,27 @@ bool
 cmInstallFilesCommand::InitialPass(std::vector<std::string> const& args,
                                    cmExecutionStatus&)
 {
-    if(args.size() < 2)
-    {
-        this->SetError("called with incorrect number of arguments");
-        return false;
+  if (args.size() < 2) {
+    this->SetError("called with incorrect number of arguments");
+    return false;
+  }
+
+  // Enable the install target.
+  this->Makefile->GetGlobalGenerator()->EnableInstallTarget();
+
+  this->Destination = args[0];
+
+  if ((args.size() > 1) && (args[1] == "FILES")) {
+    this->IsFilesForm = true;
+    for (std::string const& arg : cmMakeRange(args).advance(2)) {
+      // Find the source location for each file listed.
+      this->Files.push_back(this->FindInstallSource(arg.c_str()));
     }
-
-    // Enable the install target.
-    this->Makefile->GetGlobalGenerator()->EnableInstallTarget();
-
-    this->Destination = args[0];
-
-    if((args.size() > 1) && (args[1] == "FILES"))
-    {
-        this->IsFilesForm = true;
-        for(std::vector<std::string>::const_iterator s = args.begin() + 2;
-            s != args.end(); ++s)
-        {
-            // Find the source location for each file listed.
-            this->Files.push_back(this->FindInstallSource(s->c_str()));
-        }
-        this->CreateInstallGenerator();
-    } else
-    {
-        this->IsFilesForm = false;
-        this->FinalArgs.insert(this->FinalArgs.end(), args.begin() + 1,
-                               args.end());
-    }
+    this->CreateInstallGenerator();
+  } else {
+    this->IsFilesForm = false;
+    cmAppend(this->FinalArgs, args.begin() + 1, args.end());
+  }
 
     this->Makefile->GetGlobalGenerator()->AddInstallComponent(
         this->Makefile->GetSafeDefinition(

@@ -18,7 +18,7 @@ cmComputeComponentGraph::cmComputeComponentGraph(Graph const& input)
     this->TransferEdges();
 }
 
-cmComputeComponentGraph::~cmComputeComponentGraph() {}
+cmComputeComponentGraph::~cmComputeComponentGraph() = default;
 
 void
 cmComputeComponentGraph::Tarjan()
@@ -123,24 +123,20 @@ cmComputeComponentGraph::TarjanVisit(int i)
 void
 cmComputeComponentGraph::TransferEdges()
 {
-    // Map inter-component edges in the original graph to edges in the
-    // component graph.
-    int n = static_cast<int>(this->InputGraph.size());
-    for(int i = 0; i < n; ++i)
-    {
-        int             i_component = this->TarjanComponents[i];
-        EdgeList const& nl          = this->InputGraph[i];
-        for(cmGraphEdge const& ni : nl)
-        {
-            int j           = ni;
-            int j_component = this->TarjanComponents[j];
-            if(i_component != j_component)
-            {
-                // We do not attempt to combine duplicate edges, but instead
-                // store the inter-component edges with suitable multiplicity.
-                this->ComponentGraph[i_component].emplace_back(j_component,
-                                                               ni.IsStrong());
-            }
-        }
+  // Map inter-component edges in the original graph to edges in the
+  // component graph.
+  int n = static_cast<int>(this->InputGraph.size());
+  for (int i = 0; i < n; ++i) {
+    int i_component = this->TarjanComponents[i];
+    EdgeList const& nl = this->InputGraph[i];
+    for (cmGraphEdge const& ni : nl) {
+      int j = ni;
+      int j_component = this->TarjanComponents[j];
+      if (i_component != j_component) {
+        // We do not attempt to combine duplicate edges, but instead
+        // store the inter-component edges with suitable multiplicity.
+        this->ComponentGraph[i_component].emplace_back(
+          j_component, ni.IsStrong(), ni.GetBacktrace());
+      }
     }
 }

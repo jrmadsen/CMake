@@ -12,8 +12,6 @@
 #endif
 
 cmGeneratedFileStream::cmGeneratedFileStream(Encoding encoding)
-: cmGeneratedFileStreamBase()
-, Stream()
 {
 #ifdef CMAKE_BUILD_WITH_CMAKE
     if(encoding != codecvt::None)
@@ -27,16 +25,14 @@ cmGeneratedFileStream::cmGeneratedFileStream(Encoding encoding)
 
 cmGeneratedFileStream::cmGeneratedFileStream(std::string const& name,
                                              bool quiet, Encoding encoding)
-: cmGeneratedFileStreamBase(name)
-, Stream(TempName.c_str())
+  : cmGeneratedFileStreamBase(name)
+  , Stream(TempName.c_str())
 {
-    // Check if the file opened.
-    if(!*this && !quiet)
-    {
-        cmSystemTools::Error("Cannot open file for write: ",
-                             this->TempName.c_str());
-        cmSystemTools::ReportLastSystemError("");
-    }
+  // Check if the file opened.
+  if (!*this && !quiet) {
+    cmSystemTools::Error("Cannot open file for write: " + this->TempName);
+    cmSystemTools::ReportLastSystemError("");
+  }
 #ifdef CMAKE_BUILD_WITH_CMAKE
     if(encoding != codecvt::None)
     {
@@ -74,14 +70,26 @@ cmGeneratedFileStream::Open(std::string const& name, bool quiet,
         this->Stream::open(this->TempName.c_str());
     }
 
-    // Check if the file opened.
-    if(!*this && !quiet)
-    {
-        cmSystemTools::Error("Cannot open file for write: ",
-                             this->TempName.c_str());
-        cmSystemTools::ReportLastSystemError("");
-    }
-    return *this;
+cmGeneratedFileStream& cmGeneratedFileStream::Open(std::string const& name,
+                                                   bool quiet, bool binaryFlag)
+{
+  // Store the file name and construct the temporary file name.
+  this->cmGeneratedFileStreamBase::Open(name);
+
+  // Open the temporary output file.
+  if (binaryFlag) {
+    this->Stream::open(this->TempName.c_str(),
+                       std::ios::out | std::ios::binary);
+  } else {
+    this->Stream::open(this->TempName.c_str());
+  }
+
+  // Check if the file opened.
+  if (!*this && !quiet) {
+    cmSystemTools::Error("Cannot open file for write: " + this->TempName);
+    cmSystemTools::ReportLastSystemError("");
+  }
+  return *this;
 }
 
 bool
@@ -115,22 +123,9 @@ cmGeneratedFileStream::SetCompressionExtraExtension(bool ext)
     this->CompressExtraExtension = ext;
 }
 
-cmGeneratedFileStreamBase::cmGeneratedFileStreamBase()
-: Name()
-, TempName()
-, CopyIfDifferent(false)
-, Okay(false)
-, Compress(false)
-, CompressExtraExtension(true)
-{}
+cmGeneratedFileStreamBase::cmGeneratedFileStreamBase() = default;
 
 cmGeneratedFileStreamBase::cmGeneratedFileStreamBase(std::string const& name)
-: Name()
-, TempName()
-, CopyIfDifferent(false)
-, Okay(false)
-, Compress(false)
-, CompressExtraExtension(true)
 {
     this->Open(name);
 }
@@ -244,7 +239,7 @@ int
 cmGeneratedFileStreamBase::RenameFile(std::string const& oldname,
                                       std::string const& newname)
 {
-    return cmSystemTools::RenameFile(oldname.c_str(), newname.c_str());
+  return cmSystemTools::RenameFile(oldname, newname);
 }
 
 void

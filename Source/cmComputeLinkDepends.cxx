@@ -6,8 +6,10 @@
 #include "cmComputeComponentGraph.h"
 #include "cmGeneratorTarget.h"
 #include "cmGlobalGenerator.h"
+#include "cmListFileCache.h"
 #include "cmLocalGenerator.h"
 #include "cmMakefile.h"
+#include "cmRange.h"
 #include "cmStateTypes.h"
 #include "cmSystemTools.h"
 #include "cmTarget.h"
@@ -212,19 +214,69 @@ cmComputeLinkDepends::SetOldLinkDirMode(bool b)
 std::vector<cmComputeLinkDepends::LinkEntry> const&
 cmComputeLinkDepends::Compute()
 {
-    // Follow the link dependencies of the target to be linked.
-    this->AddDirectLinkEntries();
+  // Follow the link dependencies of the target to be linked.
+  this->AddDirectLinkEntries();
 
-    // Complete the breadth-first search of dependencies.
-    while(!this->BFSQueue.empty())
-    {
-        // Get the next entry.
-        BFSEntry qe = this->BFSQueue.front();
-        this->BFSQueue.pop();
+  // Complete the breadth-first search of dependencies.
+  while (!this->BFSQueue.empty()) {
+    // Get the next entry.
+    BFSEntry qe = this->BFSQueue.front();
+    this->BFSQueue.pop();
 
-        // Follow the entry's dependencies.
-        this->FollowLinkEntry(qe);
+    // Follow the entry's dependencies.
+    this->FollowLinkEntry(qe);
+  }
+
+  // Complete the search of shared library dependencies.
+  while (!this->SharedDepQueue.empty()) {
+    // Handle the next entry.
+    this->HandleSharedDependency(this->SharedDepQueue.front());
+    this->SharedDepQueue.pop();
+  }
+
+  // Infer dependencies of targets for which they were not known.
+  this->InferDependencies();
+
+  // Cleanup the constraint graph.
+  this->CleanConstraintGraph();
+
+  // Display the constraint graph.
+  if (this->DebugMode) {
+    fprintf(stderr,
+            "---------------------------------------"
+            "---------------------------------------\n");
+    fprintf(stderr, "Link dependency analysis for target %s, config %s\n",
+            this->Target->GetName().c_str(),
+            this->HasConfig ? this->Config.c_str() : "noconfig");
+    this->DisplayConstraintGraph();
+  }
+
+  // Compute the final ordering.
+  this->OrderLinkEntires();
+
+  // Compute the final set of link entries.
+  // Iterate in reverse order so we can keep only the last occurrence
+  // of a shared library.
+  std::set<int> emmitted;
+  for (int i : cmReverseRange(this->FinalLinkOrder)) {
+    LinkEntry const& e = this->EntryList[i];
+    cmGeneratorTarget const* t = e.Target;
+    // Entries that we know the linker will re-use do not need to be repeated.
+    bool uniquify = t && t->GetType() == cmStateEnums::SHARED_LIBRARY;
+    if (!uniquify || emmitted.insert(i).second) {
+      this->FinalLinkEntries.push_back(e);
     }
+  }
+  // Reverse the resulting order since we iterated in reverse.
+  std::reverse(this->FinalLinkEntries.begin(), this->FinalLinkEntries.end());
+
+  // Display the final set.
+  if (this->DebugMode) {
+    this->DisplayFinalEntries();
+  }
+
+  return this->FinalLinkEntries;
+}
 
     // Complete the search of shared library dependencies.
     while(!this->SharedDepQueue.empty())
@@ -439,24 +491,34 @@ cmComputeLinkDepends::HandleSharedDependency(SharedDepEntry const& dep)
         entry.IsSharedDep = true;
     }
 
-    // Get the link entry for this target.
-    int        index = lei->second;
-    LinkEntry& entry = this->EntryList[index];
+    // Initialize the item entry.
+    LinkEntry& entry = this->EntryList[lei->second];
+    entry.Item = dep.Item.AsStr();
+    entry.Target = dep.Item.Target;
 
-    // This shared library dependency must follow the item that listed
-    // it.
-    this->EntryConstraintGraph[dep.DependerIndex].push_back(index);
+    // This item was added specifically because it is a dependent
+    // shared library.  It may get special treatment
+    // in cmComputeLinkInformation.
+    entry.IsSharedDep = true;
+  }
 
-    // Target items may have their own dependencies.
-    if(entry.Target)
-    {
-        if(cmLinkInterface const* iface =
-               entry.Target->GetLinkInterface(this->Config, this->Target))
-        {
-            // Follow public and private dependencies transitively.
-            this->FollowSharedDeps(index, iface, true);
-        }
+  // Get the link entry for this target.
+  int index = lei->second;
+  LinkEntry& entry = this->EntryList[index];
+
+  // This shared library dependency must follow the item that listed
+  // it.
+  this->EntryConstraintGraph[dep.DependerIndex].emplace_back(
+    index, true, cmListFileBacktrace());
+
+  // Target items may have their own dependencies.
+  if (entry.Target) {
+    if (cmLinkInterface const* iface =
+          entry.Target->GetLinkInterface(this->Config, this->Target)) {
+      // Follow public and private dependencies transitively.
+      this->FollowSharedDeps(index, iface, true);
     }
+  }
 }
 
 void
@@ -548,114 +610,102 @@ void
 cmComputeLinkDepends::AddLinkEntries(int                   depender_index,
                                      std::vector<T> const& libs)
 {
-    // Track inferred dependency sets implied by this list.
-    std::map<int, DependSet> dependSets;
+  // Track inferred dependency sets implied by this list.
+  std::map<int, DependSet> dependSets;
 
-    // Loop over the libraries linked directly by the depender.
-    for(T const& l : libs)
-    {
-        // Skip entries that will resolve to the target getting linked or
-        // are empty.
-        cmLinkItem const& item = l;
-        if(item.AsStr() == this->Target->GetName() || item.AsStr().empty())
-        {
-            continue;
-        }
-
-        // Add a link entry for this item.
-        int dependee_index = this->AddLinkEntry(l);
-
-        // The dependee must come after the depender.
-        if(depender_index >= 0)
-        {
-            this->EntryConstraintGraph[depender_index].push_back(
-                dependee_index);
-        } else
-        {
-            // This is a direct dependency of the target being linked.
-            this->OriginalEntries.push_back(dependee_index);
-        }
-
-        // Update the inferred dependencies for earlier items.
-        for(auto& dependSet : dependSets)
-        {
-            // Add this item to the inferred dependencies of other items.
-            // Target items are never inferred dependees because unknown
-            // items are outside libraries that should not be depending on
-            // targets.
-            if(!this->EntryList[dependee_index].Target &&
-               !this->EntryList[dependee_index].IsFlag &&
-               dependee_index != dependSet.first)
-            {
-                dependSet.second.insert(dependee_index);
-            }
-        }
-
-        // If this item needs to have dependencies inferred, do so.
-        if(this->InferredDependSets[dependee_index])
-        {
-            // Make sure an entry exists to hold the set for the item.
-            dependSets[dependee_index];
-        }
+  // Loop over the libraries linked directly by the depender.
+  for (T const& l : libs) {
+    // Skip entries that will resolve to the target getting linked or
+    // are empty.
+    cmLinkItem const& item = l;
+    if (item.AsStr() == this->Target->GetName() || item.AsStr().empty()) {
+      continue;
     }
 
-    // Store the inferred dependency sets discovered for this list.
-    for(auto const& dependSet : dependSets)
-    {
-        this->InferredDependSets[dependSet.first]->push_back(dependSet.second);
+    // Add a link entry for this item.
+    int dependee_index = this->AddLinkEntry(l);
+
+    // The dependee must come after the depender.
+    if (depender_index >= 0) {
+      this->EntryConstraintGraph[depender_index].emplace_back(
+        dependee_index, false, cmListFileBacktrace());
+    } else {
+      // This is a direct dependency of the target being linked.
+      this->OriginalEntries.push_back(dependee_index);
     }
+
+    // Update the inferred dependencies for earlier items.
+    for (auto& dependSet : dependSets) {
+      // Add this item to the inferred dependencies of other items.
+      // Target items are never inferred dependees because unknown
+      // items are outside libraries that should not be depending on
+      // targets.
+      if (!this->EntryList[dependee_index].Target &&
+          !this->EntryList[dependee_index].IsFlag &&
+          dependee_index != dependSet.first) {
+        dependSet.second.insert(dependee_index);
+      }
+    }
+
+    // If this item needs to have dependencies inferred, do so.
+    if (this->InferredDependSets[dependee_index]) {
+      // Make sure an entry exists to hold the set for the item.
+      dependSets[dependee_index];
+    }
+  }
+
+  // Store the inferred dependency sets discovered for this list.
+  for (auto const& dependSet : dependSets) {
+    this->InferredDependSets[dependSet.first]->push_back(dependSet.second);
+  }
 }
 
 cmLinkItem
 cmComputeLinkDepends::ResolveLinkItem(int                depender_index,
                                       const std::string& name)
 {
-    // Look for a target in the scope of the depender.
-    cmGeneratorTarget const* from = this->Target;
-    if(depender_index >= 0)
-    {
-        if(cmGeneratorTarget const* depender =
-               this->EntryList[depender_index].Target)
-        {
-            from = depender;
-        }
+  // Look for a target in the scope of the depender.
+  cmGeneratorTarget const* from = this->Target;
+  if (depender_index >= 0) {
+    if (cmGeneratorTarget const* depender =
+          this->EntryList[depender_index].Target) {
+      from = depender;
     }
-    return from->ResolveLinkItem(name);
+  }
+  return from->ResolveLinkItem(name, cmListFileBacktrace());
 }
 
 void
 cmComputeLinkDepends::InferDependencies()
 {
-    // The inferred dependency sets for each item list the possible
-    // dependencies.  The intersection of the sets for one item form its
-    // inferred dependencies.
-    for(unsigned int depender_index = 0;
-        depender_index < this->InferredDependSets.size(); ++depender_index)
-    {
-        // Skip items for which dependencies do not need to be inferred or
-        // for which the inferred dependency sets are empty.
-        DependSetList* sets = this->InferredDependSets[depender_index];
-        if(!sets || sets->empty())
-        {
-            continue;
-        }
-
-        // Intersect the sets for this item.
-        DependSetList::const_iterator i      = sets->begin();
-        DependSet                     common = *i;
-        for(++i; i != sets->end(); ++i)
-        {
-            DependSet intersection;
-            std::set_intersection(
-                common.begin(), common.end(), i->begin(), i->end(),
-                std::inserter(intersection, intersection.begin()));
-            common = intersection;
-        }
-
-        // Add the inferred dependencies to the graph.
-        cmGraphEdgeList& edges = this->EntryConstraintGraph[depender_index];
-        edges.insert(edges.end(), common.begin(), common.end());
+  // The inferred dependency sets for each item list the possible
+  // dependencies.  The intersection of the sets for one item form its
+  // inferred dependencies.
+  for (unsigned int depender_index = 0;
+       depender_index < this->InferredDependSets.size(); ++depender_index) {
+    // Skip items for which dependencies do not need to be inferred or
+    // for which the inferred dependency sets are empty.
+    DependSetList* sets = this->InferredDependSets[depender_index];
+    if (!sets || sets->empty()) {
+      continue;
     }
+
+    // Intersect the sets for this item.
+    DependSet common = sets->front();
+    for (DependSet const& i : cmMakeRange(*sets).advance(1)) {
+      DependSet intersection;
+      std::set_intersection(common.begin(), common.end(), i.begin(), i.end(),
+                            std::inserter(intersection, intersection.begin()));
+      common = intersection;
+    }
+
+    // Add the inferred dependencies to the graph.
+    cmGraphEdgeList& edges = this->EntryConstraintGraph[depender_index];
+    edges.reserve(edges.size() + common.size());
+    for (auto const& c : common) {
+      edges.emplace_back(c, true, cmListFileBacktrace());
+    }
+  }
 }
 
 void
@@ -765,27 +815,24 @@ cmComputeLinkDepends::DisplayComponents()
 void
 cmComputeLinkDepends::VisitComponent(unsigned int c)
 {
-    // Check if the node has already been visited.
-    if(this->ComponentVisited[c])
-    {
-        return;
-    }
+  // Check if the node has already been visited.
+  if (this->ComponentVisited[c]) {
+    return;
+  }
 
-    // We are now visiting this component so mark it.
-    this->ComponentVisited[c] = 1;
+  // We are now visiting this component so mark it.
+  this->ComponentVisited[c] = 1;
 
-    // Visit the neighbors of the component first.
-    // Run in reverse order so the topological order will preserve the
-    // original order where there are no constraints.
-    EdgeList const& nl = this->CCG->GetComponentGraphEdges(c);
-    for(EdgeList::const_reverse_iterator ni = nl.rbegin(); ni != nl.rend();
-        ++ni)
-    {
-        this->VisitComponent(*ni);
-    }
+  // Visit the neighbors of the component first.
+  // Run in reverse order so the topological order will preserve the
+  // original order where there are no constraints.
+  EdgeList const& nl = this->CCG->GetComponentGraphEdges(c);
+  for (cmGraphEdge const& edge : cmReverseRange(nl)) {
+    this->VisitComponent(edge);
+  }
 
-    // Assign an ordering id to this component.
-    this->ComponentOrder[c] = --this->ComponentOrderId;
+  // Assign an ordering id to this component.
+  this->ComponentOrder[c] = --this->ComponentOrderId;
 }
 
 void

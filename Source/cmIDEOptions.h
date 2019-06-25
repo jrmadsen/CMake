@@ -43,16 +43,51 @@ public:
     const char* GetFlag(std::string const& flag) const;
 
 protected:
-    // create a map of xml tags to the values they should have in the output
-    // for example, "BufferSecurityCheck" = "TRUE"
-    // first fill this table with the values for the configuration
-    // Debug, Release, etc,
-    // Then parse the command line flags specified in CMAKE_CXX_FLAGS
-    // and CMAKE_C_FLAGS
-    // and overwrite or add new values to this map
-    class FlagValue : public std::vector<std::string>
+  // create a map of xml tags to the values they should have in the output
+  // for example, "BufferSecurityCheck" = "TRUE"
+  // first fill this table with the values for the configuration
+  // Debug, Release, etc,
+  // Then parse the command line flags specified in CMAKE_CXX_FLAGS
+  // and CMAKE_C_FLAGS
+  // and overwrite or add new values to this map
+  class FlagValue : public std::vector<std::string>
+  {
+    typedef std::vector<std::string> derived;
+
+  public:
+    FlagValue& operator=(std::string const& r)
     {
-        typedef std::vector<std::string> derived;
+      this->resize(1);
+      this->operator[](0) = r;
+      return *this;
+    }
+    FlagValue& operator=(std::vector<std::string> const& r)
+    {
+      this->derived::operator=(r);
+      return *this;
+    }
+    FlagValue& append_with_comma(std::string const& r)
+    {
+      return append_with_separator(r, ',');
+    }
+    FlagValue& append_with_space(std::string const& r)
+    {
+      return append_with_separator(r, ' ');
+    }
+
+  private:
+    FlagValue& append_with_separator(std::string const& r, char separator)
+    {
+      this->resize(1);
+      std::string& l = this->operator[](0);
+      if (!l.empty()) {
+        l += separator;
+      }
+      l += r;
+      return *this;
+    }
+  };
+  std::map<std::string, FlagValue> FlagMap;
 
     public:
         FlagValue& operator=(std::string const& r)

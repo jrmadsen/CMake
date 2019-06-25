@@ -3,6 +3,7 @@
 #include "cmRST.h"
 
 #include "cmAlgorithms.h"
+#include "cmRange.h"
 #include "cmSystemTools.h"
 #include "cmVersion.h"
 
@@ -13,38 +14,38 @@
 #include <stddef.h>
 #include <utility>
 
-cmRST::cmRST(std::ostream& os, std::string const& docroot)
-: OS(os)
-, DocRoot(docroot)
-, IncludeDepth(0)
-, OutputLinePending(false)
-, LastLineEndedInColonColon(false)
-, Markup(MarkupNone)
-, Directive(DirectiveNone)
-, CMakeDirective("^.. (cmake:)?("
-                 "command|variable"
-                 ")::[ \t]+([^ \t\n]+)$")
-, CMakeModuleDirective("^.. cmake-module::[ \t]+([^ \t\n]+)$")
-, ParsedLiteralDirective("^.. parsed-literal::[ \t]*(.*)$")
-, CodeBlockDirective("^.. code-block::[ \t]*(.*)$")
-, ReplaceDirective("^.. (\\|[^|]+\\|) replace::[ \t]*(.*)$")
-, IncludeDirective("^.. include::[ \t]+([^ \t\n]+)$")
-, TocTreeDirective("^.. toctree::[ \t]*(.*)$")
-, ProductionListDirective("^.. productionlist::[ \t]*(.*)$")
-, NoteDirective("^.. note::[ \t]*(.*)$")
-, ModuleRST("^#\\[(=*)\\[\\.rst:$")
-, CMakeRole("(:cmake)?:("
-            "command|cpack_gen|generator|variable|envvar|module|policy|"
-            "prop_cache|prop_dir|prop_gbl|prop_inst|prop_sf|"
-            "prop_test|prop_tgt|"
-            "manual"
-            "):`(<*([^`<]|[^` \t]<)*)([ \t]+<[^`]*>)?`")
-, InlineLink("`(<*([^`<]|[^` \t]<)*)([ \t]+<[^`]*>)?`_")
-, InlineLiteral("``([^`]*)``")
-, Substitution("(^|[^A-Za-z0-9_])"
-               "((\\|[^| \t\r\n]([^|\r\n]*[^| \t\r\n])?\\|)(__|_|))"
-               "([^A-Za-z0-9_]|$)")
-, TocTreeLink("^.*[ \t]+<([^>]+)>$")
+cmRST::cmRST(std::ostream& os, std::string docroot)
+  : OS(os)
+  , DocRoot(std::move(docroot))
+  , IncludeDepth(0)
+  , OutputLinePending(false)
+  , LastLineEndedInColonColon(false)
+  , Markup(MarkupNone)
+  , Directive(DirectiveNone)
+  , CMakeDirective("^.. (cmake:)?("
+                   "command|variable"
+                   ")::[ \t]+([^ \t\n]+)$")
+  , CMakeModuleDirective("^.. cmake-module::[ \t]+([^ \t\n]+)$")
+  , ParsedLiteralDirective("^.. parsed-literal::[ \t]*(.*)$")
+  , CodeBlockDirective("^.. code-block::[ \t]*(.*)$")
+  , ReplaceDirective("^.. (\\|[^|]+\\|) replace::[ \t]*(.*)$")
+  , IncludeDirective("^.. include::[ \t]+([^ \t\n]+)$")
+  , TocTreeDirective("^.. toctree::[ \t]*(.*)$")
+  , ProductionListDirective("^.. productionlist::[ \t]*(.*)$")
+  , NoteDirective("^.. note::[ \t]*(.*)$")
+  , ModuleRST(R"(^#\[(=*)\[\.rst:$)")
+  , CMakeRole("(:cmake)?:("
+              "command|cpack_gen|generator|variable|envvar|module|policy|"
+              "prop_cache|prop_dir|prop_gbl|prop_inst|prop_sf|"
+              "prop_test|prop_tgt|"
+              "manual"
+              "):`(<*([^`<]|[^` \t]<)*)([ \t]+<[^`]*>)?`")
+  , InlineLink("`(<*([^`<]|[^` \t]<)*)([ \t]+<[^`]*>)?`_")
+  , InlineLiteral("``([^`]*)``")
+  , Substitution("(^|[^A-Za-z0-9_])"
+                 "((\\|[^| \t\r\n]([^|\r\n]*[^| \t\r\n])?\\|)(__|_|))"
+                 "([^A-Za-z0-9_]|$)")
+  , TocTreeLink("^.*[ \t]+<([^>]+)>$")
 {
     this->Replace["|release|"] = cmVersion::GetCMakeVersion();
 }
@@ -141,33 +142,31 @@ cmRST::ProcessModule(std::istream& is)
 void
 cmRST::Reset()
 {
-    if(!this->MarkupLines.empty())
-    {
-        this->UnindentLines(this->MarkupLines);
-    }
-    switch(this->Directive)
-    {
-        case DirectiveNone:
-            break;
-        case DirectiveParsedLiteral:
-            this->ProcessDirectiveParsedLiteral();
-            break;
-        case DirectiveLiteralBlock:
-            this->ProcessDirectiveLiteralBlock();
-            break;
-        case DirectiveCodeBlock:
-            this->ProcessDirectiveCodeBlock();
-            break;
-        case DirectiveReplace:
-            this->ProcessDirectiveReplace();
-            break;
-        case DirectiveTocTree:
-            this->ProcessDirectiveTocTree();
-            break;
-    }
-    this->Markup    = MarkupNone;
-    this->Directive = DirectiveNone;
-    this->MarkupLines.clear();
+  if (!this->MarkupLines.empty()) {
+    cmRST::UnindentLines(this->MarkupLines);
+  }
+  switch (this->Directive) {
+    case DirectiveNone:
+      break;
+    case DirectiveParsedLiteral:
+      this->ProcessDirectiveParsedLiteral();
+      break;
+    case DirectiveLiteralBlock:
+      this->ProcessDirectiveLiteralBlock();
+      break;
+    case DirectiveCodeBlock:
+      this->ProcessDirectiveCodeBlock();
+      break;
+    case DirectiveReplace:
+      this->ProcessDirectiveReplace();
+      break;
+    case DirectiveTocTree:
+      this->ProcessDirectiveTocTree();
+      break;
+  }
+  this->Markup = MarkupNone;
+  this->Directive = DirectiveNone;
+  this->MarkupLines.clear();
 }
 
 void
@@ -176,71 +175,42 @@ cmRST::ProcessLine(std::string const& line)
     bool lastLineEndedInColonColon  = this->LastLineEndedInColonColon;
     this->LastLineEndedInColonColon = false;
 
-    // A line starting in .. is an explicit markup start.
-    if(line == ".." || (line.size() >= 3 && line[0] == '.' && line[1] == '.' &&
-                        isspace(line[2])))
-    {
-        this->Reset();
-        this->Markup = (line.find_first_not_of(" \t", 2) == std::string::npos
-                            ? MarkupEmpty
-                            : MarkupNormal);
-        if(this->CMakeDirective.find(line))
-        {
-            // Output cmake domain directives and their content normally.
-            this->NormalLine(line);
-        } else if(this->CMakeModuleDirective.find(line))
-        {
-            // Process cmake-module directive: scan .cmake file comments.
-            std::string file = this->CMakeModuleDirective.match(1);
-            if(file.empty() || !this->ProcessInclude(file, IncludeModule))
-            {
-                this->NormalLine(line);
-            }
-        } else if(this->ParsedLiteralDirective.find(line))
-        {
-            // Record the literal lines to output after whole block.
-            this->Directive = DirectiveParsedLiteral;
-            this->MarkupLines.push_back(this->ParsedLiteralDirective.match(1));
-        } else if(this->CodeBlockDirective.find(line))
-        {
-            // Record the literal lines to output after whole block.
-            // Ignore the language spec and record the opening line as blank.
-            this->Directive = DirectiveCodeBlock;
-            this->MarkupLines.push_back("");
-        } else if(this->ReplaceDirective.find(line))
-        {
-            // Record the replace directive content.
-            this->Directive   = DirectiveReplace;
-            this->ReplaceName = this->ReplaceDirective.match(1);
-            this->MarkupLines.push_back(this->ReplaceDirective.match(2));
-        } else if(this->IncludeDirective.find(line))
-        {
-            // Process the include directive or output the directive and its
-            // content normally if it fails.
-            std::string file = this->IncludeDirective.match(1);
-            if(file.empty() || !this->ProcessInclude(file, IncludeNormal))
-            {
-                this->NormalLine(line);
-            }
-        } else if(this->TocTreeDirective.find(line))
-        {
-            // Record the toctree entries to process after whole block.
-            this->Directive = DirectiveTocTree;
-            this->MarkupLines.push_back(this->TocTreeDirective.match(1));
-        } else if(this->ProductionListDirective.find(line))
-        {
-            // Output productionlist directives and their content normally.
-            this->NormalLine(line);
-        } else if(this->NoteDirective.find(line))
-        {
-            // Output note directives and their content normally.
-            this->NormalLine(line);
-        }
-    }
-    // An explicit markup start followed nothing but whitespace and a
-    // blank line does not consume any indented text following.
-    else if(this->Markup == MarkupEmpty && line.empty())
-    {
+  // A line starting in .. is an explicit markup start.
+  if (line == ".." ||
+      (line.size() >= 3 && line[0] == '.' && line[1] == '.' &&
+       isspace(line[2]))) {
+    this->Reset();
+    this->Markup =
+      (line.find_first_not_of(" \t", 2) == std::string::npos ? MarkupEmpty
+                                                             : MarkupNormal);
+    if (this->CMakeDirective.find(line)) {
+      // Output cmake domain directives and their content normally.
+      this->NormalLine(line);
+    } else if (this->CMakeModuleDirective.find(line)) {
+      // Process cmake-module directive: scan .cmake file comments.
+      std::string file = this->CMakeModuleDirective.match(1);
+      if (file.empty() || !this->ProcessInclude(file, IncludeModule)) {
+        this->NormalLine(line);
+      }
+    } else if (this->ParsedLiteralDirective.find(line)) {
+      // Record the literal lines to output after whole block.
+      this->Directive = DirectiveParsedLiteral;
+      this->MarkupLines.push_back(this->ParsedLiteralDirective.match(1));
+    } else if (this->CodeBlockDirective.find(line)) {
+      // Record the literal lines to output after whole block.
+      // Ignore the language spec and record the opening line as blank.
+      this->Directive = DirectiveCodeBlock;
+      this->MarkupLines.emplace_back();
+    } else if (this->ReplaceDirective.find(line)) {
+      // Record the replace directive content.
+      this->Directive = DirectiveReplace;
+      this->ReplaceName = this->ReplaceDirective.match(1);
+      this->MarkupLines.push_back(this->ReplaceDirective.match(2));
+    } else if (this->IncludeDirective.find(line)) {
+      // Process the include directive or output the directive and its
+      // content normally if it fails.
+      std::string file = this->IncludeDirective.match(1);
+      if (file.empty() || !this->ProcessInclude(file, IncludeNormal)) {
         this->NormalLine(line);
     }
     // Indented lines following an explicit markup start are explicit markup.
@@ -270,6 +240,21 @@ cmRST::ProcessLine(std::string const& line)
             (line.size() >= 2 && line[line.size() - 2] == ':' &&
              line[line.size() - 1] == ':');
     }
+  }
+  // A blank line following a paragraph ending in "::" starts a literal block.
+  else if (lastLineEndedInColonColon && line.empty()) {
+    // Record the literal lines to output after whole block.
+    this->Markup = MarkupNormal;
+    this->Directive = DirectiveLiteralBlock;
+    this->MarkupLines.emplace_back();
+    this->OutputLine("", false);
+  }
+  // Print non-markup lines.
+  else {
+    this->NormalLine(line);
+    this->LastLineEndedInColonColon =
+      (line.size() >= 2 && line[line.size() - 2] == ':' && line.back() == ':');
+  }
 }
 
 void
@@ -546,8 +531,13 @@ cmRST::UnindentLines(std::vector<std::string>& lines)
     size_t                                           trailingEmpty =
         std::distance(rit, cmFindNot(cmReverseRange(lines), std::string()));
 
-    std::vector<std::string>::iterator contentEnd =
-        cmRotate(lines.begin(), lines.begin() + leadingEmpty,
-                 lines.end() - trailingEmpty);
-    lines.erase(contentEnd, lines.end());
+  if ((leadingEmpty + trailingEmpty) >= lines.size()) {
+    // All lines are empty.  The markup block is empty.  Leave only one.
+    lines.resize(1);
+    return;
+  }
+
+  std::vector<std::string>::iterator contentEnd = cmRotate(
+    lines.begin(), lines.begin() + leadingEmpty, lines.end() - trailingEmpty);
+  lines.erase(contentEnd, lines.end());
 }

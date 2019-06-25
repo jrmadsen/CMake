@@ -5,6 +5,7 @@
 
 #include "cmConfigure.h"  // IWYU pragma: keep
 
+#include "cmAlgorithms.h"
 #include "cmDocumentationEntry.h"
 
 #include <string>
@@ -18,8 +19,8 @@
 class cmDocumentationSection
 {
 public:
-    /** Create a cmSection, with a special name for man-output mode. */
-    cmDocumentationSection(const char* name, const char*)
+  /** Create a cmSection, with a special name for man-output mode. */
+  explicit cmDocumentationSection(const char* name)
     : Name(name)
     {}
 
@@ -38,16 +39,15 @@ public:
         return this->Entries;
     }
 
-    /** Append an entry to this section. */
-    void Append(const cmDocumentationEntry& entry)
-    {
-        this->Entries.push_back(entry);
-    }
-    void Append(const std::vector<cmDocumentationEntry>& entries)
-    {
-        this->Entries.insert(this->Entries.end(), entries.begin(),
-                             entries.end());
-    }
+  /** Append an entry to this section. */
+  void Append(const cmDocumentationEntry& entry)
+  {
+    this->Entries.push_back(entry);
+  }
+  void Append(const std::vector<cmDocumentationEntry>& entries)
+  {
+    cmAppend(this->Entries, entries);
+  }
 
     /** Append an entry to this section using NULL terminated chars */
     void Append(const char*[][2]);

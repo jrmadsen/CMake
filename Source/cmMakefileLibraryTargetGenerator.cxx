@@ -2,12 +2,14 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmMakefileLibraryTargetGenerator.h"
 
-#include <algorithm>
-#include <memory>  // IWYU pragma: keep
+#include <memory> // IWYU pragma: keep
+#include <set>
 #include <sstream>
 #include <stddef.h>
+#include <utility>
 #include <vector>
 
+#include "cmAlgorithms.h"
 #include "cmGeneratedFileStream.h"
 #include "cmGeneratorTarget.h"
 #include "cmGlobalUnixMakefileGenerator3.h"
@@ -24,29 +26,24 @@
 #include "cmStateSnapshot.h"
 #include "cmStateTypes.h"
 #include "cmSystemTools.h"
-#include "cmake.h"
 
 cmMakefileLibraryTargetGenerator::cmMakefileLibraryTargetGenerator(
     cmGeneratorTarget* target)
 : cmMakefileTargetGenerator(target)
 {
-    this->CustomCommandDriver = OnDepends;
-    if(this->GeneratorTarget->GetType() != cmStateEnums::INTERFACE_LIBRARY)
-    {
-        this->GeneratorTarget->GetLibraryNames(
-            this->TargetNameOut, this->TargetNameSO, this->TargetNameReal,
-            this->TargetNameImport, this->TargetNamePDB, this->ConfigName);
-    }
+  this->CustomCommandDriver = OnDepends;
+  if (this->GeneratorTarget->GetType() != cmStateEnums::INTERFACE_LIBRARY) {
+    this->TargetNames =
+      this->GeneratorTarget->GetLibraryNames(this->ConfigName);
+  }
 
-    this->OSXBundleGenerator =
-        new cmOSXBundleGenerator(target, this->ConfigName);
-    this->OSXBundleGenerator->SetMacContentFolders(&this->MacContentFolders);
+  this->OSXBundleGenerator =
+    cm::make_unique<cmOSXBundleGenerator>(target, this->ConfigName);
+  this->OSXBundleGenerator->SetMacContentFolders(&this->MacContentFolders);
 }
 
-cmMakefileLibraryTargetGenerator::~cmMakefileLibraryTargetGenerator()
-{
-    delete this->OSXBundleGenerator;
-}
+cmMakefileLibraryTargetGenerator::~cmMakefileLibraryTargetGenerator() =
+  default;
 
 void
 cmMakefileLibraryTargetGenerator::WriteRuleFiles()
@@ -109,43 +106,41 @@ cmMakefileLibraryTargetGenerator::WriteRuleFiles()
 void
 cmMakefileLibraryTargetGenerator::WriteObjectLibraryRules()
 {
-    std::vector<std::string> commands;
-    std::vector<std::string> depends;
 
-    // Add post-build rules.
-    this->LocalGenerator->AppendCustomCommands(
-        commands, this->GeneratorTarget->GetPostBuildCommands(),
-        this->GeneratorTarget, this->LocalGenerator->GetBinaryDirectory());
+  bool requiresDeviceLinking = requireDeviceLinking(
+    *this->GeneratorTarget, *this->LocalGenerator, this->ConfigName);
+  if (requiresDeviceLinking) {
+    std::string linkRuleVar = "CMAKE_CUDA_DEVICE_LINK_LIBRARY";
+    this->WriteDeviceLibraryRules(linkRuleVar, false);
+  }
 
-    // Depend on the object files.
-    this->AppendObjectDepends(depends);
+  std::string linkLanguage =
+    this->GeneratorTarget->GetLinkerLanguage(this->ConfigName);
 
-    // Write the rule.
-    this->LocalGenerator->WriteMakeRule(*this->BuildFileStream, nullptr,
-                                        this->GeneratorTarget->GetName(),
-                                        depends, commands, true);
+  std::string linkRuleVar = this->GeneratorTarget->GetCreateRuleVariable(
+    linkLanguage, this->ConfigName);
 
-    // Write the main driver rule to build everything in this target.
-    this->WriteTargetDriverRule(this->GeneratorTarget->GetName(), false);
+  std::string extraFlags;
+  this->LocalGenerator->GetStaticLibraryFlags(
+    extraFlags, cmSystemTools::UpperCase(this->ConfigName), linkLanguage,
+    this->GeneratorTarget);
+  this->WriteLibraryRules(linkRuleVar, extraFlags, false);
 }
 
 void
 cmMakefileLibraryTargetGenerator::WriteStaticLibraryRules()
 {
-    const std::string                     cuda_lang("CUDA");
-    cmGeneratorTarget::LinkClosure const* closure =
-        this->GeneratorTarget->GetLinkClosure(this->ConfigName);
+  if (this->GeneratorTarget->IsFrameworkOnApple()) {
+    this->WriteFrameworkRules(relink);
+    return;
+  }
 
-    const bool hasCUDA =
-        (std::find(closure->Languages.begin(), closure->Languages.end(),
-                   cuda_lang) != closure->Languages.end());
-
-    const bool resolveDeviceSymbols =
-        this->GeneratorTarget->GetPropertyAsBool("CUDA_RESOLVE_DEVICE_SYMBOLS");
-    if(hasCUDA && resolveDeviceSymbols)
-    {
-        std::string linkRuleVar = "CMAKE_CUDA_DEVICE_LINK_LIBRARY";
-        this->WriteDeviceLibraryRules(linkRuleVar, false);
+  if (!relink) {
+    bool requiresDeviceLinking = requireDeviceLinking(
+      *this->GeneratorTarget, *this->LocalGenerator, this->ConfigName);
+    if (requiresDeviceLinking) {
+      std::string linkRuleVar = "CMAKE_CUDA_DEVICE_LINK_LIBRARY";
+      this->WriteDeviceLibraryRules(linkRuleVar, relink);
     }
 
     std::string linkLanguage =
@@ -170,64 +165,12 @@ cmMakefileLibraryTargetGenerator::WriteSharedLibraryRules(bool relink)
         return;
     }
 
-    if(!relink)
-    {
-        const std::string                     cuda_lang("CUDA");
-        cmGeneratorTarget::LinkClosure const* closure =
-            this->GeneratorTarget->GetLinkClosure(this->ConfigName);
-
-        const bool hasCUDA =
-            (std::find(closure->Languages.begin(), closure->Languages.end(),
-                       cuda_lang) != closure->Languages.end());
-        if(hasCUDA)
-        {
-            std::string linkRuleVar = "CMAKE_CUDA_DEVICE_LINK_LIBRARY";
-            this->WriteDeviceLibraryRules(linkRuleVar, relink);
-        }
-    }
-
-    std::string linkLanguage =
-        this->GeneratorTarget->GetLinkerLanguage(this->ConfigName);
-    std::string linkRuleVar = "CMAKE_";
-    linkRuleVar += linkLanguage;
-    linkRuleVar += "_CREATE_SHARED_LIBRARY";
-
-    std::string extraFlags;
-    this->GetTargetLinkFlags(extraFlags, linkLanguage);
-    this->LocalGenerator->AddConfigVariableFlags(
-        extraFlags, "CMAKE_SHARED_LINKER_FLAGS", this->ConfigName);
-
-    std::unique_ptr<cmLinkLineComputer> linkLineComputer(
-        this->CreateLinkLineComputer(
-            this->LocalGenerator,
-            this->LocalGenerator->GetStateSnapshot().GetDirectory()));
-
-    this->AddModuleDefinitionFlag(linkLineComputer.get(), extraFlags);
-
-    if(this->GeneratorTarget->GetPropertyAsBool("LINK_WHAT_YOU_USE"))
-    {
-        this->LocalGenerator->AppendFlags(extraFlags, " -Wl,--no-as-needed");
-    }
-    this->WriteLibraryRules(linkRuleVar, extraFlags, relink);
-}
-
-void
-cmMakefileLibraryTargetGenerator::WriteModuleLibraryRules(bool relink)
-{
-    if(!relink)
-    {
-        const std::string                     cuda_lang("CUDA");
-        cmGeneratorTarget::LinkClosure const* closure =
-            this->GeneratorTarget->GetLinkClosure(this->ConfigName);
-
-        const bool hasCUDA =
-            (std::find(closure->Languages.begin(), closure->Languages.end(),
-                       cuda_lang) != closure->Languages.end());
-        if(hasCUDA)
-        {
-            std::string linkRuleVar = "CMAKE_CUDA_DEVICE_LINK_LIBRARY";
-            this->WriteDeviceLibraryRules(linkRuleVar, relink);
-        }
+  if (!relink) {
+    bool requiresDeviceLinking = requireDeviceLinking(
+      *this->GeneratorTarget, *this->LocalGenerator, this->ConfigName);
+    if (requiresDeviceLinking) {
+      std::string linkRuleVar = "CMAKE_CUDA_DEVICE_LINK_LIBRARY";
+      this->WriteDeviceLibraryRules(linkRuleVar, relink);
     }
 
     std::string linkLanguage =
@@ -273,43 +216,81 @@ cmMakefileLibraryTargetGenerator::WriteDeviceLibraryRules(
     const std::string& linkRuleVar, bool relink)
 {
 #ifdef CMAKE_BUILD_WITH_CMAKE
-    // TODO: Merge the methods that call this method to avoid
-    // code duplication.
-    std::vector<std::string> commands;
+  // TODO: Merge the methods that call this method to avoid
+  // code duplication.
+  std::vector<std::string> commands;
 
-    // Get the language to use for linking this library.
-    std::string       linkLanguage = "CUDA";
-    std::string const objExt =
-        this->Makefile->GetSafeDefinition("CMAKE_CUDA_OUTPUT_EXTENSION");
+  // Get the language to use for linking this library.
+  std::string linkLanguage = "CUDA";
+  std::string const objExt =
+    this->Makefile->GetSafeDefinition("CMAKE_CUDA_OUTPUT_EXTENSION");
 
-    // Build list of dependencies.
-    std::vector<std::string> depends;
-    this->AppendLinkDepends(depends, linkLanguage);
+  // Build list of dependencies.
+  std::vector<std::string> depends;
+  this->AppendLinkDepends(depends, linkLanguage);
 
-    // Create set of linking flags.
-    std::string linkFlags;
-    this->GetTargetLinkFlags(linkFlags, linkLanguage);
+  // Create set of linking flags.
+  std::string linkFlags;
+  this->GetTargetLinkFlags(linkFlags, linkLanguage);
 
-    // Get the name of the device object to generate.
-    std::string const targetOutputReal =
-        this->GeneratorTarget->ObjectDirectory + "cmake_device_link" + objExt;
-    this->DeviceLinkObject = targetOutputReal;
+  // Get the name of the device object to generate.
+  std::string const targetOutputReal =
+    this->GeneratorTarget->ObjectDirectory + "cmake_device_link" + objExt;
+  this->DeviceLinkObject = targetOutputReal;
 
-    this->NumberOfProgressActions++;
-    if(!this->NoRuleMessages)
-    {
-        cmLocalUnixMakefileGenerator3::EchoProgress progress;
-        this->MakeEchoProgress(progress);
-        // Add the link message.
-        std::string buildEcho = "Linking " + linkLanguage + " device code ";
-        buildEcho += this->LocalGenerator->ConvertToOutputFormat(
-            this->LocalGenerator->MaybeConvertToRelativePath(
-                this->LocalGenerator->GetCurrentBinaryDirectory(),
-                this->DeviceLinkObject),
-            cmOutputConverter::SHELL);
-        this->LocalGenerator->AppendEcho(
-            commands, buildEcho, cmLocalUnixMakefileGenerator3::EchoLink,
-            &progress);
+  this->NumberOfProgressActions++;
+  if (!this->NoRuleMessages) {
+    cmLocalUnixMakefileGenerator3::EchoProgress progress;
+    this->MakeEchoProgress(progress);
+    // Add the link message.
+    std::string buildEcho = "Linking " + linkLanguage + " device code ";
+    buildEcho += this->LocalGenerator->ConvertToOutputFormat(
+      this->LocalGenerator->MaybeConvertToRelativePath(
+        this->LocalGenerator->GetCurrentBinaryDirectory(),
+        this->DeviceLinkObject),
+      cmOutputConverter::SHELL);
+    this->LocalGenerator->AppendEcho(
+      commands, buildEcho, cmLocalUnixMakefileGenerator3::EchoLink, &progress);
+  }
+  // Clean files associated with this library.
+  std::set<std::string> libCleanFiles;
+  libCleanFiles.insert(this->LocalGenerator->MaybeConvertToRelativePath(
+    this->LocalGenerator->GetCurrentBinaryDirectory(), targetOutputReal));
+
+  // Determine whether a link script will be used.
+  bool useLinkScript = this->GlobalGenerator->GetUseLinkScript();
+
+  bool useResponseFileForObjects =
+    this->CheckUseResponseFileForObjects(linkLanguage);
+  bool const useResponseFileForLibs =
+    this->CheckUseResponseFileForLibraries(linkLanguage);
+
+  cmRulePlaceholderExpander::RuleVariables vars;
+  vars.Language = linkLanguage.c_str();
+
+  // Expand the rule variables.
+  std::vector<std::string> real_link_commands;
+  {
+    bool useWatcomQuote =
+      this->Makefile->IsOn(linkRuleVar + "_USE_WATCOM_QUOTE");
+
+    // Set path conversion for link script shells.
+    this->LocalGenerator->SetLinkScriptShell(useLinkScript);
+
+    // Collect up flags to link in needed libraries.
+    std::string linkLibs;
+    if (this->GeneratorTarget->GetType() != cmStateEnums::STATIC_LIBRARY) {
+
+      std::unique_ptr<cmLinkLineComputer> linkLineComputer(
+        new cmLinkLineDeviceComputer(
+          this->LocalGenerator,
+          this->LocalGenerator->GetStateSnapshot().GetDirectory()));
+      linkLineComputer->SetForResponse(useResponseFileForLibs);
+      linkLineComputer->SetUseWatcomQuote(useWatcomQuote);
+      linkLineComputer->SetRelink(relink);
+
+      this->CreateLinkLibs(linkLineComputer.get(), linkLibs,
+                           useResponseFileForLibs, depends);
     }
     // Clean files associated with this library.
     std::vector<std::string> libCleanFiles;
@@ -352,72 +333,174 @@ cmMakefileLibraryTargetGenerator::WriteDeviceLibraryRules(
                                  useResponseFileForLibs, depends);
         }
 
-        // Construct object file lists that may be needed to expand the
-        // rule.
-        std::string buildObjs;
-        this->CreateObjectLists(useLinkScript, false,  // useArchiveRules
-                                useResponseFileForObjects, buildObjs, depends,
-                                useWatcomQuote);
+    // Clean all the possible library names and symlinks.
+    this->CleanFiles.insert(libCleanFiles.begin(), libCleanFiles.end());
+  }
 
-        cmOutputConverter::OutputFormat output =
-            (useWatcomQuote) ? cmOutputConverter::WATCOMQUOTE
-                             : cmOutputConverter::SHELL;
+  std::vector<std::string> commands1;
+  // Optionally convert the build rule to use a script to avoid long
+  // command lines in the make shell.
+  if (useLinkScript) {
+    // Use a link script.
+    const char* name = (relink ? "drelink.txt" : "dlink.txt");
+    this->CreateLinkScript(name, real_link_commands, commands1, depends);
+  } else {
+    // No link script.  Just use the link rule directly.
+    commands1 = real_link_commands;
+  }
+  this->LocalGenerator->CreateCDCommand(
+    commands1, this->Makefile->GetCurrentBinaryDirectory(),
+    this->LocalGenerator->GetBinaryDirectory());
+  cmAppend(commands, commands1);
+  commands1.clear();
 
-        std::string objectDir = this->GeneratorTarget->GetSupportDirectory();
-        objectDir             = this->LocalGenerator->ConvertToOutputFormat(
-            this->LocalGenerator->MaybeConvertToRelativePath(
-                this->LocalGenerator->GetCurrentBinaryDirectory(), objectDir),
-            cmOutputConverter::SHELL);
+  // Compute the list of outputs.
+  std::vector<std::string> outputs(1, targetOutputReal);
 
-        std::string target = this->LocalGenerator->ConvertToOutputFormat(
-            this->LocalGenerator->MaybeConvertToRelativePath(
-                this->LocalGenerator->GetCurrentBinaryDirectory(),
-                targetOutputReal),
-            output);
+  // Write the build rule.
+  this->WriteMakeRule(*this->BuildFileStream, nullptr, outputs, depends,
+                      commands, false);
 
-        std::string targetFullPathCompilePDB = this->ComputeTargetCompilePDB();
-        std::string targetOutPathCompilePDB =
-            this->LocalGenerator->ConvertToOutputFormat(
-                targetFullPathCompilePDB, cmOutputConverter::SHELL);
+  // Write the main driver rule to build everything in this target.
+  this->WriteTargetDriverRule(targetOutputReal, relink);
+#else
+  static_cast<void>(linkRuleVar);
+  static_cast<void>(relink);
+#endif
+}
 
-        vars.Objects          = buildObjs.c_str();
-        vars.ObjectDir        = objectDir.c_str();
-        vars.Target           = target.c_str();
-        vars.LinkLibraries    = linkLibs.c_str();
-        vars.ObjectsQuoted    = buildObjs.c_str();
-        vars.LinkFlags        = linkFlags.c_str();
-        vars.TargetCompilePDB = targetOutPathCompilePDB.c_str();
+void cmMakefileLibraryTargetGenerator::WriteLibraryRules(
+  const std::string& linkRuleVar, const std::string& extraFlags, bool relink)
+{
+  // TODO: Merge the methods that call this method to avoid
+  // code duplication.
+  std::vector<std::string> commands;
 
-        // Add language-specific flags.
-        std::string langFlags;
-        this->LocalGenerator->AddLanguageFlagsForLinking(
-            langFlags, this->GeneratorTarget, linkLanguage, this->ConfigName);
+  // Get the language to use for linking this library.
+  std::string linkLanguage =
+    this->GeneratorTarget->GetLinkerLanguage(this->ConfigName);
 
-        vars.LanguageCompileFlags = langFlags.c_str();
+  // Make sure we have a link language.
+  if (linkLanguage.empty()) {
+    cmSystemTools::Error("Cannot determine link language for target \"" +
+                         this->GeneratorTarget->GetName() + "\".");
+    return;
+  }
 
-        std::string launcher;
-        const char* val = this->LocalGenerator->GetRuleLauncher(
-            this->GeneratorTarget, "RULE_LAUNCH_LINK");
-        if(val && *val)
-        {
-            launcher = val;
-            launcher += " ";
-        }
+  // Build list of dependencies.
+  std::vector<std::string> depends;
+  this->AppendLinkDepends(depends, linkLanguage);
+  if (!this->DeviceLinkObject.empty()) {
+    depends.push_back(this->DeviceLinkObject);
+  }
 
-        std::unique_ptr<cmRulePlaceholderExpander> rulePlaceholderExpander(
-            this->LocalGenerator->CreateRulePlaceholderExpander());
+  // Create set of linking flags.
+  std::string linkFlags;
+  this->LocalGenerator->AppendFlags(linkFlags, extraFlags);
+  this->LocalGenerator->AppendIPOLinkerFlags(linkFlags, this->GeneratorTarget,
+                                             this->ConfigName, linkLanguage);
 
-        // Construct the main link rule and expand placeholders.
-        rulePlaceholderExpander->SetTargetImpLib(targetOutputReal);
-        std::string linkRule = this->GetLinkRule(linkRuleVar);
-        cmSystemTools::ExpandListArgument(linkRule, real_link_commands);
+  // Add OSX version flags, if any.
+  if (this->GeneratorTarget->GetType() == cmStateEnums::SHARED_LIBRARY ||
+      this->GeneratorTarget->GetType() == cmStateEnums::MODULE_LIBRARY) {
+    this->AppendOSXVerFlag(linkFlags, linkLanguage, "COMPATIBILITY", true);
+    this->AppendOSXVerFlag(linkFlags, linkLanguage, "CURRENT", false);
+  }
 
-        // Expand placeholders.
-        for(std::string& real_link_command : real_link_commands)
-        {
-            real_link_command = launcher + real_link_command;
-            rulePlaceholderExpander->ExpandRuleVariables(
-                this->LocalGenerator, real_link_command, vars);
+  // Construct the name of the library.
+  this->GeneratorTarget->GetLibraryNames(this->ConfigName);
+
+  // Construct the full path version of the names.
+  std::string outpath;
+  std::string outpathImp;
+  if (this->GeneratorTarget->IsFrameworkOnApple()) {
+    outpath = this->GeneratorTarget->GetDirectory(this->ConfigName);
+    this->OSXBundleGenerator->CreateFramework(this->TargetNames.Output,
+                                              outpath);
+    outpath += "/";
+  } else if (this->GeneratorTarget->IsCFBundleOnApple()) {
+    outpath = this->GeneratorTarget->GetDirectory(this->ConfigName);
+    this->OSXBundleGenerator->CreateCFBundle(this->TargetNames.Output,
+                                             outpath);
+    outpath += "/";
+  } else if (relink) {
+    outpath = this->Makefile->GetCurrentBinaryDirectory();
+    outpath += "/CMakeFiles";
+    outpath += "/CMakeRelink.dir";
+    cmSystemTools::MakeDirectory(outpath);
+    outpath += "/";
+    if (!this->TargetNames.ImportLibrary.empty()) {
+      outpathImp = outpath;
+    }
+  } else {
+    outpath = this->GeneratorTarget->GetDirectory(this->ConfigName);
+    cmSystemTools::MakeDirectory(outpath);
+    outpath += "/";
+    if (!this->TargetNames.ImportLibrary.empty()) {
+      outpathImp = this->GeneratorTarget->GetDirectory(
+        this->ConfigName, cmStateEnums::ImportLibraryArtifact);
+      cmSystemTools::MakeDirectory(outpathImp);
+      outpathImp += "/";
+    }
+  }
+
+  std::string compilePdbOutputPath =
+    this->GeneratorTarget->GetCompilePDBDirectory(this->ConfigName);
+  cmSystemTools::MakeDirectory(compilePdbOutputPath);
+
+  std::string pdbOutputPath =
+    this->GeneratorTarget->GetPDBDirectory(this->ConfigName);
+  cmSystemTools::MakeDirectory(pdbOutputPath);
+  pdbOutputPath += "/";
+
+  std::string targetFullPath = outpath + this->TargetNames.Output;
+  std::string targetFullPathPDB = pdbOutputPath + this->TargetNames.PDB;
+  std::string targetFullPathSO = outpath + this->TargetNames.SharedObject;
+  std::string targetFullPathReal = outpath + this->TargetNames.Real;
+  std::string targetFullPathImport =
+    outpathImp + this->TargetNames.ImportLibrary;
+
+  // Construct the output path version of the names for use in command
+  // arguments.
+  std::string targetOutPathPDB = this->LocalGenerator->ConvertToOutputFormat(
+    targetFullPathPDB, cmOutputConverter::SHELL);
+
+  std::string targetOutPath = this->LocalGenerator->ConvertToOutputFormat(
+    this->LocalGenerator->MaybeConvertToRelativePath(
+      this->LocalGenerator->GetCurrentBinaryDirectory(), targetFullPath),
+    cmOutputConverter::SHELL);
+  std::string targetOutPathSO = this->LocalGenerator->ConvertToOutputFormat(
+    this->LocalGenerator->MaybeConvertToRelativePath(
+      this->LocalGenerator->GetCurrentBinaryDirectory(), targetFullPathSO),
+    cmOutputConverter::SHELL);
+  std::string targetOutPathReal = this->LocalGenerator->ConvertToOutputFormat(
+    this->LocalGenerator->MaybeConvertToRelativePath(
+      this->LocalGenerator->GetCurrentBinaryDirectory(), targetFullPathReal),
+    cmOutputConverter::SHELL);
+  std::string targetOutPathImport =
+    this->LocalGenerator->ConvertToOutputFormat(
+      this->LocalGenerator->MaybeConvertToRelativePath(
+        this->LocalGenerator->GetCurrentBinaryDirectory(),
+        targetFullPathImport),
+      cmOutputConverter::SHELL);
+
+  this->NumberOfProgressActions++;
+  if (!this->NoRuleMessages) {
+    cmLocalUnixMakefileGenerator3::EchoProgress progress;
+    this->MakeEchoProgress(progress);
+    // Add the link message.
+    std::string buildEcho = "Linking ";
+    buildEcho += linkLanguage;
+    switch (this->GeneratorTarget->GetType()) {
+      case cmStateEnums::STATIC_LIBRARY:
+        buildEcho += " static library ";
+        break;
+      case cmStateEnums::SHARED_LIBRARY:
+        buildEcho += " shared library ";
+        break;
+      case cmStateEnums::MODULE_LIBRARY:
+        if (this->GeneratorTarget->IsCFBundleOnApple()) {
+          buildEcho += " CFBundle";
         }
         // Restore path conversion to normal shells.
         this->LocalGenerator->SetLinkScriptShell(false);
@@ -440,24 +523,63 @@ cmMakefileLibraryTargetGenerator::WriteDeviceLibraryRules(
         // No link script.  Just use the link rule directly.
         commands1 = real_link_commands;
     }
+    buildEcho += targetOutPath;
+    this->LocalGenerator->AppendEcho(
+      commands, buildEcho, cmLocalUnixMakefileGenerator3::EchoLink, &progress);
+  }
+
+  // Clean files associated with this library.
+  std::set<std::string> libCleanFiles;
+  libCleanFiles.insert(this->LocalGenerator->MaybeConvertToRelativePath(
+    this->LocalGenerator->GetCurrentBinaryDirectory(), targetFullPathReal));
+
+  std::vector<std::string> commands1;
+  // Add a command to remove any existing files for this library.
+  // for static libs only
+  if (this->GeneratorTarget->GetType() == cmStateEnums::STATIC_LIBRARY) {
+    this->LocalGenerator->AppendCleanCommand(commands1, libCleanFiles,
+                                             this->GeneratorTarget, "target");
     this->LocalGenerator->CreateCDCommand(
-        commands1, this->Makefile->GetCurrentBinaryDirectory(),
-        this->LocalGenerator->GetBinaryDirectory());
-    commands.insert(commands.end(), commands1.begin(), commands1.end());
+      commands1, this->Makefile->GetCurrentBinaryDirectory(),
+      this->LocalGenerator->GetBinaryDirectory());
+    cmAppend(commands, commands1);
     commands1.clear();
 
-    // Compute the list of outputs.
-    std::vector<std::string> outputs(1, targetOutputReal);
+  if (this->TargetNames.Output != this->TargetNames.Real) {
+    libCleanFiles.insert(this->LocalGenerator->MaybeConvertToRelativePath(
+      this->LocalGenerator->GetCurrentBinaryDirectory(), targetFullPath));
+  }
+  if (this->TargetNames.SharedObject != this->TargetNames.Real &&
+      this->TargetNames.SharedObject != this->TargetNames.Output) {
+    libCleanFiles.insert(this->LocalGenerator->MaybeConvertToRelativePath(
+      this->LocalGenerator->GetCurrentBinaryDirectory(), targetFullPathSO));
+  }
+  if (!this->TargetNames.ImportLibrary.empty()) {
+    libCleanFiles.insert(this->LocalGenerator->MaybeConvertToRelativePath(
+      this->LocalGenerator->GetCurrentBinaryDirectory(),
+      targetFullPathImport));
+    std::string implib;
+    if (this->GeneratorTarget->GetImplibGNUtoMS(
+          this->ConfigName, targetFullPathImport, implib)) {
+      libCleanFiles.insert(this->LocalGenerator->MaybeConvertToRelativePath(
+        this->LocalGenerator->GetCurrentBinaryDirectory(), implib));
+    }
+  }
 
-    // Write the build rule.
-    this->WriteMakeRule(*this->BuildFileStream, nullptr, outputs, depends,
-                        commands, false);
+  // List the PDB for cleaning only when the whole target is
+  // cleaned.  We do not want to delete the .pdb file just before
+  // linking the target.
+  this->CleanFiles.insert(this->LocalGenerator->MaybeConvertToRelativePath(
+    this->LocalGenerator->GetCurrentBinaryDirectory(), targetFullPathPDB));
 
-    // Write the main driver rule to build everything in this target.
-    this->WriteTargetDriverRule(targetOutputReal, relink);
-#else
-    static_cast<void>(linkRuleVar);
-    static_cast<void>(relink);
+#ifdef _WIN32
+  // There may be a manifest file for this target.  Add it to the
+  // clean set just in case.
+  if (this->GeneratorTarget->GetType() != cmStateEnums::STATIC_LIBRARY) {
+    libCleanFiles.insert(this->LocalGenerator->MaybeConvertToRelativePath(
+      this->LocalGenerator->GetCurrentBinaryDirectory(),
+      targetFullPath + ".manifest"));
+  }
 #endif
 }
 
@@ -674,21 +796,32 @@ cmMakefileLibraryTargetGenerator::WriteLibraryRules(
         }
     }
 
-    // List the PDB for cleaning only when the whole target is
-    // cleaned.  We do not want to delete the .pdb file just before
-    // linking the target.
-    this->CleanFiles.push_back(this->LocalGenerator->MaybeConvertToRelativePath(
-        this->LocalGenerator->GetCurrentBinaryDirectory(), targetFullPathPDB));
+    vars.CMTargetName = this->GeneratorTarget->GetName().c_str();
+    vars.CMTargetType =
+      cmState::GetTargetTypeName(this->GeneratorTarget->GetType());
+    vars.Language = linkLanguage.c_str();
+    vars.Objects = buildObjs.c_str();
+    std::string objectDir = this->GeneratorTarget->GetSupportDirectory();
 
-#ifdef _WIN32
-    // There may be a manifest file for this target.  Add it to the
-    // clean set just in case.
-    if(this->GeneratorTarget->GetType() != cmStateEnums::STATIC_LIBRARY)
-    {
-        libCleanFiles.push_back(
-            this->LocalGenerator->MaybeConvertToRelativePath(
-                this->LocalGenerator->GetCurrentBinaryDirectory(),
-                targetFullPath + ".manifest"));
+    objectDir = this->LocalGenerator->ConvertToOutputFormat(
+      this->LocalGenerator->MaybeConvertToRelativePath(
+        this->LocalGenerator->GetCurrentBinaryDirectory(), objectDir),
+      cmOutputConverter::SHELL);
+
+    vars.ObjectDir = objectDir.c_str();
+    cmOutputConverter::OutputFormat output = (useWatcomQuote)
+      ? cmOutputConverter::WATCOMQUOTE
+      : cmOutputConverter::SHELL;
+    std::string target = this->LocalGenerator->ConvertToOutputFormat(
+      this->LocalGenerator->MaybeConvertToRelativePath(
+        this->LocalGenerator->GetCurrentBinaryDirectory(), targetFullPathReal),
+      output);
+    vars.Target = target.c_str();
+    vars.LinkLibraries = linkLibs.c_str();
+    vars.ObjectsQuoted = buildObjs.c_str();
+    if (this->GeneratorTarget->HasSOName(this->ConfigName)) {
+      vars.SONameFlag = this->Makefile->GetSONameFlag(linkLanguage);
+      vars.TargetSOName = this->TargetNames.SharedObject.c_str();
     }
 #endif
 
@@ -1010,70 +1143,67 @@ cmMakefileLibraryTargetGenerator::WriteLibraryRules(
         this->LocalGenerator->SetLinkScriptShell(false);
     }
 
-    // Optionally convert the build rule to use a script to avoid long
-    // command lines in the make shell.
-    if(useLinkScript)
-    {
-        // Use a link script.
-        const char* name = (relink ? "relink.txt" : "link.txt");
-        this->CreateLinkScript(name, real_link_commands, commands1, depends);
-    } else
-    {
-        // No link script.  Just use the link rule directly.
-        commands1 = real_link_commands;
-    }
+    // Restore path conversion to normal shells.
+    this->LocalGenerator->SetLinkScriptShell(false);
+  }
+
+  // Optionally convert the build rule to use a script to avoid long
+  // command lines in the make shell.
+  if (useLinkScript) {
+    // Use a link script.
+    const char* name = (relink ? "relink.txt" : "link.txt");
+    this->CreateLinkScript(name, real_link_commands, commands1, depends);
+  } else {
+    // No link script.  Just use the link rule directly.
+    commands1 = real_link_commands;
+  }
+  this->LocalGenerator->CreateCDCommand(
+    commands1, this->Makefile->GetCurrentBinaryDirectory(),
+    this->LocalGenerator->GetBinaryDirectory());
+  cmAppend(commands, commands1);
+  commands1.clear();
+
+  // Add a rule to create necessary symlinks for the library.
+  // Frameworks are handled by cmOSXBundleGenerator.
+  if (targetOutPath != targetOutPathReal &&
+      !this->GeneratorTarget->IsFrameworkOnApple()) {
+    std::string symlink = "$(CMAKE_COMMAND) -E cmake_symlink_library ";
+    symlink += targetOutPathReal;
+    symlink += " ";
+    symlink += targetOutPathSO;
+    symlink += " ";
+    symlink += targetOutPath;
+    commands1.push_back(std::move(symlink));
     this->LocalGenerator->CreateCDCommand(
-        commands1, this->Makefile->GetCurrentBinaryDirectory(),
-        this->LocalGenerator->GetBinaryDirectory());
-    commands.insert(commands.end(), commands1.begin(), commands1.end());
+      commands1, this->Makefile->GetCurrentBinaryDirectory(),
+      this->LocalGenerator->GetBinaryDirectory());
+    cmAppend(commands, commands1);
     commands1.clear();
 
-    // Add a rule to create necessary symlinks for the library.
-    // Frameworks are handled by cmOSXBundleGenerator.
-    if(targetOutPath != targetOutPathReal &&
-       !this->GeneratorTarget->IsFrameworkOnApple())
-    {
-        std::string symlink = "$(CMAKE_COMMAND) -E cmake_symlink_library ";
-        symlink += targetOutPathReal;
-        symlink += " ";
-        symlink += targetOutPathSO;
-        symlink += " ";
-        symlink += targetOutPath;
-        commands1.push_back(std::move(symlink));
-        this->LocalGenerator->CreateCDCommand(
-            commands1, this->Makefile->GetCurrentBinaryDirectory(),
-            this->LocalGenerator->GetBinaryDirectory());
-        commands.insert(commands.end(), commands1.begin(), commands1.end());
-        commands1.clear();
-    }
+  // Add the post-build rules when building but not when relinking.
+  if (!relink) {
+    this->LocalGenerator->AppendCustomCommands(
+      commands, this->GeneratorTarget->GetPostBuildCommands(),
+      this->GeneratorTarget, this->LocalGenerator->GetBinaryDirectory());
+  }
 
-    // Add the post-build rules when building but not when relinking.
-    if(!relink)
-    {
-        this->LocalGenerator->AppendCustomCommands(
-            commands, this->GeneratorTarget->GetPostBuildCommands(),
-            this->GeneratorTarget, this->LocalGenerator->GetBinaryDirectory());
-    }
+  // Compute the list of outputs.
+  std::vector<std::string> outputs(1, targetFullPathReal);
+  if (this->TargetNames.SharedObject != this->TargetNames.Real) {
+    outputs.push_back(targetFullPathSO);
+  }
+  if (this->TargetNames.Output != this->TargetNames.SharedObject &&
+      this->TargetNames.Output != this->TargetNames.Real) {
+    outputs.push_back(targetFullPath);
+  }
 
-    // Compute the list of outputs.
-    std::vector<std::string> outputs(1, targetFullPathReal);
-    if(targetNameSO != targetNameReal)
-    {
-        outputs.push_back(targetFullPathSO);
-    }
-    if(targetName != targetNameSO && targetName != targetNameReal)
-    {
-        outputs.push_back(targetFullPath);
-    }
+  // Write the build rule.
+  this->WriteMakeRule(*this->BuildFileStream, nullptr, outputs, depends,
+                      commands, false);
 
-    // Write the build rule.
-    this->WriteMakeRule(*this->BuildFileStream, nullptr, outputs, depends,
-                        commands, false);
+  // Write the main driver rule to build everything in this target.
+  this->WriteTargetDriverRule(targetFullPath, relink);
 
-    // Write the main driver rule to build everything in this target.
-    this->WriteTargetDriverRule(targetFullPath, relink);
-
-    // Clean all the possible library names and symlinks.
-    this->CleanFiles.insert(this->CleanFiles.end(), libCleanFiles.begin(),
-                            libCleanFiles.end());
+  // Clean all the possible library names and symlinks.
+  this->CleanFiles.insert(libCleanFiles.begin(), libCleanFiles.end());
 }

@@ -22,9 +22,12 @@ public:
     cmCPackGeneratorFactory();
     ~cmCPackGeneratorFactory();
 
-    //! Get the generator
-    cmCPackGenerator* NewGenerator(const std::string& name);
-    void              DeleteGenerator(cmCPackGenerator* gen);
+  cmCPackGeneratorFactory(const cmCPackGeneratorFactory&) = delete;
+  cmCPackGeneratorFactory& operator=(const cmCPackGeneratorFactory&) = delete;
+
+  //! Get the generator
+  cmCPackGenerator* NewGenerator(const std::string& name);
+  void DeleteGenerator(cmCPackGenerator* gen);
 
     typedef cmCPackGenerator* CreateGeneratorCall();
 

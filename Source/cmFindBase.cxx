@@ -4,12 +4,12 @@
 
 #include <deque>
 #include <iostream>
-#include <iterator>
 #include <map>
 #include <stddef.h>
 
 #include "cmAlgorithms.h"
 #include "cmMakefile.h"
+#include "cmRange.h"
 #include "cmSearchPath.h"
 #include "cmState.h"
 #include "cmStateTypes.h"
@@ -71,82 +71,45 @@ cmFindBase::ParseArguments(std::vector<std::string> const& argsIn)
         this->SetError("called with incorrect number of arguments");
         return false;
     }
-    this->VariableName = args[0];
-    if(this->CheckForVariableInCache())
-    {
-        this->AlreadyInCache = true;
-        return true;
+  }
+
+  if (this->VariableDocumentation.empty()) {
+    this->VariableDocumentation = "Where can ";
+    if (this->Names.empty()) {
+      this->VariableDocumentation += "the (unknown) library be found";
+    } else if (this->Names.size() == 1) {
+      this->VariableDocumentation +=
+        "the " + this->Names.front() + " library be found";
+    } else {
+      this->VariableDocumentation += "one of the ";
+      this->VariableDocumentation +=
+        cmJoin(cmMakeRange(this->Names).retreat(1), ", ");
+      this->VariableDocumentation +=
+        " or " + this->Names.back() + " libraries be found";
     }
-    this->AlreadyInCache = false;
+  }
 
-    // Find the current root path mode.
-    this->SelectDefaultRootPathMode();
+  // look for old style
+  // FIND_*(VAR name path1 path2 ...)
+  if (!newStyle) {
+    // All the short-hand arguments have been recorded as names.
+    std::vector<std::string> shortArgs = this->Names;
+    this->Names.clear(); // clear out any values in Names
+    this->Names.push_back(shortArgs[0]);
+    cmAppend(this->UserGuessArgs, shortArgs.begin() + 1, shortArgs.end());
+  }
+  this->ExpandPaths();
 
-    // Find the current bundle/framework search policy.
-    this->SelectDefaultMacMode();
+  this->ComputeFinalPaths();
 
-    bool newStyle = false;
-    enum Doing
-    {
-        DoingNone,
-        DoingNames,
-        DoingPaths,
-        DoingPathSuffixes,
-        DoingHints
-    };
-    Doing doing = DoingNames;  // assume it starts with a name
-    for(unsigned int j = 1; j < args.size(); ++j)
-    {
-        if(args[j] == "NAMES")
-        {
-            doing    = DoingNames;
-            newStyle = true;
-        } else if(args[j] == "PATHS")
-        {
-            doing    = DoingPaths;
-            newStyle = true;
-        } else if(args[j] == "HINTS")
-        {
-            doing    = DoingHints;
-            newStyle = true;
-        } else if(args[j] == "PATH_SUFFIXES")
-        {
-            doing    = DoingPathSuffixes;
-            newStyle = true;
-        } else if(args[j] == "NAMES_PER_DIR")
-        {
-            doing = DoingNone;
-            if(this->NamesPerDirAllowed)
-            {
-                this->NamesPerDir = true;
-            } else
-            {
-                this->SetError("does not support NAMES_PER_DIR");
-                return false;
-            }
-        } else if(args[j] == "NO_SYSTEM_PATH")
-        {
-            doing               = DoingNone;
-            this->NoDefaultPath = true;
-        } else if(this->CheckCommonArgument(args[j]))
-        {
-            doing = DoingNone;
-            // Some common arguments were accidentally supported by CMake
-            // 2.4 and 2.6.0 in the short-hand form of the command, so we
-            // must support it even though it is not documented.
-        } else if(doing == DoingNames)
-        {
-            this->Names.push_back(args[j]);
-        } else if(doing == DoingPaths)
-        {
-            this->UserGuessArgs.push_back(args[j]);
-        } else if(doing == DoingHints)
-        {
-            this->UserHintsArgs.push_back(args[j]);
-        } else if(doing == DoingPathSuffixes)
-        {
-            this->AddPathSuffix(args[j]);
-        }
+  return true;
+}
+
+void cmFindBase::ExpandPaths()
+{
+  if (!this->NoDefaultPath) {
+    if (!this->NoPackageRootPath) {
+      this->FillPackageRootPath();
     }
 
     if(this->VariableDocumentation.empty())
@@ -246,15 +209,13 @@ cmFindBase::FillCMakeEnvironmentPath()
 void
 cmFindBase::FillPackageRootPath()
 {
-    cmSearchPath& paths = this->LabeledPaths[PathLabel::PackageRoot];
+  cmSearchPath& paths = this->LabeledPaths[PathLabel::PackageRoot];
 
-    // Add the PACKAGE_ROOT_PATH from each enclosing find_package call.
-    for(std::deque<std::vector<std::string>>::const_reverse_iterator pkgPaths =
-            this->Makefile->FindPackageRootPathStack.rbegin();
-        pkgPaths != this->Makefile->FindPackageRootPathStack.rend(); ++pkgPaths)
-    {
-        paths.AddPrefixPaths(*pkgPaths);
-    }
+  // Add the PACKAGE_ROOT_PATH from each enclosing find_package call.
+  for (std::vector<std::string> const& pkgPaths :
+       cmReverseRange(this->Makefile->FindPackageRootPathStack)) {
+    paths.AddPrefixPaths(pkgPaths);
+  }
 
     paths.AddSuffixes(this->SearchPathSuffixes);
 }

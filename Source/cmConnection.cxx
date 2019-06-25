@@ -143,7 +143,7 @@ cmEventBasedConnection::OnDisconnect(int onerror)
     }
 }
 
-cmConnection::~cmConnection() {}
+cmConnection::~cmConnection() = default;
 
 bool
 cmConnection::OnConnectionShuttingDown()

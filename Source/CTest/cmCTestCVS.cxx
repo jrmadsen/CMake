@@ -15,7 +15,7 @@ cmCTestCVS::cmCTestCVS(cmCTest* ct, std::ostream& log)
 : cmCTestVC(ct, log)
 {}
 
-cmCTestCVS::~cmCTestCVS() {}
+cmCTestCVS::~cmCTestCVS() = default;
 
 class cmCTestCVS::UpdateParser : public cmCTestVC::LineParser
 {
@@ -85,7 +85,8 @@ cmCTestCVS::UpdateImpl()
             opts = "-dP";
         }
     }
-    std::vector<std::string> args = cmSystemTools::ParseArguments(opts.c_str());
+  }
+  std::vector<std::string> args = cmSystemTools::ParseArguments(opts);
 
     // Specify the start time for nightly testing.
     if(this->CTest->GetTestModel() == cmCTest::NIGHTLY)
@@ -117,12 +118,12 @@ public:
     : CVS(cvs)
     , Revisions(revs)
     , Section(SectionHeader)
-    {
-        this->SetLog(&cvs->Log, prefix),
-            this->RegexRevision.compile("^revision +([^ ]*) *$");
-        this->RegexBranches.compile("^branches: .*$");
-        this->RegexPerson.compile("^date: +([^;]+); +author: +([^;]+);");
-    }
+  {
+    this->SetLog(&cvs->Log, prefix);
+    this->RegexRevision.compile("^revision +([^ ]*) *$");
+    this->RegexBranches.compile("^branches: .*$");
+    this->RegexPerson.compile("^date: +([^;]+); +author: +([^;]+);");
+  }
 
 private:
     cmCTestCVS*              CVS;

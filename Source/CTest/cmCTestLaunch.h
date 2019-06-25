@@ -24,81 +24,83 @@ public:
     static int Main(int argc, const char* const argv[]);
 
 private:
-    // Initialize the launcher from its command line.
-    cmCTestLaunch(int argc, const char* const* argv);
-    ~cmCTestLaunch();
+  // Initialize the launcher from its command line.
+  cmCTestLaunch(int argc, const char* const* argv);
+  ~cmCTestLaunch();
 
-    // Run the real command.
-    int  Run();
-    void RunChild();
+  cmCTestLaunch(const cmCTestLaunch&) = delete;
+  cmCTestLaunch& operator=(const cmCTestLaunch&) = delete;
 
-    // Methods to check the result of the real command.
-    bool IsError() const;
-    bool CheckResults();
+  // Run the real command.
+  int Run();
+  void RunChild();
 
-    // Launcher options specified before the real command.
-    std::string OptionOutput;
-    std::string OptionSource;
-    std::string OptionLanguage;
-    std::string OptionTargetName;
-    std::string OptionTargetType;
-    std::string OptionBuildDir;
-    std::string OptionFilterPrefix;
-    bool        ParseArguments(int argc, const char* const* argv);
+  // Methods to check the result of the real command.
+  bool IsError() const;
+  bool CheckResults();
 
-    // The real command line appearing after launcher arguments.
-    int                RealArgC;
-    const char* const* RealArgV;
-    std::string        CWD;
+  // Launcher options specified before the real command.
+  std::string OptionOutput;
+  std::string OptionSource;
+  std::string OptionLanguage;
+  std::string OptionTargetName;
+  std::string OptionTargetType;
+  std::string OptionBuildDir;
+  std::string OptionFilterPrefix;
+  bool ParseArguments(int argc, const char* const* argv);
 
-    // The real command line after response file expansion.
-    std::vector<std::string> RealArgs;
-    void                     HandleRealArg(const char* arg);
+  // The real command line appearing after launcher arguments.
+  int RealArgC;
+  const char* const* RealArgV;
+  std::string CWD;
 
-    // A hash of the real command line is unique and unlikely to collide.
-    std::string LogHash;
-    void        ComputeFileNames();
+  // The real command line after response file expansion.
+  std::vector<std::string> RealArgs;
+  void HandleRealArg(const char* arg);
 
-    bool                   Passthru;
-    struct cmsysProcess_s* Process;
-    int                    ExitCode;
+  // A hash of the real command line is unique and unlikely to collide.
+  std::string LogHash;
+  void ComputeFileNames();
 
-    // Temporary log files for stdout and stderr of real command.
-    std::string LogDir;
-    std::string LogOut;
-    std::string LogErr;
-    bool        HaveOut;
-    bool        HaveErr;
+  bool Passthru;
+  struct cmsysProcess_s* Process;
+  int ExitCode;
 
-    // Labels associated with the build rule.
-    std::set<std::string> Labels;
-    void                  LoadLabels();
-    bool SourceMatches(std::string const& lhs, std::string const& rhs);
+  // Temporary log files for stdout and stderr of real command.
+  std::string LogDir;
+  std::string LogOut;
+  std::string LogErr;
+  bool HaveOut;
+  bool HaveErr;
 
-    // Regular expressions to match warnings and their exceptions.
-    bool                                  ScrapeRulesLoaded;
-    std::vector<cmsys::RegularExpression> RegexWarning;
-    std::vector<cmsys::RegularExpression> RegexWarningSuppress;
-    void                                  LoadScrapeRules();
-    void                                  LoadScrapeRules(const char*                            purpose,
-                                                          std::vector<cmsys::RegularExpression>& regexps);
-    bool                                  ScrapeLog(std::string const& fname);
-    bool                                  Match(std::string const&                     line,
-                                                std::vector<cmsys::RegularExpression>& regexps);
-    bool MatchesFilterPrefix(std::string const& line) const;
+  // Labels associated with the build rule.
+  std::set<std::string> Labels;
+  void LoadLabels();
+  bool SourceMatches(std::string const& lhs, std::string const& rhs);
 
-    // Methods to generate the xml fragment.
-    void WriteXML();
-    void WriteXMLAction(cmXMLElement&);
-    void WriteXMLCommand(cmXMLElement&);
-    void WriteXMLResult(cmXMLElement&);
-    void WriteXMLLabels(cmXMLElement&);
-    void DumpFileToXML(cmXMLElement&, const char* tag,
-                       std::string const& fname);
+  // Regular expressions to match warnings and their exceptions.
+  bool ScrapeRulesLoaded;
+  std::vector<cmsys::RegularExpression> RegexWarning;
+  std::vector<cmsys::RegularExpression> RegexWarningSuppress;
+  void LoadScrapeRules();
+  void LoadScrapeRules(const char* purpose,
+                       std::vector<cmsys::RegularExpression>& regexps);
+  bool ScrapeLog(std::string const& fname);
+  bool Match(std::string const& line,
+             std::vector<cmsys::RegularExpression>& regexps);
+  bool MatchesFilterPrefix(std::string const& line) const;
 
-    // Configuration
-    void        LoadConfig();
-    std::string SourceDir;
+  // Methods to generate the xml fragment.
+  void WriteXML();
+  void WriteXMLAction(cmXMLElement&);
+  void WriteXMLCommand(cmXMLElement&);
+  void WriteXMLResult(cmXMLElement&);
+  void WriteXMLLabels(cmXMLElement&);
+  void DumpFileToXML(cmXMLElement&, const char* tag, std::string const& fname);
+
+  // Configuration
+  void LoadConfig();
+  std::string SourceDir;
 };
 
 #endif

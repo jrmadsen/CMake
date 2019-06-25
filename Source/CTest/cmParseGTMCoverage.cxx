@@ -1,5 +1,6 @@
 #include "cmParseGTMCoverage.h"
 
+#include "cmAlgorithms.h"
 #include "cmCTest.h"
 #include "cmCTestCoverageHandler.h"
 #include "cmSystemTools.h"
@@ -56,77 +57,25 @@ cmParseGTMCoverage::ReadMCovFile(const char* file)
     {
         return false;
     }
-    std::string line;
-    std::string lastfunction;
-    std::string lastroutine;
-    std::string lastpath;
-    int         lastoffset = 0;
-    while(cmSystemTools::GetLineFromStream(in, line))
-    {
-        // only look at lines that have coverage data
-        if(line.find("^ZZCOVERAGE") == std::string::npos)
-        {
-            continue;
-        }
-        std::string filepath;
-        std::string function;
-        std::string routine;
-        int         linenumber = 0;
-        int         count      = 0;
-        this->ParseMCOVLine(line, routine, function, linenumber, count);
-        // skip this one
-        if(routine == "RSEL")
-        {
-            continue;
-        }
-        // no need to search the file if we just did it
-        if(function == lastfunction && lastroutine == routine)
-        {
-            if(!lastpath.empty())
-            {
-                this->Coverage
-                    .TotalCoverage[lastpath][lastoffset + linenumber] += count;
-            } else
-            {
-                cmCTestLog(this->CTest, ERROR_MESSAGE,
-                           "Can not find mumps file : "
-                               << lastroutine
-                               << "  referenced in this line of mcov data:\n"
-                                  "["
-                               << line << "]\n");
-            }
-            continue;
-        }
-        // Find the full path to the file
-        bool found = this->FindMumpsFile(routine, filepath);
-        if(found)
-        {
-            int lineoffset = 0;
-            if(this->FindFunctionInMumpsFile(filepath, function, lineoffset))
-            {
-                cmCTestCoverageHandlerContainer::SingleFileCoverageVector&
-                    coverageVector = this->Coverage.TotalCoverage[filepath];
-                // This section accounts for lines that were previously marked
-                // as non-executable code (-1), if the parser comes back with
-                // a non-zero count, increase the count by 1 to push the line
-                // into the executable code set in addition to the count found.
-                if(coverageVector[lineoffset + linenumber] == -1 && count > 0)
-                {
-                    coverageVector[lineoffset + linenumber] += count + 1;
-                } else
-                {
-                    coverageVector[lineoffset + linenumber] += count;
-                }
-                lastoffset = lineoffset;
-            }
-        } else
-        {
-            cmCTestLog(this->CTest, ERROR_MESSAGE,
-                       "Can not find mumps file : "
-                           << routine
-                           << "  referenced in this line of mcov data:\n"
-                              "["
-                           << line << "]\n");
+    // Find the full path to the file
+    bool found = this->FindMumpsFile(routine, filepath);
+    if (!found && cmHasLiteralSuffix(routine, "%")) {
+      routine.erase(0, 1);
+      found = this->FindMumpsFile(routine, filepath);
+    }
+    if (found) {
+      int lineoffset = 0;
+      if (this->FindFunctionInMumpsFile(filepath, function, lineoffset)) {
+        cmCTestCoverageHandlerContainer::SingleFileCoverageVector&
+          coverageVector = this->Coverage.TotalCoverage[filepath];
+        // This section accounts for lines that were previously marked
+        // as non-executable code (-1), if the parser comes back with
+        // a non-zero count, increase the count by 1 to push the line
+        // into the executable code set in addition to the count found.
+        if (coverageVector[lineoffset + linenumber] == -1 && count > 0) {
+          coverageVector[lineoffset + linenumber] += count + 1;
+        } else {
+          coverageVector[lineoffset + linenumber] += count;
         }
         lastfunction = function;
         lastroutine  = routine;
@@ -183,22 +132,44 @@ cmParseGTMCoverage::ParseMCOVLine(std::string const& line, std::string& routine,
                                   std::string& function, int& linenumber,
                                   int& count)
 {
-    // this method parses lines from the .mcov file
-    // each line has ^COVERAGE(...) in it, and there
-    // are several variants of coverage lines:
-    //
-    // ^COVERAGE("DIC11","PR1",0)="2:0:0:0"
-    //          ( file  , entry, line ) = "number_executed:timing_info"
-    // ^COVERAGE("%RSEL","SRC")="1:0:0:0"
-    //          ( file  , entry ) = "number_executed:timing_info"
-    // ^COVERAGE("%RSEL","init",8,"FOR_LOOP",1)=1
-    //          ( file  , entry, line, IGNORE ) =number_executed
-    std::vector<std::string> args;
-    std::string::size_type   pos = line.find('(', 0);
-    // if no ( is found, then return line has no coverage
-    if(pos == std::string::npos)
-    {
-        return false;
+  // this method parses lines from the .mcov file
+  // each line has ^COVERAGE(...) in it, and there
+  // are several variants of coverage lines:
+  //
+  // ^COVERAGE("DIC11","PR1",0)="2:0:0:0"
+  //          ( file  , entry, line ) = "number_executed:timing_info"
+  // ^COVERAGE("%RSEL","SRC")="1:0:0:0"
+  //          ( file  , entry ) = "number_executed:timing_info"
+  // ^COVERAGE("%RSEL","init",8,"FOR_LOOP",1)=1
+  //          ( file  , entry, line, IGNORE ) =number_executed
+  std::vector<std::string> args;
+  std::string::size_type pos = line.find('(', 0);
+  // if no ( is found, then return line has no coverage
+  if (pos == std::string::npos) {
+    return false;
+  }
+  std::string arg;
+  bool done = false;
+  // separate out all of the comma separated arguments found
+  // in the COVERAGE(...) line
+  while (line[pos] && !done) {
+    // save the char we are looking at
+    char cur = line[pos];
+    // , or ) means end of argument
+    if (cur == ',' || cur == ')') {
+      // save the argument into the argument vector
+      args.push_back(arg);
+      // start on a new argument
+      arg.clear();
+      // if we are at the end of the ), then finish while loop
+      if (cur == ')') {
+        done = true;
+      }
+    } else {
+      // all chars except " and ( get stored in the arg string
+      if (cur != '\"' && cur != '(') {
+        arg.append(1, line[pos]);
+      }
     }
     std::string arg;
     bool        done = false;

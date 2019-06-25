@@ -9,4 +9,4 @@ cmCPackTarCompressGenerator::cmCPackTarCompressGenerator()
 : cmCPackArchiveGenerator(cmArchiveWrite::CompressCompress, "paxr")
 {}
 
-cmCPackTarCompressGenerator::~cmCPackTarCompressGenerator() {}
+cmCPackTarCompressGenerator::~cmCPackTarCompressGenerator() = default;

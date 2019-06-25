@@ -23,19 +23,17 @@ namespace
 class DebGenerator
 {
 public:
-    DebGenerator(cmCPackLog* logger, std::string const& outputName,
-                 std::string const& workDir, std::string const& topLevelDir,
-                 std::string const& temporaryDir,
-                 const char*        debianCompressionType,
-                 const char*        debianArchiveType,
-                 std::map<std::string, std::string> const& controlValues,
-                 bool genShLibs, std::string const& shLibsFilename,
-                 bool genPostInst, std::string const& postInst, bool genPostRm,
-                 std::string const& postRm, const char* controlExtra,
-                 bool                            permissionStrctPolicy,
-                 std::vector<std::string> const& packageFiles);
+  DebGenerator(cmCPackLog* logger, std::string outputName, std::string workDir,
+               std::string topLevelDir, std::string temporaryDir,
+               const char* debianCompressionType,
+               const char* debianArchiveType,
+               std::map<std::string, std::string> controlValues,
+               bool genShLibs, std::string shLibsFilename, bool genPostInst,
+               std::string postInst, bool genPostRm, std::string postRm,
+               const char* controlExtra, bool permissionStrctPolicy,
+               std::vector<std::string> packageFiles);
 
-    bool generate() const;
+  bool generate() const;
 
 private:
     void        generateDebianBinaryFile() const;
@@ -66,31 +64,29 @@ private:
 };
 
 DebGenerator::DebGenerator(
-    cmCPackLog* logger, std::string const& outputName,
-    std::string const& workDir, std::string const& topLevelDir,
-    std::string const& temporaryDir, const char* debianCompressionType,
-    const char*                               debianArchiveType,
-    std::map<std::string, std::string> const& controlValues, bool genShLibs,
-    std::string const& shLibsFilename, bool genPostInst,
-    std::string const& postInst, bool genPostRm, std::string const& postRm,
-    const char* controlExtra, bool permissionStrictPolicy,
-    std::vector<std::string> const& packageFiles)
-: Logger(logger)
-, OutputName(outputName)
-, WorkDir(workDir)
-, TopLevelDir(topLevelDir)
-, TemporaryDir(temporaryDir)
-, DebianArchiveType(debianArchiveType ? debianArchiveType : "paxr")
-, ControlValues(controlValues)
-, GenShLibs(genShLibs)
-, ShLibsFilename(shLibsFilename)
-, GenPostInst(genPostInst)
-, PostInst(postInst)
-, GenPostRm(genPostRm)
-, PostRm(postRm)
-, ControlExtra(controlExtra)
-, PermissionStrictPolicy(permissionStrictPolicy)
-, PackageFiles(packageFiles)
+  cmCPackLog* logger, std::string outputName, std::string workDir,
+  std::string topLevelDir, std::string temporaryDir,
+  const char* debianCompressionType, const char* debianArchiveType,
+  std::map<std::string, std::string> controlValues, bool genShLibs,
+  std::string shLibsFilename, bool genPostInst, std::string postInst,
+  bool genPostRm, std::string postRm, const char* controlExtra,
+  bool permissionStrictPolicy, std::vector<std::string> packageFiles)
+  : Logger(logger)
+  , OutputName(std::move(outputName))
+  , WorkDir(std::move(workDir))
+  , TopLevelDir(std::move(topLevelDir))
+  , TemporaryDir(std::move(temporaryDir))
+  , DebianArchiveType(debianArchiveType ? debianArchiveType : "gnutar")
+  , ControlValues(std::move(controlValues))
+  , GenShLibs(genShLibs)
+  , ShLibsFilename(std::move(shLibsFilename))
+  , GenPostInst(genPostInst)
+  , PostInst(std::move(postInst))
+  , GenPostRm(genPostRm)
+  , PostRm(std::move(postRm))
+  , ControlExtra(controlExtra)
+  , PermissionStrictPolicy(permissionStrictPolicy)
+  , PackageFiles(std::move(packageFiles))
 {
     if(!debianCompressionType)
     {
@@ -155,7 +151,57 @@ DebGenerator::generateDebianBinaryFile() const
 void
 DebGenerator::generateControlFile() const
 {
-    std::string ctlfilename = WorkDir + "/control";
+  std::string filename_data_tar = WorkDir + "/data.tar" + CompressionSuffix;
+  cmGeneratedFileStream fileStream_data_tar;
+  fileStream_data_tar.Open(filename_data_tar, false, true);
+  if (!fileStream_data_tar) {
+    cmCPackLogger(cmCPackLog::LOG_ERROR,
+                  "Error opening the file \""
+                    << filename_data_tar << "\" for writing" << std::endl);
+    return false;
+  }
+  cmArchiveWrite data_tar(fileStream_data_tar, TarCompressionType,
+                          DebianArchiveType);
+
+  // uid/gid should be the one of the root user, and this root user has
+  // always uid/gid equal to 0.
+  data_tar.SetUIDAndGID(0u, 0u);
+  data_tar.SetUNAMEAndGNAME("root", "root");
+
+  // now add all directories which have to be compressed
+  // collect all top level install dirs for that
+  // e.g. /opt/bin/foo, /usr/bin/bar and /usr/bin/baz would
+  // give /usr and /opt
+  size_t topLevelLength = WorkDir.length();
+  cmCPackLogger(cmCPackLog::LOG_DEBUG,
+                "WDIR: \"" << WorkDir << "\", length = " << topLevelLength
+                           << std::endl);
+  std::set<std::string> orderedFiles;
+
+  // we have to reconstruct the parent folders as well
+
+  for (std::string currentPath : PackageFiles) {
+    while (currentPath != WorkDir) {
+      // the last one IS WorkDir, but we do not want this one:
+      // XXX/application/usr/bin/myprogram with GEN_WDIR=XXX/application
+      // should not add XXX/application
+      orderedFiles.insert(currentPath);
+      currentPath = cmSystemTools::CollapseFullPath("..", currentPath);
+    }
+  }
+
+  for (std::string const& file : orderedFiles) {
+    cmCPackLogger(cmCPackLog::LOG_DEBUG,
+                  "FILEIT: \"" << file << "\"" << std::endl);
+    std::string::size_type slashPos = file.find('/', topLevelLength + 1);
+    std::string relativeDir =
+      file.substr(topLevelLength, slashPos - topLevelLength);
+    cmCPackLogger(cmCPackLog::LOG_DEBUG,
+                  "RELATIVEDIR: \"" << relativeDir << "\"" << std::endl);
+
+#ifdef WIN32
+    std::string mode_t_adt_filename = file + ":cmake_mode_t";
+    cmsys::ifstream permissionStream(mode_t_adt_filename.c_str());
 
     cmGeneratedFileStream out(ctlfilename);
     for(auto const& kv : ControlValues)
@@ -489,20 +535,9 @@ DebGenerator::generateDeb() const
 
 }  // end anonymous namespace
 
-cmCPackDebGenerator::cmCPackDebGenerator() {}
+cmCPackDebGenerator::cmCPackDebGenerator() = default;
 
-cmCPackDebGenerator::~cmCPackDebGenerator() {}
-
-int
-cmCPackDebGenerator::InitializeInternal()
-{
-    this->SetOptionIfNotSet("CPACK_PACKAGING_INSTALL_PREFIX", "/usr");
-    if(cmSystemTools::IsOff(this->GetOption("CPACK_SET_DESTDIR")))
-    {
-        this->SetOption("CPACK_SET_DESTDIR", "I_ON");
-    }
-    return this->Superclass::InitializeInternal();
-}
+cmCPackDebGenerator::~cmCPackDebGenerator() = default;
 
 int
 cmCPackDebGenerator::PackageOnePack(std::string const& initialTopLevel,

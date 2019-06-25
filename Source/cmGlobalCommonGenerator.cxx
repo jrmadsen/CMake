@@ -8,4 +8,4 @@ cmGlobalCommonGenerator::cmGlobalCommonGenerator(cmake* cm)
 : cmGlobalGenerator(cm)
 {}
 
-cmGlobalCommonGenerator::~cmGlobalCommonGenerator() {}
+cmGlobalCommonGenerator::~cmGlobalCommonGenerator() = default;

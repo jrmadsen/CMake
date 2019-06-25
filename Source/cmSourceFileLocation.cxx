@@ -5,16 +5,13 @@
 #include "cmAlgorithms.h"
 #include "cmGlobalGenerator.h"
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmSystemTools.h"
 #include "cmake.h"
 
 #include <assert.h>
 
-cmSourceFileLocation::cmSourceFileLocation()
-: Makefile(nullptr)
-, AmbiguousDirectory(true)
-, AmbiguousExtension(true)
-{}
+cmSourceFileLocation::cmSourceFileLocation() = default;
 
 cmSourceFileLocation::cmSourceFileLocation(const cmSourceFileLocation& loc)
 : Makefile(loc.Makefile)
@@ -48,8 +45,17 @@ cmSourceFileLocation::cmSourceFileLocation(cmMakefile const*        mf,
     }
 }
 
-void
-cmSourceFileLocation::Update(cmSourceFileLocation const& loc)
+std::string cmSourceFileLocation::GetFullPath() const
+{
+  std::string path = this->GetDirectory();
+  if (!path.empty()) {
+    path += '/';
+  }
+  path += this->GetName();
+  return path;
+}
+
+void cmSourceFileLocation::Update(cmSourceFileLocation const& loc)
 {
     if(this->AmbiguousDirectory && !loc.AmbiguousDirectory)
     {
@@ -164,6 +170,17 @@ cmSourceFileLocation::MatchesAmbiguousExtension(
                                 loc.Name.size())))
     {
         return false;
+      }
+    } else {
+      // Each side has a directory relative to a different location.
+      // This can occur when referencing a source file from a different
+      // directory.  This is not yet allowed.
+      this->Makefile->IssueMessage(
+        MessageType::INTERNAL_ERROR,
+        "Matches error: Each side has a directory relative to a different "
+        "location. This can occur when referencing a source file from a "
+        "different directory.  This is not yet allowed.");
+      return false;
     }
 
     // Only a fixed set of extensions will be tried to match a file on

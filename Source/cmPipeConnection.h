@@ -13,8 +13,8 @@
 class cmPipeConnection : public cmEventBasedConnection
 {
 public:
-    cmPipeConnection(const std::string&          name,
-                     cmConnectionBufferStrategy* bufferStrategy = nullptr);
+  cmPipeConnection(std::string name,
+                   cmConnectionBufferStrategy* bufferStrategy = nullptr);
 
     bool OnServeStart(std::string* pString) override;
 

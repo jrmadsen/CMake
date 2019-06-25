@@ -37,7 +37,7 @@ cmCTestUpdateHandlerUpdateToString(int type)
     return cmCTestUpdateHandlerUpdateStrings[type];
 }
 
-cmCTestUpdateHandler::cmCTestUpdateHandler() {}
+cmCTestUpdateHandler::cmCTestUpdateHandler() = default;
 
 void
 cmCTestUpdateHandler::Initialize()
@@ -211,21 +211,26 @@ cmCTestUpdateHandler::ProcessHandler()
     std::string buildname = cmCTest::SafeBuildIdField(
         this->CTest->GetCTestConfiguration("BuildName"));
 
-    cmXMLWriter xml(os);
-    xml.StartDocument();
-    xml.StartElement("Update");
-    xml.Attribute("mode", "Client");
-    xml.Attribute("Generator",
-                  std::string("ctest-") + cmVersion::GetCMakeVersion());
-    xml.Element("Site", this->CTest->GetCTestConfiguration("Site"));
-    xml.Element("BuildName", buildname);
-    xml.Element("BuildStamp", this->CTest->GetCurrentTag() + "-" +
-                                  this->CTest->GetTestModelString());
-    xml.Element("StartDateTime", start_time);
-    xml.Element("StartTime", start_time_time);
-    xml.Element("UpdateCommand", vc->GetUpdateCommandLine());
-    xml.Element("UpdateType",
-                cmCTestUpdateHandlerUpdateToString(this->UpdateType));
+  cmXMLWriter xml(os);
+  xml.StartDocument();
+  xml.StartElement("Update");
+  xml.Attribute("mode", "Client");
+  xml.Attribute("Generator",
+                std::string("ctest-") + cmVersion::GetCMakeVersion());
+  xml.Element("Site", this->CTest->GetCTestConfiguration("Site"));
+  xml.Element("BuildName", buildname);
+  xml.Element("BuildStamp",
+              this->CTest->GetCurrentTag() + "-" +
+                this->CTest->GetTestModelString());
+  xml.Element("StartDateTime", start_time);
+  xml.Element("StartTime", start_time_time);
+  xml.Element("UpdateCommand", vc->GetUpdateCommandLine());
+  xml.Element("UpdateType",
+              cmCTestUpdateHandlerUpdateToString(this->UpdateType));
+  std::string changeId = this->CTest->GetCTestConfiguration("ChangeId");
+  if (!changeId.empty()) {
+    xml.Element("ChangeId", changeId);
+  }
 
     bool loadedMods = vc->WriteXML(xml);
 

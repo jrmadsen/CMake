@@ -3,7 +3,7 @@
 #include "cmCTestConfigureCommand.h"
 
 #include "cmCTest.h"
-#include "cmCTestGenericHandler.h"
+#include "cmCTestConfigureHandler.h"
 #include "cmGlobalGenerator.h"
 #include "cmMakefile.h"
 #include "cmSystemTools.h"
@@ -154,22 +154,16 @@ cmCTestConfigureCommand::InitializeHandler()
             return nullptr;
         }
     }
+  }
 
-    if(const char* labelsForSubprojects =
-           this->Makefile->GetDefinition("CTEST_LABELS_FOR_SUBPROJECTS"))
-    {
-        this->CTest->SetCTestConfiguration("LabelsForSubprojects",
-                                           labelsForSubprojects, this->Quiet);
-    }
+  if (const char* labelsForSubprojects =
+        this->Makefile->GetDefinition("CTEST_LABELS_FOR_SUBPROJECTS")) {
+    this->CTest->SetCTestConfiguration("LabelsForSubprojects",
+                                       labelsForSubprojects, this->Quiet);
+  }
 
-    cmCTestGenericHandler* handler =
-        this->CTest->GetInitializedHandler("configure");
-    if(!handler)
-    {
-        this->SetError(
-            "internal CTest error. Cannot instantiate configure handler");
-        return nullptr;
-    }
-    handler->SetQuiet(this->Quiet);
-    return handler;
+  cmCTestConfigureHandler* handler = this->CTest->GetConfigureHandler();
+  handler->Initialize();
+  handler->SetQuiet(this->Quiet);
+  return handler;
 }

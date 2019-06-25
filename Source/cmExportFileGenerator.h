@@ -41,8 +41,8 @@ class cmTargetExport;
 class cmExportFileGenerator
 {
 public:
-    cmExportFileGenerator();
-    virtual ~cmExportFileGenerator() {}
+  cmExportFileGenerator();
+  virtual ~cmExportFileGenerator() = default;
 
     /** Set the full path to the export file to generate.  */
     void        SetExportFile(const char* mainFile);

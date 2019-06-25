@@ -63,7 +63,138 @@ cmServer::cmServer(cmConnection* conn, bool supportExperimental)
 
 cmServer::~cmServer()
 {
-    Close();
+  Close();
+
+  for (cmServerProtocol* p : this->SupportedProtocols) {
+    delete p;
+  }
+}
+
+void cmServer::ProcessRequest(cmConnection* connection,
+                              const std::string& input)
+{
+  Json::Reader reader;
+  Json::Value value;
+  if (!reader.parse(input, value)) {
+    this->WriteParseError(connection, "Failed to parse JSON input.");
+    return;
+  }
+
+  std::unique_ptr<DebugInfo> debug;
+  Json::Value debugValue = value["debug"];
+  if (!debugValue.isNull()) {
+    debug = cm::make_unique<DebugInfo>();
+    debug->OutputFile = debugValue["dumpToFile"].asString();
+    debug->PrintStatistics = debugValue["showStats"].asBool();
+  }
+
+  const cmServerRequest request(this, connection, value[kTYPE_KEY].asString(),
+                                value[kCOOKIE_KEY].asString(), value);
+
+  if (request.Type.empty()) {
+    cmServerResponse response(request);
+    response.SetError("No type given in request.");
+    this->WriteResponse(connection, response, nullptr);
+    return;
+  }
+
+  cmSystemTools::SetMessageCallback(
+    [&request](const std::string& msg, const char* title) {
+      reportMessage(msg, title, request);
+    });
+
+  if (this->Protocol) {
+    this->Protocol->CMakeInstance()->SetProgressCallback(
+      [&request](const std::string& msg, float prog) {
+        reportProgress(msg, prog, request);
+      });
+    this->WriteResponse(connection, this->Protocol->Process(request),
+                        debug.get());
+  } else {
+    this->WriteResponse(connection, this->SetProtocolVersion(request),
+                        debug.get());
+  }
+}
+
+void cmServer::RegisterProtocol(cmServerProtocol* protocol)
+{
+  if (protocol->IsExperimental() && !this->SupportExperimental) {
+    delete protocol;
+    return;
+  }
+  auto version = protocol->ProtocolVersion();
+  assert(version.first >= 0);
+  assert(version.second >= 0);
+  auto it = std::find_if(this->SupportedProtocols.begin(),
+                         this->SupportedProtocols.end(),
+                         [version](cmServerProtocol* p) {
+                           return p->ProtocolVersion() == version;
+                         });
+  if (it == this->SupportedProtocols.end()) {
+    this->SupportedProtocols.push_back(protocol);
+  }
+}
+
+void cmServer::PrintHello(cmConnection* connection) const
+{
+  Json::Value hello = Json::objectValue;
+  hello[kTYPE_KEY] = "hello";
+
+  Json::Value& protocolVersions = hello[kSUPPORTED_PROTOCOL_VERSIONS] =
+    Json::arrayValue;
+
+  for (auto const& proto : this->SupportedProtocols) {
+    auto version = proto->ProtocolVersion();
+    Json::Value tmp = Json::objectValue;
+    tmp[kMAJOR_KEY] = version.first;
+    tmp[kMINOR_KEY] = version.second;
+    if (proto->IsExperimental()) {
+      tmp[kIS_EXPERIMENTAL_KEY] = true;
+    }
+    protocolVersions.append(tmp);
+  }
+
+  this->WriteJsonObject(connection, hello, nullptr);
+}
+
+void cmServer::reportProgress(const std::string& msg, float progress,
+                              const cmServerRequest& request)
+{
+  if (progress < 0.0f || progress > 1.0f) {
+    request.ReportMessage(msg, "");
+  } else {
+    request.ReportProgress(0, static_cast<int>(progress * 1000), 1000, msg);
+  }
+}
+
+void cmServer::reportMessage(const std::string& msg, const char* title,
+                             const cmServerRequest& request)
+{
+  std::string titleString;
+  if (title) {
+    titleString = title;
+  }
+  request.ReportMessage(msg, titleString);
+}
+
+cmServerResponse cmServer::SetProtocolVersion(const cmServerRequest& request)
+{
+  if (request.Type != kHANDSHAKE_TYPE) {
+    return request.ReportError("Waiting for type \"" + kHANDSHAKE_TYPE +
+                               "\".");
+  }
+
+  Json::Value requestedProtocolVersion = request.Data[kPROTOCOL_VERSION_KEY];
+  if (requestedProtocolVersion.isNull()) {
+    return request.ReportError("\"" + kPROTOCOL_VERSION_KEY +
+                               "\" is required for \"" + kHANDSHAKE_TYPE +
+                               "\".");
+  }
+
+  if (!requestedProtocolVersion.isObject()) {
+    return request.ReportError("\"" + kPROTOCOL_VERSION_KEY +
+                               "\" must be a JSON object.");
+  }
 
     for(cmServerProtocol* p : this->SupportedProtocols)
     {
@@ -94,13 +225,11 @@ cmServer::ProcessRequest(cmConnection* connection, const std::string& input)
     const cmServerRequest request(this, connection, value[kTYPE_KEY].asString(),
                                   value[kCOOKIE_KEY].asString(), value);
 
-    if(request.Type.empty())
-    {
-        cmServerResponse response(request);
-        response.SetError("No type given in request.");
-        this->WriteResponse(connection, response, nullptr);
-        return;
-    }
+  this->Protocol =
+    cmServer::FindMatchingProtocol(this->SupportedProtocols, major, minor);
+  if (!this->Protocol) {
+    return request.ReportError("Protocol version not supported.");
+  }
 
     cmSystemTools::SetMessageCallback(reportMessage,
                                       const_cast<cmServerRequest*>(&request));
@@ -471,13 +600,12 @@ cmServer::StartShutDown()
 static void
 __start_thread(void* arg)
 {
-    auto        server = static_cast<cmServerBase*>(arg);
-    std::string error;
-    bool        success = server->Serve(&error);
-    if(!success || error.empty() == false)
-    {
-        std::cerr << "Error during serve: " << error << std::endl;
-    }
+  auto server = static_cast<cmServerBase*>(arg);
+  std::string error;
+  bool success = server->Serve(&error);
+  if (!success || !error.empty()) {
+    std::cerr << "Error during serve: " << error << std::endl;
+  }
 }
 
 bool

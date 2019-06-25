@@ -35,128 +35,114 @@ static bool LogErrorsAsMessages;
 #        endif
 #    endif
 
-///! Use ReportHRESULT to make a cmSystemTools::Message after calling
-///! a COM method that may have failed.
-#    define ReportHRESULT(hr, context)                                         \
-        if(FAILED(hr))                                                         \
-        {                                                                      \
-            if(LogErrorsAsMessages)                                            \
-            {                                                                  \
-                std::ostringstream _hresult_oss;                               \
-                _hresult_oss.flags(std::ios::hex);                             \
-                _hresult_oss << context << " failed HRESULT, hr = 0x" << hr    \
-                             << std::endl;                                     \
-                _hresult_oss.flags(std::ios::dec);                             \
-                _hresult_oss << __FILE__ << "(" << __LINE__ << ")";            \
-                cmSystemTools::Message(_hresult_oss.str().c_str());            \
-            }                                                                  \
-        }
+//! Use ReportHRESULT to make a cmSystemTools::Message after calling
+//! a COM method that may have failed.
+#  define ReportHRESULT(hr, context)                                          \
+    if (FAILED(hr)) {                                                         \
+      if (LogErrorsAsMessages) {                                              \
+        std::ostringstream _hresult_oss;                                      \
+        _hresult_oss.flags(std::ios::hex);                                    \
+        _hresult_oss << context << " failed HRESULT, hr = 0x" << hr           \
+                     << std::endl;                                            \
+        _hresult_oss.flags(std::ios::dec);                                    \
+        _hresult_oss << __FILE__ << "(" << __LINE__ << ")";                   \
+        cmSystemTools::Message(_hresult_oss.str());                           \
+      }                                                                       \
+    }
 
-///! Using the given instance of Visual Studio, call the named macro
-HRESULT
-InstanceCallMacro(IDispatch* vsIDE, const std::string& macro,
-                  const std::string& args)
+//! Using the given instance of Visual Studio, call the named macro
+HRESULT InstanceCallMacro(IDispatch* vsIDE, const std::string& macro,
+                          const std::string& args)
 {
-    HRESULT hr = E_POINTER;
+  HRESULT hr = E_POINTER;
 
-    _bstr_t macroName(macro.c_str());
-    _bstr_t macroArgs(args.c_str());
+  _bstr_t macroName(macro.c_str());
+  _bstr_t macroArgs(args.c_str());
 
-    if(0 != vsIDE)
-    {
-        DISPID   dispid = (DISPID) -1;
-        OLECHAR* name   = L"ExecuteCommand";
+  if (0 != vsIDE) {
+    DISPID dispid = (DISPID)-1;
+    wchar_t execute_command[] = L"ExecuteCommand";
+    OLECHAR* name = execute_command;
 
-        hr = vsIDE->GetIDsOfNames(IID_NULL, &name, 1, LOCALE_USER_DEFAULT,
-                                  &dispid);
-        ReportHRESULT(hr, "GetIDsOfNames(ExecuteCommand)");
+    hr =
+      vsIDE->GetIDsOfNames(IID_NULL, &name, 1, LOCALE_USER_DEFAULT, &dispid);
+    ReportHRESULT(hr, "GetIDsOfNames(ExecuteCommand)");
 
-        if(SUCCEEDED(hr))
-        {
-            VARIANTARG vargs[2];
-            DISPPARAMS params;
-            VARIANT    result;
-            EXCEPINFO  excep;
-            UINT       arg = (UINT) -1;
+    if (SUCCEEDED(hr)) {
+      VARIANTARG vargs[2];
+      DISPPARAMS params;
+      VARIANT result;
+      EXCEPINFO excep;
+      UINT arg = (UINT)-1;
 
-            // No VariantInit or VariantClear calls are necessary for
-            // these two vargs. They are both local _bstr_t variables
-            // that remain in scope for the duration of the Invoke call.
-            //
-            V_VT(&vargs[1])   = VT_BSTR;
-            V_BSTR(&vargs[1]) = macroName;
-            V_VT(&vargs[0])   = VT_BSTR;
-            V_BSTR(&vargs[0]) = macroArgs;
+      // No VariantInit or VariantClear calls are necessary for
+      // these two vargs. They are both local _bstr_t variables
+      // that remain in scope for the duration of the Invoke call.
+      //
+      V_VT(&vargs[1]) = VT_BSTR;
+      V_BSTR(&vargs[1]) = macroName;
+      V_VT(&vargs[0]) = VT_BSTR;
+      V_BSTR(&vargs[0]) = macroArgs;
 
-            params.rgvarg            = &vargs[0];
-            params.rgdispidNamedArgs = 0;
-            params.cArgs             = sizeof(vargs) / sizeof(vargs[0]);
-            params.cNamedArgs        = 0;
+      params.rgvarg = &vargs[0];
+      params.rgdispidNamedArgs = 0;
+      params.cArgs = sizeof(vargs) / sizeof(vargs[0]);
+      params.cNamedArgs = 0;
 
-            VariantInit(&result);
+      VariantInit(&result);
 
-            memset(&excep, 0, sizeof(excep));
+      memset(&excep, 0, sizeof(excep));
 
-            hr = vsIDE->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT,
-                               DISPATCH_METHOD, &params, &result, &excep, &arg);
+      hr = vsIDE->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT,
+                         DISPATCH_METHOD, &params, &result, &excep, &arg);
 
-            std::ostringstream oss;
-            oss << std::endl;
-            oss << "Invoke(ExecuteCommand)" << std::endl;
-            oss << "  Macro: " << macro << std::endl;
-            oss << "  Args: " << args << std::endl;
+      std::ostringstream oss;
+      oss << std::endl;
+      oss << "Invoke(ExecuteCommand)" << std::endl;
+      oss << "  Macro: " << macro << std::endl;
+      oss << "  Args: " << args << std::endl;
 
-            if(DISP_E_EXCEPTION == hr)
-            {
-                oss << "DISP_E_EXCEPTION EXCEPINFO:" << excep.wCode
-                    << std::endl;
-                oss << "  wCode: " << excep.wCode << std::endl;
-                oss << "  wReserved: " << excep.wReserved << std::endl;
-                if(excep.bstrSource)
-                {
-                    oss << "  bstrSource: "
-                        << (const char*) (_bstr_t) excep.bstrSource
-                        << std::endl;
-                }
-                if(excep.bstrDescription)
-                {
-                    oss << "  bstrDescription: "
-                        << (const char*) (_bstr_t) excep.bstrDescription
-                        << std::endl;
-                }
-                if(excep.bstrHelpFile)
-                {
-                    oss << "  bstrHelpFile: "
-                        << (const char*) (_bstr_t) excep.bstrHelpFile
-                        << std::endl;
-                }
-                oss << "  dwHelpContext: " << excep.dwHelpContext << std::endl;
-                oss << "  pvReserved: " << excep.pvReserved << std::endl;
-                oss << "  pfnDeferredFillIn: " << excep.pfnDeferredFillIn
-                    << std::endl;
-                oss << "  scode: " << excep.scode << std::endl;
-            }
-
-            std::string exstr(oss.str());
-            ReportHRESULT(hr, exstr.c_str());
-
-            VariantClear(&result);
+      if (DISP_E_EXCEPTION == hr) {
+        oss << "DISP_E_EXCEPTION EXCEPINFO:" << excep.wCode << std::endl;
+        oss << "  wCode: " << excep.wCode << std::endl;
+        oss << "  wReserved: " << excep.wReserved << std::endl;
+        if (excep.bstrSource) {
+          oss << "  bstrSource: " << (const char*)(_bstr_t)excep.bstrSource
+              << std::endl;
         }
+        if (excep.bstrDescription) {
+          oss << "  bstrDescription: "
+              << (const char*)(_bstr_t)excep.bstrDescription << std::endl;
+        }
+        if (excep.bstrHelpFile) {
+          oss << "  bstrHelpFile: " << (const char*)(_bstr_t)excep.bstrHelpFile
+              << std::endl;
+        }
+        oss << "  dwHelpContext: " << excep.dwHelpContext << std::endl;
+        oss << "  pvReserved: " << excep.pvReserved << std::endl;
+        oss << "  pfnDeferredFillIn: "
+            << reinterpret_cast<void*>(excep.pfnDeferredFillIn) << std::endl;
+        oss << "  scode: " << excep.scode << std::endl;
+      }
+
+      std::string exstr(oss.str());
+      ReportHRESULT(hr, exstr.c_str());
+
+      VariantClear(&result);
     }
 
     return hr;
 }
 
-///! Get the Solution object from the IDE object
-HRESULT
-GetSolutionObject(IDispatch* vsIDE, IDispatchPtr& vsSolution)
+//! Get the Solution object from the IDE object
+HRESULT GetSolutionObject(IDispatch* vsIDE, IDispatchPtr& vsSolution)
 {
     HRESULT hr = E_POINTER;
 
-    if(0 != vsIDE)
-    {
-        DISPID   dispid = (DISPID) -1;
-        OLECHAR* name   = L"Solution";
+  if (0 != vsIDE) {
+    DISPID dispid = (DISPID)-1;
+    wchar_t solution[] = L"Solution";
+    OLECHAR* name = solution;
 
         hr = vsIDE->GetIDsOfNames(IID_NULL, &name, 1, LOCALE_USER_DEFAULT,
                                   &dispid);
@@ -195,16 +181,15 @@ GetSolutionObject(IDispatch* vsIDE, IDispatchPtr& vsSolution)
     return hr;
 }
 
-///! Get the FullName property from the Solution object
-HRESULT
-GetSolutionFullName(IDispatch* vsSolution, std::string& fullName)
+//! Get the FullName property from the Solution object
+HRESULT GetSolutionFullName(IDispatch* vsSolution, std::string& fullName)
 {
     HRESULT hr = E_POINTER;
 
-    if(0 != vsSolution)
-    {
-        DISPID   dispid = (DISPID) -1;
-        OLECHAR* name   = L"FullName";
+  if (0 != vsSolution) {
+    DISPID dispid = (DISPID)-1;
+    wchar_t full_name[] = L"FullName";
+    OLECHAR* name = full_name;
 
         hr = vsSolution->GetIDsOfNames(IID_NULL, &name, 1, LOCALE_USER_DEFAULT,
                                        &dispid);
@@ -243,9 +228,8 @@ GetSolutionFullName(IDispatch* vsSolution, std::string& fullName)
     return hr;
 }
 
-///! Get the FullName property from the Solution object, given the IDE object
-HRESULT
-GetIDESolutionFullName(IDispatch* vsIDE, std::string& fullName)
+//! Get the FullName property from the Solution object, given the IDE object
+HRESULT GetIDESolutionFullName(IDispatch* vsIDE, std::string& fullName)
 {
     IDispatchPtr vsSolution;
     HRESULT      hr = GetSolutionObject(vsIDE, vsSolution);
@@ -260,10 +244,9 @@ GetIDESolutionFullName(IDispatch* vsIDE, std::string& fullName)
     return hr;
 }
 
-///! Get all running objects from the Windows running object table.
-///! Save them in a map by their display names.
-HRESULT
-GetRunningInstances(std::map<std::string, IUnknownPtr>& mrot)
+//! Get all running objects from the Windows running object table.
+//! Save them in a map by their display names.
+HRESULT GetRunningInstances(std::map<std::string, IUnknownPtr>& mrot)
 {
     // mrot == Map of the Running Object Table
 
@@ -326,10 +309,9 @@ GetRunningInstances(std::map<std::string, IUnknownPtr>& mrot)
     return hr;
 }
 
-///! Do the two file names refer to the same Visual Studio solution? Or are
-///! we perhaps looking for any and all solutions?
-bool
-FilesSameSolution(const std::string& slnFile, const std::string& slnName)
+//! Do the two file names refer to the same Visual Studio solution? Or are
+//! we perhaps looking for any and all solutions?
+bool FilesSameSolution(const std::string& slnFile, const std::string& slnName)
 {
     if(slnFile == "ALL" || slnName == "ALL")
     {
@@ -346,12 +328,11 @@ FilesSameSolution(const std::string& slnFile, const std::string& slnName)
     return s1 == s2;
 }
 
-///! Find instances of Visual Studio with the given solution file
-///! open. Pass "ALL" for slnFile to gather all running instances
-///! of Visual Studio.
-HRESULT
-FindVisualStudioInstances(const std::string&         slnFile,
-                          std::vector<IDispatchPtr>& instances)
+//! Find instances of Visual Studio with the given solution file
+//! open. Pass "ALL" for slnFile to gather all running instances
+//! of Visual Studio.
+HRESULT FindVisualStudioInstances(const std::string& slnFile,
+                                  std::vector<IDispatchPtr>& instances)
 {
     std::map<std::string, IUnknownPtr> mrot;
 
@@ -430,13 +411,12 @@ cmCallVisualStudioMacro::GetNumberOfRunningVisualStudioInstances(
     return count;
 }
 
-///! Get all running objects from the Windows running object table.
-///! Save them in a map by their display names.
-int
-cmCallVisualStudioMacro::CallMacro(const std::string& slnFile,
-                                   const std::string& macro,
-                                   const std::string& args,
-                                   const bool         logErrorsAsMessages)
+//! Get all running objects from the Windows running object table.
+//! Save them in a map by their display names.
+int cmCallVisualStudioMacro::CallMacro(const std::string& slnFile,
+                                       const std::string& macro,
+                                       const std::string& args,
+                                       const bool logErrorsAsMessages)
 {
     int err = 1;  // no comdef.h
 
@@ -496,12 +476,11 @@ cmCallVisualStudioMacro::CallMacro(const std::string& slnFile,
     }
 #endif
 
-    if(err && LogErrorsAsMessages)
-    {
-        std::ostringstream oss;
-        oss << "cmCallVisualStudioMacro::CallMacro failed, err = " << err;
-        cmSystemTools::Message(oss.str().c_str());
-    }
+  if (err && LogErrorsAsMessages) {
+    std::ostringstream oss;
+    oss << "cmCallVisualStudioMacro::CallMacro failed, err = " << err;
+    cmSystemTools::Message(oss.str());
+  }
 
     return 0;
 }

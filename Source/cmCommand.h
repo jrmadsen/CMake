@@ -24,72 +24,71 @@ struct cmListFileArgument;
  */
 class cmCommand
 {
-    CM_DISABLE_COPY(cmCommand)
-
 public:
-    /**
-     * Construct the command. By default it has no makefile.
-     */
-    cmCommand()
-    : Makefile(nullptr)
-    {}
+  /**
+   * Construct the command. By default it has no makefile.
+   */
+  cmCommand() = default;
 
-    /**
-     * Need virtual destructor to destroy real command type.
-     */
-    virtual ~cmCommand() {}
+  /**
+   * Need virtual destructor to destroy real command type.
+   */
+  virtual ~cmCommand() = default;
 
-    /**
-     * Specify the makefile.
-     */
-    void        SetMakefile(cmMakefile* m) { this->Makefile = m; }
-    cmMakefile* GetMakefile() { return this->Makefile; }
+  cmCommand(cmCommand const&) = delete;
+  cmCommand& operator=(cmCommand const&) = delete;
 
-    /**
-     * This is called by the cmMakefile when the command is first
-     * encountered in the CMakeLists.txt file.  It expands the command's
-     * arguments and then invokes the InitialPass.
-     */
-    virtual bool InvokeInitialPass(const std::vector<cmListFileArgument>& args,
-                                   cmExecutionStatus& status);
+  /**
+   * Specify the makefile.
+   */
+  void SetMakefile(cmMakefile* m) { this->Makefile = m; }
+  cmMakefile* GetMakefile() { return this->Makefile; }
 
-    /**
-     * This is called when the command is first encountered in
-     * the CMakeLists.txt file.
-     */
-    virtual bool InitialPass(std::vector<std::string> const& args,
-                             cmExecutionStatus&) = 0;
+  /**
+   * This is called by the cmMakefile when the command is first
+   * encountered in the CMakeLists.txt file.  It expands the command's
+   * arguments and then invokes the InitialPass.
+   */
+  virtual bool InvokeInitialPass(const std::vector<cmListFileArgument>& args,
+                                 cmExecutionStatus& status);
 
-    /**
-     * This is called at the end after all the information
-     * specified by the command is accumulated. Most commands do
-     * not implement this method.  At this point, reading and
-     * writing to the cache can be done.
-     */
-    virtual void FinalPass() {}
+  /**
+   * This is called when the command is first encountered in
+   * the CMakeLists.txt file.
+   */
+  virtual bool InitialPass(std::vector<std::string> const& args,
+                           cmExecutionStatus&) = 0;
 
-    /**
-     * Does this command have a final pass?  Query after InitialPass.
-     */
-    virtual bool HasFinalPass() const { return false; }
+  /**
+   * This is called at the end after all the information
+   * specified by the command is accumulated. Most commands do
+   * not implement this method.  At this point, reading and
+   * writing to the cache can be done.
+   */
+  virtual void FinalPass() {}
 
-    /**
-     * This is a virtual constructor for the command.
-     */
-    virtual cmCommand* Clone() = 0;
+  /**
+   * Does this command have a final pass?  Query after InitialPass.
+   */
+  virtual bool HasFinalPass() const { return false; }
 
-    /**
-     * Return the last error string.
-     */
-    const char* GetError();
+  /**
+   * This is a virtual constructor for the command.
+   */
+  virtual cmCommand* Clone() = 0;
 
-    /**
-     * Set the error message
-     */
-    void SetError(const std::string& e);
+  /**
+   * Return the last error string.
+   */
+  const char* GetError();
+
+  /**
+   * Set the error message
+   */
+  void SetError(const std::string& e);
 
 protected:
-    cmMakefile* Makefile;
+  cmMakefile* Makefile = nullptr;
 
 private:
     std::string Error;

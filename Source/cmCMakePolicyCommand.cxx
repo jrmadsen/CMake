@@ -5,10 +5,10 @@
 #include <sstream>
 
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmPolicies.h"
 #include "cmState.h"
 #include "cmStateTypes.h"
-#include "cmake.h"
 
 class cmExecutionStatus;
 
@@ -55,6 +55,21 @@ cmCMakePolicyCommand::InitialPass(std::vector<std::string> const& args,
     {
         return this->HandleVersionMode(args);
     }
+    this->Makefile->PopPolicy();
+    return true;
+  }
+  if (args[0] == "VERSION") {
+    return this->HandleVersionMode(args);
+  }
+  if (args[0] == "GET_WARNING") {
+    return this->HandleGetWarningMode(args);
+  }
+
+  std::ostringstream e;
+  e << "given unknown first argument \"" << args[0] << "\"";
+  this->SetError(e.str());
+  return false;
+}
 
     std::ostringstream e;
     e << "given unknown first argument \"" << args[0] << "\"";
@@ -133,79 +148,75 @@ cmCMakePolicyCommand::HandleGetMode(std::vector<std::string> const& args)
     if(!cmPolicies::GetPolicyID(id.c_str(), pid))
     {
         std::ostringstream e;
-        e << "GET given policy \"" << id << "\" which is not known to this "
-          << "version of CMake.";
-        this->SetError(e.str());
-        return false;
-    }
+        e << cmPolicies::GetRequiredPolicyError(pid) << "\n"
+          << "The call to cmake_policy(GET " << id << " ...) at which this "
+          << "error appears requests the policy, and this version of CMake "
+          << "requires that the policy be set to NEW before it is checked.";
+        this->Makefile->IssueMessage(MessageType::FATAL_ERROR, e.str());
+      }
+  }
 
-    // Lookup the policy setting.
-    cmPolicies::PolicyStatus status =
-        this->Makefile->GetPolicyStatus(pid, parent_scope);
-    switch(status)
-    {
-        case cmPolicies::OLD:
-            // Report that the policy is set to OLD.
-            this->Makefile->AddDefinition(var, "OLD");
-            break;
-        case cmPolicies::WARN:
-            // Report that the policy is not set.
-            this->Makefile->AddDefinition(var, "");
-            break;
-        case cmPolicies::NEW:
-            // Report that the policy is set to NEW.
-            this->Makefile->AddDefinition(var, "NEW");
-            break;
-        case cmPolicies::REQUIRED_IF_USED:
-        case cmPolicies::REQUIRED_ALWAYS:
-            // The policy is required to be set before anything needs it.
-            {
-                std::ostringstream e;
-                e << cmPolicies::GetRequiredPolicyError(pid) << "\n"
-                  << "The call to cmake_policy(GET " << id
-                  << " ...) at which this "
-                  << "error appears requests the policy, and this version of "
-                     "CMake "
-                  << "requires that the policy be set to NEW before it is "
-                     "checked.";
-                this->Makefile->IssueMessage(cmake::FATAL_ERROR, e.str());
-            }
-    }
-
-    return true;
+  return true;
 }
 
 bool
 cmCMakePolicyCommand::HandleVersionMode(std::vector<std::string> const& args)
 {
-    if(args.size() <= 1)
-    {
-        this->SetError("VERSION not given an argument");
-        return false;
-    }
-    if(args.size() >= 3)
-    {
-        this->SetError("VERSION given too many arguments");
-        return false;
-    }
-    std::string const& version_string = args[1];
+  if (args.size() <= 1) {
+    this->SetError("VERSION not given an argument");
+    return false;
+  }
+  if (args.size() >= 3) {
+    this->SetError("VERSION given too many arguments");
+    return false;
+  }
+  std::string const& version_string = args[1];
 
-    // Separate the <min> version and any trailing ...<max> component.
-    std::string::size_type const dd          = version_string.find("...");
-    std::string const            version_min = version_string.substr(0, dd);
-    std::string const            version_max =
-        dd != std::string::npos
-            ? version_string.substr(dd + 3, std::string::npos)
-            : std::string();
-    if(dd != std::string::npos && (version_min.empty() || version_max.empty()))
-    {
-        std::ostringstream e;
-        e << "VERSION \"" << version_string
-          << "\" does not have a version on both sides of \"...\".";
-        this->SetError(e.str());
-        return false;
-    }
+  // Separate the <min> version and any trailing ...<max> component.
+  std::string::size_type const dd = version_string.find("...");
+  std::string const version_min = version_string.substr(0, dd);
+  std::string const version_max = dd != std::string::npos
+    ? version_string.substr(dd + 3, std::string::npos)
+    : std::string();
+  if (dd != std::string::npos &&
+      (version_min.empty() || version_max.empty())) {
+    std::ostringstream e;
+    e << "VERSION \"" << version_string
+      << R"(" does not have a version on both sides of "...".)";
+    this->SetError(e.str());
+    return false;
+  }
 
     this->Makefile->SetPolicyVersion(version_min, version_max);
     return true;
+}
+
+bool cmCMakePolicyCommand::HandleGetWarningMode(
+  std::vector<std::string> const& args)
+{
+  if (args.size() != 3) {
+    this->SetError(
+      "GET_WARNING must be given exactly 2 additional arguments.");
+    return false;
+  }
+
+  // Get arguments.
+  std::string const& id = args[1];
+  std::string const& var = args[2];
+
+  // Lookup the policy number.
+  cmPolicies::PolicyID pid;
+  if (!cmPolicies::GetPolicyID(id.c_str(), pid)) {
+    std::ostringstream e;
+    e << "GET_WARNING given policy \"" << id
+      << "\" which is not known to this version of CMake.";
+    this->SetError(e.str());
+    return false;
+  }
+
+  // Lookup the policy warning.
+  this->Makefile->AddDefinition(var,
+                                cmPolicies::GetPolicyWarning(pid).c_str());
+
+  return true;
 }

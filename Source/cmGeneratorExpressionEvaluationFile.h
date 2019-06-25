@@ -19,11 +19,11 @@ class cmLocalGenerator;
 class cmGeneratorExpressionEvaluationFile
 {
 public:
-    cmGeneratorExpressionEvaluationFile(
-        const std::string&                             input,
-        std::unique_ptr<cmCompiledGeneratorExpression> outputFileExpr,
-        std::unique_ptr<cmCompiledGeneratorExpression> condition,
-        bool inputIsContent, cmPolicies::PolicyStatus policyStatusCMP0070);
+  cmGeneratorExpressionEvaluationFile(
+    std::string input,
+    std::unique_ptr<cmCompiledGeneratorExpression> outputFileExpr,
+    std::unique_ptr<cmCompiledGeneratorExpression> condition,
+    bool inputIsContent, cmPolicies::PolicyStatus policyStatusCMP0070);
 
     void Generate(cmLocalGenerator* lg);
 

@@ -3,6 +3,7 @@
 #include "cmInstallExportGenerator.h"
 
 #include <algorithm>
+#include <map>
 #include <sstream>
 #include <utility>
 
@@ -14,7 +15,6 @@
 #include "cmInstallType.h"
 #include "cmLocalGenerator.h"
 #include "cmSystemTools.h"
-#include "cmake.h"
 
 cmInstallExportGenerator::cmInstallExportGenerator(
     cmExportSet* exportSet, const char* destination,
@@ -45,29 +45,28 @@ cmInstallExportGenerator::cmInstallExportGenerator(
 
 cmInstallExportGenerator::~cmInstallExportGenerator() { delete this->EFGen; }
 
-void
-cmInstallExportGenerator::Compute(cmLocalGenerator* lg)
+bool cmInstallExportGenerator::Compute(cmLocalGenerator* lg)
 {
-    this->LocalGenerator = lg;
-    this->ExportSet->Compute(lg);
+  this->LocalGenerator = lg;
+  this->ExportSet->Compute(lg);
+  return true;
 }
 
 void
 cmInstallExportGenerator::ComputeTempDir()
 {
-    // Choose a temporary directory in which to generate the import
-    // files to be installed.
-    this->TempDir = this->LocalGenerator->GetCurrentBinaryDirectory();
-    this->TempDir += cmake::GetCMakeFilesDirectory();
-    this->TempDir += "/Export";
-    if(this->Destination.empty())
-    {
-        return;
-    }
-    this->TempDir += "/";
+  // Choose a temporary directory in which to generate the import
+  // files to be installed.
+  this->TempDir = this->LocalGenerator->GetCurrentBinaryDirectory();
+  this->TempDir += "/CMakeFiles";
+  this->TempDir += "/Export";
+  if (this->Destination.empty()) {
+    return;
+  }
+  this->TempDir += "/";
 
-    // Enforce a maximum length.
-    bool useMD5 = false;
+  // Enforce a maximum length.
+  bool useMD5 = false;
 #if defined(_WIN32) || defined(__CYGWIN__)
     std::string::size_type const max_total_len = 250;
 #else
@@ -138,14 +137,33 @@ cmInstallExportGenerator::GetMaxConfigLength() const
 void
 cmInstallExportGenerator::GenerateScript(std::ostream& os)
 {
-    // Skip empty sets.
-    if(ExportSet->GetTargetExports()->empty())
-    {
-        std::ostringstream e;
-        e << "INSTALL(EXPORT) given unknown export \"" << ExportSet->GetName()
-          << "\"";
-        cmSystemTools::Error(e.str().c_str());
-        return;
+  // Skip empty sets.
+  if (ExportSet->GetTargetExports()->empty()) {
+    std::ostringstream e;
+    e << "INSTALL(EXPORT) given unknown export \"" << ExportSet->GetName()
+      << "\"";
+    cmSystemTools::Error(e.str());
+    return;
+  }
+
+  // Create the temporary directory in which to store the files.
+  this->ComputeTempDir();
+  cmSystemTools::MakeDirectory(this->TempDir);
+
+  // Construct a temporary location for the file.
+  this->MainImportFile = this->TempDir;
+  this->MainImportFile += "/";
+  this->MainImportFile += this->FileName;
+
+  // Generate the import file for this export set.
+  this->EFGen->SetExportFile(this->MainImportFile.c_str());
+  this->EFGen->SetNamespace(this->Namespace);
+  this->EFGen->SetExportOld(this->ExportOld);
+  if (this->ConfigurationTypes->empty()) {
+    if (!this->ConfigurationName.empty()) {
+      this->EFGen->AddConfiguration(this->ConfigurationName);
+    } else {
+      this->EFGen->AddConfiguration("");
     }
 
     // Create the temporary directory in which to store the files.
@@ -226,7 +244,7 @@ cmInstallExportGenerator::GenerateScriptActions(std::ostream& os, Indent indent)
   os << indentNN << "file(GLOB OLD_CONFIG_FILES \"" << installedDir
      << this->EFGen->GetConfigImportFileGlob() << "\")\n";
   os << indentNN << "if(OLD_CONFIG_FILES)\n";
-  os << indentNNN << "message(STATUS \"Old export file \\\"" << installedFile
+  os << indentNNN << R"(message(STATUS "Old export file \")" << installedFile
      << "\\\" will be replaced.  Removing files [${OLD_CONFIG_FILES}].\")\n";
   os << indentNNN << "file(REMOVE ${OLD_CONFIG_FILES})\n";
   os << indentNN << "endif()\n";

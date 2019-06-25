@@ -6,9 +6,10 @@
 #if !defined(cmFortranLexer_cxx) && !defined(cmFortranParser_cxx)
 #    include "cmConfigure.h"  // IWYU pragma: keep
 
-#    include <set>
-#    include <string>
-#    include <vector>
+#  include <set>
+#  include <string>
+#  include <utility>
+#  include <vector>
 #endif
 
 #include <stddef.h> /* size_t */
@@ -139,10 +140,10 @@ int cmFortran_yyparse(yyscan_t);
 // Define parser object internal structure.
 struct cmFortranFile
 {
-    cmFortranFile(FILE* file, YY_BUFFER_STATE buffer, const std::string& dir)
+  cmFortranFile(FILE* file, YY_BUFFER_STATE buffer, std::string dir)
     : File(file)
     , Buffer(buffer)
-    , Directory(dir)
+    , Directory(std::move(dir))
     , LastCharWasNewline(false)
     {}
     FILE*           File;
@@ -151,18 +152,34 @@ struct cmFortranFile
     bool            LastCharWasNewline;
 };
 
+struct cmFortranCompiler
+{
+  std::string Id;
+  std::string SModSep;
+  std::string SModExt;
+};
+
 struct cmFortranParser_s
 {
-    cmFortranParser_s(std::vector<std::string> const& includes,
-                      std::set<std::string> const&    defines,
-                      cmFortranSourceInfo&            info);
-    ~cmFortranParser_s();
+  cmFortranParser_s(cmFortranCompiler fc, std::vector<std::string> includes,
+                    std::set<std::string> defines, cmFortranSourceInfo& info);
+  ~cmFortranParser_s();
 
-    bool FindIncludeFile(const char* dir, const char* includeName,
-                         std::string& fileName);
+  cmFortranParser_s(const cmFortranParser_s&) = delete;
+  cmFortranParser_s& operator=(const cmFortranParser_s&) = delete;
 
-    // The include file search path.
-    std::vector<std::string> IncludePath;
+  bool FindIncludeFile(const char* dir, const char* includeName,
+                       std::string& fileName);
+
+  std::string ModName(std::string const& mod_name) const;
+  std::string SModName(std::string const& mod_name,
+                       std::string const& sub_name) const;
+
+  // What compiler.
+  cmFortranCompiler Compiler;
+
+  // The include file search path.
+  std::vector<std::string> IncludePath;
 
     // Lexical scanner instance.
     yyscan_t Scanner;

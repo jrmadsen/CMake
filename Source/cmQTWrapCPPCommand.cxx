@@ -4,6 +4,7 @@
 
 #include "cmCustomCommandLines.h"
 #include "cmMakefile.h"
+#include "cmRange.h"
 #include "cmSourceFile.h"
 #include "cmSystemTools.h"
 
@@ -30,44 +31,36 @@ cmQTWrapCPPCommand::InitialPass(std::vector<std::string> const& args,
     std::string const& sourceList = args[1];
     std::string sourceListValue = this->Makefile->GetSafeDefinition(sourceList);
 
-    // Create a rule for all sources listed.
-    for(std::vector<std::string>::const_iterator j = (args.begin() + 2);
-        j != args.end(); ++j)
-    {
-        cmSourceFile* curr = this->Makefile->GetSource(*j);
-        // if we should wrap the class
-        if(!(curr && curr->GetPropertyAsBool("WRAP_EXCLUDE")))
-        {
-            // Compute the name of the file to generate.
-            std::string srcName =
-                cmSystemTools::GetFilenameWithoutLastExtension(*j);
-            std::string newName = this->Makefile->GetCurrentBinaryDirectory();
-            newName += "/moc_";
-            newName += srcName;
-            newName += ".cxx";
-            cmSourceFile* sf = this->Makefile->GetOrCreateSource(newName, true);
-            if(curr)
-            {
-                sf->SetProperty("ABSTRACT", curr->GetProperty("ABSTRACT"));
-            }
+  // Create a rule for all sources listed.
+  for (std::string const& arg : cmMakeRange(args).advance(2)) {
+    cmSourceFile* curr = this->Makefile->GetSource(arg);
+    // if we should wrap the class
+    if (!(curr && curr->GetPropertyAsBool("WRAP_EXCLUDE"))) {
+      // Compute the name of the file to generate.
+      std::string srcName =
+        cmSystemTools::GetFilenameWithoutLastExtension(arg);
+      std::string newName = this->Makefile->GetCurrentBinaryDirectory();
+      newName += "/moc_";
+      newName += srcName;
+      newName += ".cxx";
+      cmSourceFile* sf = this->Makefile->GetOrCreateSource(newName, true);
+      if (curr) {
+        sf->SetProperty("ABSTRACT", curr->GetProperty("ABSTRACT"));
+      }
 
-            // Compute the name of the header from which to generate the file.
-            std::string hname;
-            if(cmSystemTools::FileIsFullPath(*j))
-            {
-                hname = *j;
-            } else
-            {
-                if(curr && curr->GetPropertyAsBool("GENERATED"))
-                {
-                    hname = this->Makefile->GetCurrentBinaryDirectory();
-                } else
-                {
-                    hname = this->Makefile->GetCurrentSourceDirectory();
-                }
-                hname += "/";
-                hname += *j;
-            }
+      // Compute the name of the header from which to generate the file.
+      std::string hname;
+      if (cmSystemTools::FileIsFullPath(arg)) {
+        hname = arg;
+      } else {
+        if (curr && curr->GetIsGenerated()) {
+          hname = this->Makefile->GetCurrentBinaryDirectory();
+        } else {
+          hname = this->Makefile->GetCurrentSourceDirectory();
+        }
+        hname += "/";
+        hname += arg;
+      }
 
             // Append the generated source file to the list.
             if(!sourceListValue.empty())

@@ -8,6 +8,7 @@
 #include "cmGlobalGenerator.h"
 #include "cmJsonObjectDictionary.h"
 #include "cmJsonObjects.h"
+#include "cmMessageType.h"
 #include "cmServer.h"
 #include "cmServerDictionary.h"
 #include "cmState.h"
@@ -20,6 +21,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 // Get rid of some windows macros:
@@ -41,14 +43,14 @@ toStringList(const Json::Value& in)
 }  // namespace
 
 cmServerRequest::cmServerRequest(cmServer* server, cmConnection* connection,
-                                 const std::string& t, const std::string& c,
-                                 const Json::Value& d)
-: Type(t)
-, Cookie(c)
-, Data(d)
-, Connection(connection)
-, m_Server(server)
-{}
+                                 std::string t, std::string c, Json::Value d)
+  : Type(std::move(t))
+  , Cookie(std::move(c))
+  , Data(std::move(d))
+  , Connection(connection)
+  , m_Server(server)
+{
+}
 
 void
 cmServerRequest::ReportProgress(int min, int current, int max,
@@ -154,7 +156,15 @@ cmServerProtocol::Activate(cmServer* server, const cmServerRequest& request,
 cmFileMonitor*
 cmServerProtocol::FileMonitor() const
 {
-    return this->m_Server ? this->m_Server->FileMonitor() : nullptr;
+  assert(server);
+  this->m_Server = server;
+  this->m_CMakeInstance =
+    cm::make_unique<cmake>(cmake::RoleProject, cmState::Project);
+  const bool result = this->DoActivate(request, errorMessage);
+  if (!result) {
+    this->m_CMakeInstance = nullptr;
+  }
+  return result;
 }
 
 void
@@ -246,14 +256,67 @@ bool
 cmServerProtocol1::DoActivate(const cmServerRequest& request,
                               std::string*           errorMessage)
 {
-    std::string sourceDirectory =
-        request.Data[kSOURCE_DIRECTORY_KEY].asString();
-    const std::string buildDirectory =
-        request.Data[kBUILD_DIRECTORY_KEY].asString();
-    std::string generator      = request.Data[kGENERATOR_KEY].asString();
-    std::string extraGenerator = request.Data[kEXTRA_GENERATOR_KEY].asString();
-    std::string toolset        = request.Data[kTOOLSET_KEY].asString();
-    std::string platform       = request.Data[kPLATFORM_KEY].asString();
+  const char* entry = state->GetCacheEntryValue(key);
+  const std::string cachedValue =
+    entry == nullptr ? std::string() : std::string(entry);
+  if (value.empty()) {
+    value = cachedValue;
+  }
+  if (!cachedValue.empty() && cachedValue != value) {
+    setErrorMessage(errorMessage,
+                    std::string("\"") + key +
+                      "\" is set but incompatible with configured " +
+                      keyDescription + " value.");
+    return false;
+  }
+  return true;
+}
+
+bool cmServerProtocol1::DoActivate(const cmServerRequest& request,
+                                   std::string* errorMessage)
+{
+  std::string sourceDirectory = request.Data[kSOURCE_DIRECTORY_KEY].asString();
+  std::string buildDirectory = request.Data[kBUILD_DIRECTORY_KEY].asString();
+  std::string generator = request.Data[kGENERATOR_KEY].asString();
+  std::string extraGenerator = request.Data[kEXTRA_GENERATOR_KEY].asString();
+  std::string toolset = request.Data[kTOOLSET_KEY].asString();
+  std::string platform = request.Data[kPLATFORM_KEY].asString();
+
+  // normalize source and build directory
+  if (!sourceDirectory.empty()) {
+    sourceDirectory = cmSystemTools::CollapseFullPath(sourceDirectory);
+    cmSystemTools::ConvertToUnixSlashes(sourceDirectory);
+  }
+  if (!buildDirectory.empty()) {
+    buildDirectory = cmSystemTools::CollapseFullPath(buildDirectory);
+    cmSystemTools::ConvertToUnixSlashes(buildDirectory);
+  }
+
+  if (buildDirectory.empty()) {
+    setErrorMessage(errorMessage,
+                    std::string("\"") + kBUILD_DIRECTORY_KEY +
+                      "\" is missing.");
+    return false;
+  }
+
+  cmake* cm = CMakeInstance();
+  if (cmSystemTools::PathExists(buildDirectory)) {
+    if (!cmSystemTools::FileIsDirectory(buildDirectory)) {
+      setErrorMessage(errorMessage,
+                      std::string("\"") + kBUILD_DIRECTORY_KEY +
+                        "\" exists but is not a directory.");
+      return false;
+    }
+
+    const std::string cachePath = cmake::FindCacheFile(buildDirectory);
+    if (cm->LoadCache(cachePath)) {
+      cmState* state = cm->GetState();
+
+      // Check generator:
+      if (!getOrTestValue(state, "CMAKE_GENERATOR", generator, "generator",
+                          errorMessage)) {
+        return false;
+      }
 
     if(buildDirectory.empty())
     {
@@ -455,6 +518,30 @@ cmServerProtocol1::Process(const cmServerRequest& request)
     {
         return this->ProcessCTests(request);
     }
+  }
+
+  cmSystemTools::ResetErrorOccuredFlag(); // Reset error state
+
+  if (cm->AddCMakePaths() != 1) {
+    return request.ReportError("Failed to set CMake paths.");
+  }
+
+  if (!cm->SetCacheArgs(cacheArgs)) {
+    return request.ReportError("cacheArguments could not be set.");
+  }
+
+  int ret = cm->Configure();
+  cm->IssueMessage(
+    MessageType::DEPRECATION_WARNING,
+    "The 'cmake-server(7)' is deprecated.  "
+    "Please port clients to use the 'cmake-file-api(7)' instead.");
+  if (ret < 0) {
+    return request.ReportError("Configuration failed.");
+  }
+
+  std::vector<std::string> toWatchList;
+  cmGetCMakeInputs(gg, std::string(), buildDir, nullptr, &toWatchList,
+                   nullptr);
 
     return request.ReportError("Unknown command!");
 }
@@ -470,7 +557,8 @@ cmServerProtocol1::ProcessCache(const cmServerRequest& request)
 {
     cmState* state = this->CMakeInstance()->GetState();
 
-    Json::Value result = Json::objectValue;
+  // Capabilities information:
+  obj[kCAPABILITIES_KEY] = cm->ReportCapabilitiesJson();
 
     std::vector<std::string> allKeys = state->GetCacheEntryKeys();
 
@@ -728,9 +816,16 @@ cmServerProtocol1::ProcessGlobalSettings(const cmServerRequest& request)
     return request.Reply(obj);
 }
 
-static void
-setBool(const cmServerRequest& request, const std::string& key,
-        std::function<void(bool)> const& setter)
+cmServerProtocol1::GeneratorInformation::GeneratorInformation(
+  std::string generatorName, std::string extraGeneratorName,
+  std::string toolset, std::string platform, std::string sourceDirectory,
+  std::string buildDirectory)
+  : GeneratorName(std::move(generatorName))
+  , ExtraGeneratorName(std::move(extraGeneratorName))
+  , Toolset(std::move(toolset))
+  , Platform(std::move(platform))
+  , SourceDirectory(std::move(sourceDirectory))
+  , BuildDirectory(std::move(buildDirectory))
 {
     if(request.Data[key].isNull())
     {

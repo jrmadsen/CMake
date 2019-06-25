@@ -24,4 +24,9 @@ cmExportSetMap::clear()
     this->derived::clear();
 }
 
-cmExportSetMap::~cmExportSetMap() { this->clear(); }
+cmExportSetMap::cmExportSetMap() = default;
+
+cmExportSetMap::~cmExportSetMap()
+{
+  this->clear();
+}

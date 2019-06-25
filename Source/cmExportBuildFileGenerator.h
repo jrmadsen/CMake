@@ -5,6 +5,7 @@
 
 #include "cmConfigure.h"  // IWYU pragma: keep
 
+#include "cmAlgorithms.h"
 #include "cmExportFileGenerator.h"
 #include "cmStateTypes.h"
 
@@ -31,18 +32,17 @@ class cmExportBuildFileGenerator : public cmExportFileGenerator
 public:
     cmExportBuildFileGenerator();
 
-    /** Set the list of targets to export.  */
-    void SetTargets(std::vector<std::string> const& targets)
-    {
-        this->Targets = targets;
-    }
-    void GetTargets(std::vector<std::string>& targets) const;
-    void AppendTargets(std::vector<std::string> const& targets)
-    {
-        this->Targets.insert(this->Targets.end(), targets.begin(),
-                             targets.end());
-    }
-    void SetExportSet(cmExportSet*);
+  /** Set the list of targets to export.  */
+  void SetTargets(std::vector<std::string> const& targets)
+  {
+    this->Targets = targets;
+  }
+  void GetTargets(std::vector<std::string>& targets) const;
+  void AppendTargets(std::vector<std::string> const& targets)
+  {
+    cmAppend(this->Targets, targets);
+  }
+  void SetExportSet(cmExportSet*);
 
     /** Set whether to append generated code to the output file.  */
     void SetAppendMode(bool append) { this->AppendMode = append; }

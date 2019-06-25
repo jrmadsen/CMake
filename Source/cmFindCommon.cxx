@@ -6,6 +6,7 @@
 #include <string.h>
 #include <utility>
 
+#include "cmAlgorithms.h"
 #include "cmMakefile.h"
 #include "cmSystemTools.h"
 
@@ -48,7 +49,7 @@ cmFindCommon::cmFindCommon()
     this->InitializeSearchPathGroups();
 }
 
-cmFindCommon::~cmFindCommon() {}
+cmFindCommon::~cmFindCommon() = default;
 
 void
 cmFindCommon::InitializeSearchPathGroups()
@@ -166,91 +167,77 @@ cmFindCommon::RerootPaths(std::vector<std::string>& paths)
     fprintf(stderr, "[%s]\n", p.c_str());
     }
 #endif
-    // Short-circuit if there is nothing to do.
-    if(this->FindRootPathMode == RootPathModeNever)
-    {
-        return;
+  // Short-circuit if there is nothing to do.
+  if (this->FindRootPathMode == RootPathModeNever) {
+    return;
+  }
+
+  const char* sysroot = this->Makefile->GetDefinition("CMAKE_SYSROOT");
+  const char* sysrootCompile =
+    this->Makefile->GetDefinition("CMAKE_SYSROOT_COMPILE");
+  const char* sysrootLink =
+    this->Makefile->GetDefinition("CMAKE_SYSROOT_LINK");
+  const char* rootPath = this->Makefile->GetDefinition("CMAKE_FIND_ROOT_PATH");
+  const bool noSysroot = !sysroot || !*sysroot;
+  const bool noCompileSysroot = !sysrootCompile || !*sysrootCompile;
+  const bool noLinkSysroot = !sysrootLink || !*sysrootLink;
+  const bool noRootPath = !rootPath || !*rootPath;
+  if (noSysroot && noCompileSysroot && noLinkSysroot && noRootPath) {
+    return;
+  }
+
+  // Construct the list of path roots with no trailing slashes.
+  std::vector<std::string> roots;
+  if (rootPath) {
+    cmSystemTools::ExpandListArgument(rootPath, roots);
+  }
+  if (sysrootCompile) {
+    roots.emplace_back(sysrootCompile);
+  }
+  if (sysrootLink) {
+    roots.emplace_back(sysrootLink);
+  }
+  if (sysroot) {
+    roots.emplace_back(sysroot);
+  }
+  for (std::string& r : roots) {
+    cmSystemTools::ConvertToUnixSlashes(r);
+  }
+
+  const char* stagePrefix =
+    this->Makefile->GetDefinition("CMAKE_STAGING_PREFIX");
+
+  // Copy the original set of unrooted paths.
+  std::vector<std::string> unrootedPaths = paths;
+  paths.clear();
+
+  for (std::string const& r : roots) {
+    for (std::string const& up : unrootedPaths) {
+      // Place the unrooted path under the current root if it is not
+      // already inside.  Skip the unrooted path if it is relative to
+      // a user home directory or is empty.
+      std::string rootedDir;
+      if (cmSystemTools::IsSubDirectory(up, r) ||
+          (stagePrefix && cmSystemTools::IsSubDirectory(up, stagePrefix))) {
+        rootedDir = up;
+      } else if (!up.empty() && up[0] != '~') {
+        // Start with the new root.
+        rootedDir = r;
+        rootedDir += "/";
+
+        // Append the original path with its old root removed.
+        rootedDir += cmSystemTools::SplitPathRootComponent(up);
+      }
+
+      // Store the new path.
+      paths.push_back(rootedDir);
     }
 
-    const char* sysroot = this->Makefile->GetDefinition("CMAKE_SYSROOT");
-    const char* sysrootCompile =
-        this->Makefile->GetDefinition("CMAKE_SYSROOT_COMPILE");
-    const char* sysrootLink =
-        this->Makefile->GetDefinition("CMAKE_SYSROOT_LINK");
-    const char* rootPath =
-        this->Makefile->GetDefinition("CMAKE_FIND_ROOT_PATH");
-    const bool noSysroot        = !sysroot || !*sysroot;
-    const bool noCompileSysroot = !sysrootCompile || !*sysrootCompile;
-    const bool noLinkSysroot    = !sysrootLink || !*sysrootLink;
-    const bool noRootPath       = !rootPath || !*rootPath;
-    if(noSysroot && noCompileSysroot && noLinkSysroot && noRootPath)
-    {
-        return;
-    }
-
-    // Construct the list of path roots with no trailing slashes.
-    std::vector<std::string> roots;
-    if(rootPath)
-    {
-        cmSystemTools::ExpandListArgument(rootPath, roots);
-    }
-    if(sysrootCompile)
-    {
-        roots.push_back(sysrootCompile);
-    }
-    if(sysrootLink)
-    {
-        roots.push_back(sysrootLink);
-    }
-    if(sysroot)
-    {
-        roots.push_back(sysroot);
-    }
-    for(std::string& r : roots)
-    {
-        cmSystemTools::ConvertToUnixSlashes(r);
-    }
-
-    const char* stagePrefix =
-        this->Makefile->GetDefinition("CMAKE_STAGING_PREFIX");
-
-    // Copy the original set of unrooted paths.
-    std::vector<std::string> unrootedPaths = paths;
-    paths.clear();
-
-    for(std::string const& r : roots)
-    {
-        for(std::string const& up : unrootedPaths)
-        {
-            // Place the unrooted path under the current root if it is not
-            // already inside.  Skip the unrooted path if it is relative to
-            // a user home directory or is empty.
-            std::string rootedDir;
-            if(cmSystemTools::IsSubDirectory(up, r) ||
-               (stagePrefix && cmSystemTools::IsSubDirectory(up, stagePrefix)))
-            {
-                rootedDir = up;
-            } else if(!up.empty() && up[0] != '~')
-            {
-                // Start with the new root.
-                rootedDir = r;
-                rootedDir += "/";
-
-                // Append the original path with its old root removed.
-                rootedDir += cmSystemTools::SplitPathRootComponent(up);
-            }
-
-            // Store the new path.
-            paths.push_back(rootedDir);
-        }
-    }
-
-    // If searching both rooted and unrooted paths add the original
-    // paths again.
-    if(this->FindRootPathMode == RootPathModeBoth)
-    {
-        paths.insert(paths.end(), unrootedPaths.begin(), unrootedPaths.end());
-    }
+  // If searching both rooted and unrooted paths add the original
+  // paths again.
+  if (this->FindRootPathMode == RootPathModeBoth) {
+    cmAppend(paths, unrootedPaths);
+  }
 }
 
 void
@@ -330,41 +317,35 @@ cmFindCommon::CheckCommonArgument(std::string const& arg)
 void
 cmFindCommon::AddPathSuffix(std::string const& arg)
 {
-    std::string suffix = arg;
+  std::string suffix = arg;
 
-    // Strip leading and trailing slashes.
-    if(suffix.empty())
-    {
-        return;
-    }
-    if(suffix[0] == '/')
-    {
-        suffix = suffix.substr(1);
-    }
-    if(suffix.empty())
-    {
-        return;
-    }
-    if(suffix[suffix.size() - 1] == '/')
-    {
-        suffix = suffix.substr(0, suffix.size() - 1);
-    }
-    if(suffix.empty())
-    {
-        return;
-    }
+  // Strip leading and trailing slashes.
+  if (suffix.empty()) {
+    return;
+  }
+  if (suffix.front() == '/') {
+    suffix = suffix.substr(1);
+  }
+  if (suffix.empty()) {
+    return;
+  }
+  if (suffix.back() == '/') {
+    suffix = suffix.substr(0, suffix.size() - 1);
+  }
+  if (suffix.empty()) {
+    return;
+  }
 
-    // Store the suffix.
-    this->SearchPathSuffixes.push_back(std::move(suffix));
+  // Store the suffix.
+  this->SearchPathSuffixes.push_back(std::move(suffix));
 }
 
 void
 AddTrailingSlash(std::string& s)
 {
-    if(!s.empty() && *s.rbegin() != '/')
-    {
-        s += '/';
-    }
+  if (!s.empty() && s.back() != '/') {
+    s += '/';
+  }
 }
 void
 cmFindCommon::ComputeFinalPaths()

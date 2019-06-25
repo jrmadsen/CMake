@@ -4,7 +4,9 @@
 
 #include <algorithm>
 #include <set>
+#include <utility>
 
+#include "cmAlgorithms.h"
 #include "cmGeneratorExpression.h"
 #include "cmMakefile.h"
 #include "cmSystemTools.h"
@@ -26,14 +28,10 @@ cmIncludeDirectoryCommand::InitialPass(std::vector<std::string> const& args,
     bool before = this->Makefile->IsOn("CMAKE_INCLUDE_DIRECTORIES_BEFORE");
     bool system = false;
 
-    if((*i) == "BEFORE")
-    {
-        before = true;
-        ++i;
-    } else if((*i) == "AFTER")
-    {
-        before = false;
-        ++i;
+    if (before) {
+      cmAppend(beforeIncludes, includes);
+    } else {
+      cmAppend(afterIncludes, includes);
     }
 
     std::vector<std::string> beforeIncludes;

@@ -2,6 +2,7 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmCTestBZR.h"
 
+#include "cmAlgorithms.h"
 #include "cmCTest.h"
 #include "cmCTestVC.h"
 #include "cmProcessTools.h"
@@ -79,7 +80,7 @@ cmCTestBZR::cmCTestBZR(cmCTest* ct, std::ostream& log)
     cmSystemTools::PutEnv("BZR_PROGRESS_BAR=none");
 }
 
-cmCTestBZR::~cmCTestBZR() {}
+cmCTestBZR::~cmCTestBZR() = default;
 
 class cmCTestBZR::InfoParser : public cmCTestVC::LineParser
 {
@@ -258,44 +259,39 @@ private:
     {
         this->CData.insert(this->CData.end(), data, data + length);
     }
+  }
 
-    void EndElement(const std::string& name) override
-    {
-        if(name == "log")
-        {
-            this->BZR->DoRevision(this->Rev, this->Changes);
-        } else if(!this->CData.empty() &&
-                  (name == "file" || name == "directory"))
-        {
-            this->CurChange.Path.assign(&this->CData[0], this->CData.size());
-            cmSystemTools::ConvertToUnixSlashes(this->CurChange.Path);
-            this->Changes.push_back(this->CurChange);
-        } else if(!this->CData.empty() && name == "symlink")
-        {
-            // symlinks have an arobase at the end in the log
-            this->CurChange.Path.assign(&this->CData[0],
-                                        this->CData.size() - 1);
-            cmSystemTools::ConvertToUnixSlashes(this->CurChange.Path);
-            this->Changes.push_back(this->CurChange);
-        } else if(!this->CData.empty() && name == "committer")
-        {
-            this->Rev.Author.assign(&this->CData[0], this->CData.size());
-            if(this->EmailRegex.find(this->Rev.Author))
-            {
-                this->Rev.Author = this->EmailRegex.match(1);
-                this->Rev.EMail  = this->EmailRegex.match(2);
-            }
-        } else if(!this->CData.empty() && name == "timestamp")
-        {
-            this->Rev.Date.assign(&this->CData[0], this->CData.size());
-        } else if(!this->CData.empty() && name == "message")
-        {
-            this->Rev.Log.assign(&this->CData[0], this->CData.size());
-        } else if(!this->CData.empty() && name == "revno")
-        {
-            this->Rev.Rev.assign(&this->CData[0], this->CData.size());
-        }
-        this->CData.clear();
+  void CharacterDataHandler(const char* data, int length) override
+  {
+    cmAppend(this->CData, data, data + length);
+  }
+
+  void EndElement(const std::string& name) override
+  {
+    if (name == "log") {
+      this->BZR->DoRevision(this->Rev, this->Changes);
+    } else if (!this->CData.empty() &&
+               (name == "file" || name == "directory")) {
+      this->CurChange.Path.assign(&this->CData[0], this->CData.size());
+      cmSystemTools::ConvertToUnixSlashes(this->CurChange.Path);
+      this->Changes.push_back(this->CurChange);
+    } else if (!this->CData.empty() && name == "symlink") {
+      // symlinks have an arobase at the end in the log
+      this->CurChange.Path.assign(&this->CData[0], this->CData.size() - 1);
+      cmSystemTools::ConvertToUnixSlashes(this->CurChange.Path);
+      this->Changes.push_back(this->CurChange);
+    } else if (!this->CData.empty() && name == "committer") {
+      this->Rev.Author.assign(&this->CData[0], this->CData.size());
+      if (this->EmailRegex.find(this->Rev.Author)) {
+        this->Rev.Author = this->EmailRegex.match(1);
+        this->Rev.EMail = this->EmailRegex.match(2);
+      }
+    } else if (!this->CData.empty() && name == "timestamp") {
+      this->Rev.Date.assign(&this->CData[0], this->CData.size());
+    } else if (!this->CData.empty() && name == "message") {
+      this->Rev.Log.assign(&this->CData[0], this->CData.size());
+    } else if (!this->CData.empty() && name == "revno") {
+      this->Rev.Rev.assign(&this->CData[0], this->CData.size());
     }
 
     void ReportError(int /*line*/, int /*column*/, const char* msg) override
@@ -394,13 +390,12 @@ private:
 bool
 cmCTestBZR::UpdateImpl()
 {
-    // Get user-specified update options.
-    std::string opts = this->CTest->GetCTestConfiguration("UpdateOptions");
-    if(opts.empty())
-    {
-        opts = this->CTest->GetCTestConfiguration("BZRUpdateOptions");
-    }
-    std::vector<std::string> args = cmSystemTools::ParseArguments(opts.c_str());
+  // Get user-specified update options.
+  std::string opts = this->CTest->GetCTestConfiguration("UpdateOptions");
+  if (opts.empty()) {
+    opts = this->CTest->GetCTestConfiguration("BZRUpdateOptions");
+  }
+  std::vector<std::string> args = cmSystemTools::ParseArguments(opts);
 
     // TODO: if(this->CTest->GetTestModel() == cmCTest::NIGHTLY)
 

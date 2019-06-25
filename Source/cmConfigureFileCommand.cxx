@@ -5,8 +5,8 @@
 #include <sstream>
 
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmSystemTools.h"
-#include "cmake.h"
 
 class cmExecutionStatus;
 
@@ -57,55 +57,12 @@ cmConfigureFileCommand::InitialPass(std::vector<std::string> const& args,
         cmSystemTools::SetFatalErrorOccured();
         return false;
     }
-    std::string errorMessage;
-    if(!this->NewLineStyle.ReadFromArguments(args, errorMessage))
-    {
-        this->SetError(errorMessage);
-        return false;
-    }
-    this->CopyOnly     = false;
-    this->EscapeQuotes = false;
-
-    std::string unknown_args;
-    this->AtOnly = false;
-    for(unsigned int i = 2; i < args.size(); ++i)
-    {
-        if(args[i] == "COPYONLY")
-        {
-            this->CopyOnly = true;
-            if(this->NewLineStyle.IsValid())
-            {
-                this->SetError("COPYONLY could not be used in combination "
-                               "with NEWLINE_STYLE");
-                return false;
-            }
-        } else if(args[i] == "ESCAPE_QUOTES")
-        {
-            this->EscapeQuotes = true;
-        } else if(args[i] == "@ONLY")
-        {
-            this->AtOnly = true;
-        } else if(args[i] == "IMMEDIATE")
-        {
-            /* Ignore legacy option.  */
-        } else if(args[i] == "NEWLINE_STYLE" || args[i] == "LF" ||
-                  args[i] == "UNIX" || args[i] == "CRLF" ||
-                  args[i] == "WIN32" || args[i] == "DOS")
-        {
-            /* Options handled by NewLineStyle member above.  */
-        } else
-        {
-            unknown_args += " ";
-            unknown_args += args[i];
-            unknown_args += "\n";
-        }
-    }
-    if(!unknown_args.empty())
-    {
-        std::string msg = "configure_file called with unknown argument(s):\n";
-        msg += unknown_args;
-        this->Makefile->IssueMessage(cmake::AUTHOR_WARNING, msg);
-    }
+  }
+  if (!unknown_args.empty()) {
+    std::string msg = "configure_file called with unknown argument(s):\n";
+    msg += unknown_args;
+    this->Makefile->IssueMessage(MessageType::AUTHOR_WARNING, msg);
+  }
 
     if(!this->ConfigureFile())
     {
@@ -119,7 +76,7 @@ cmConfigureFileCommand::InitialPass(std::vector<std::string> const& args,
 int
 cmConfigureFileCommand::ConfigureFile()
 {
-    return this->Makefile->ConfigureFile(
-        this->InputFile.c_str(), this->OutputFile.c_str(), this->CopyOnly,
-        this->AtOnly, this->EscapeQuotes, this->NewLineStyle);
+  return this->Makefile->ConfigureFile(this->InputFile, this->OutputFile,
+                                       this->CopyOnly, this->AtOnly,
+                                       this->EscapeQuotes, this->NewLineStyle);
 }

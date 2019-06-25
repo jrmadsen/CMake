@@ -27,39 +27,30 @@ class cmake;
 class cmComputeLinkDepends
 {
 public:
-    cmComputeLinkDepends(cmGeneratorTarget const* target,
-                         const std::string&       config);
-    ~cmComputeLinkDepends();
+  cmComputeLinkDepends(cmGeneratorTarget const* target,
+                       const std::string& config);
+  ~cmComputeLinkDepends();
 
-    // Basic information about each link item.
-    struct LinkEntry
-    {
-        std::string              Item;
-        cmGeneratorTarget const* Target;
-        bool                     IsSharedDep;
-        bool                     IsFlag;
-        LinkEntry()
-        : Item()
-        , Target(nullptr)
-        , IsSharedDep(false)
-        , IsFlag(false)
-        {}
-        LinkEntry(LinkEntry const& r)
-        : Item(r.Item)
-        , Target(r.Target)
-        , IsSharedDep(r.IsSharedDep)
-        , IsFlag(r.IsFlag)
-        {}
-    };
+  cmComputeLinkDepends(const cmComputeLinkDepends&) = delete;
+  cmComputeLinkDepends& operator=(const cmComputeLinkDepends&) = delete;
 
-    typedef std::vector<LinkEntry> EntryVector;
-    EntryVector const&             Compute();
+  // Basic information about each link item.
+  struct LinkEntry
+  {
+    std::string Item;
+    cmGeneratorTarget const* Target = nullptr;
+    bool IsSharedDep = false;
+    bool IsFlag = false;
+  };
 
-    void                                      SetOldLinkDirMode(bool b);
-    std::set<cmGeneratorTarget const*> const& GetOldWrongConfigItems() const
-    {
-        return this->OldWrongConfigItems;
-    }
+  typedef std::vector<LinkEntry> EntryVector;
+  EntryVector const& Compute();
+
+  void SetOldLinkDirMode(bool b);
+  std::set<cmGeneratorTarget const*> const& GetOldWrongConfigItems() const
+  {
+    return this->OldWrongConfigItems;
+  }
 
 private:
     // Context information.

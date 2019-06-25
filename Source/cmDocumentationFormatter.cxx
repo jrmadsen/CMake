@@ -5,17 +5,15 @@
 #include "cmDocumentationEntry.h"
 #include "cmDocumentationSection.h"
 
+#include <iomanip>
 #include <ostream>
 #include <string.h>
 #include <string>
 #include <vector>
 
-cmDocumentationFormatter::cmDocumentationFormatter()
-: TextWidth(77)
-, TextIndent("")
-{}
+cmDocumentationFormatter::cmDocumentationFormatter() = default;
 
-cmDocumentationFormatter::~cmDocumentationFormatter() {}
+cmDocumentationFormatter::~cmDocumentationFormatter() = default;
 
 void
 cmDocumentationFormatter::PrintFormatted(std::ostream& os, const char* text)
@@ -191,34 +189,28 @@ void
 cmDocumentationFormatter::PrintSection(std::ostream&                 os,
                                        cmDocumentationSection const& section)
 {
-    os << section.GetName() << "\n";
+  os << section.GetName() << "\n";
 
-    const std::vector<cmDocumentationEntry>& entries = section.GetEntries();
-    for(cmDocumentationEntry const& entry : entries)
-    {
-        if(!entry.Name.empty())
-        {
-            os << "  " << entry.Name;
-            this->TextIndent = "                                 ";
-            int align        = static_cast<int>(strlen(this->TextIndent)) - 4;
-            for(int i = static_cast<int>(entry.Name.size()); i < align; ++i)
-            {
-                os << " ";
-            }
-            if(entry.Name.size() > strlen(this->TextIndent) - 4)
-            {
-                os << "\n";
-                os.write(this->TextIndent, strlen(this->TextIndent) - 2);
-            }
-            os << "= ";
-            this->PrintColumn(os, entry.Brief.c_str());
-            os << "\n";
-        } else
-        {
-            os << "\n";
-            this->TextIndent = "";
-            this->PrintFormatted(os, entry.Brief.c_str());
-        }
+  const std::vector<cmDocumentationEntry>& entries = section.GetEntries();
+  for (cmDocumentationEntry const& entry : entries) {
+    if (!entry.Name.empty()) {
+      os << std::setw(2) << std::left << entry.CustomNamePrefix << entry.Name;
+      this->TextIndent = "                                 ";
+      int align = static_cast<int>(strlen(this->TextIndent)) - 4;
+      for (int i = static_cast<int>(entry.Name.size()); i < align; ++i) {
+        os << " ";
+      }
+      if (entry.Name.size() > strlen(this->TextIndent) - 4) {
+        os << "\n";
+        os.write(this->TextIndent, strlen(this->TextIndent) - 2);
+      }
+      os << "= ";
+      this->PrintColumn(os, entry.Brief.c_str());
+      os << "\n";
+    } else {
+      os << "\n";
+      this->TextIndent = "";
+      this->PrintFormatted(os, entry.Brief.c_str());
     }
     os << "\n";
 }

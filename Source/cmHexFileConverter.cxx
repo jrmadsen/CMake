@@ -147,8 +147,8 @@ ConvertIntelHexLine(const char* buf, FILE* outFile)
     return OutputBin(outFile, buf, dataStart, slen - 2);
 }
 
-cmHexFileConverter::FileType
-cmHexFileConverter::DetermineFileType(const char* inFileName)
+cmHexFileConverter::FileType cmHexFileConverter::DetermineFileType(
+  const std::string& inFileName)
 {
     char  buf[1024];
     FILE* inFile = cmsys::SystemTools::Fopen(inFileName, "rb");
@@ -196,8 +196,8 @@ cmHexFileConverter::DetermineFileType(const char* inFileName)
     return type;
 }
 
-bool
-cmHexFileConverter::TryConvert(const char* inFileName, const char* outFileName)
+bool cmHexFileConverter::TryConvert(const std::string& inFileName,
+                                    const std::string& outFileName)
 {
     FileType type = DetermineFileType(inFileName);
     if(type == Binary)

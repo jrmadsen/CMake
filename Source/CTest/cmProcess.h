@@ -26,48 +26,47 @@ class cmCTestRunTest;
 class cmProcess
 {
 public:
-    explicit cmProcess(cmCTestRunTest& runner);
-    ~cmProcess();
-    const char* GetCommand() { return this->Command.c_str(); }
-    void        SetCommand(const char* command);
-    void        SetCommandArguments(std::vector<std::string> const& arg);
-    void SetWorkingDirectory(const char* dir) { this->WorkingDirectory = dir; }
-    void SetTimeout(cmDuration t) { this->Timeout = t; }
-    void ChangeTimeout(cmDuration t);
-    void ResetStartTime();
-    // Return true if the process starts
-    bool StartProcess(uv_loop_t& loop, std::vector<size_t>* affinity);
+  explicit cmProcess(cmCTestRunTest& runner);
+  ~cmProcess();
+  void SetCommand(std::string const& command);
+  void SetCommandArguments(std::vector<std::string> const& arg);
+  void SetWorkingDirectory(std::string const& dir);
+  void SetTimeout(cmDuration t) { this->Timeout = t; }
+  void ChangeTimeout(cmDuration t);
+  void ResetStartTime();
+  // Return true if the process starts
+  bool StartProcess(uv_loop_t& loop, std::vector<size_t>* affinity);
 
-    enum class State
-    {
-        Starting,
-        Error,
-        Exception,
-        Executing,
-        Exited,
-        Expired,
-        Killed,
-        Disowned
-    };
+  enum class State
+  {
+    Starting,
+    Error,
+    Exception,
+    Executing,
+    Exited,
+    Expired,
+    Killed,
+    Disowned
+  };
 
-    State      GetProcessStatus();
-    int        GetId() { return this->Id; }
-    void       SetId(int id) { this->Id = id; }
-    int        GetExitValue() { return this->ExitValue; }
-    cmDuration GetTotalTime() { return this->TotalTime; }
+  State GetProcessStatus();
+  int GetId() { return this->Id; }
+  void SetId(int id) { this->Id = id; }
+  int64_t GetExitValue() { return this->ExitValue; }
+  cmDuration GetTotalTime() { return this->TotalTime; }
 
-    enum class Exception
-    {
-        None,
-        Fault,
-        Illegal,
-        Interrupt,
-        Numerical,
-        Other
-    };
+  enum class Exception
+  {
+    None,
+    Fault,
+    Illegal,
+    Interrupt,
+    Numerical,
+    Other
+  };
 
-    Exception   GetExitException();
-    std::string GetExitExceptionString();
+  Exception GetExitException();
+  std::string GetExitExceptionString();
 
 private:
     cmDuration                            Timeout;
@@ -103,25 +102,17 @@ private:
 
     class Buffer : public std::vector<char>
     {
-        // Half-open index range of partial line already scanned.
-        size_type First;
-        size_type Last;
-
-    public:
-        Buffer()
-        : First(0)
-        , Last(0)
-        {}
-        bool GetLine(std::string& line);
-        bool GetLast(std::string& line);
-    };
-    Buffer                   Output;
-    std::string              Command;
-    std::string              WorkingDirectory;
-    std::vector<std::string> Arguments;
-    std::vector<const char*> ProcessArgs;
-    int                      Id;
-    int                      ExitValue;
+    }
+    bool GetLine(std::string& line);
+    bool GetLast(std::string& line);
+  };
+  Buffer Output;
+  std::string Command;
+  std::string WorkingDirectory;
+  std::vector<std::string> Arguments;
+  std::vector<const char*> ProcessArgs;
+  int Id;
+  int64_t ExitValue;
 };
 
 #endif

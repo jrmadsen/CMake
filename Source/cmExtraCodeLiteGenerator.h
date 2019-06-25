@@ -21,9 +21,9 @@ class cmSourceFile;
 class cmExtraCodeLiteGenerator : public cmExternalMakefileProjectGenerator
 {
 protected:
-    std::string  ConfigName;
-    std::string  WorkspacePath;
-    unsigned int CpuCount;
+  std::string ConfigName;
+  std::string WorkspacePath;
+  unsigned int CpuCount = 2;
 
 protected:
     std::string GetCodeLiteCompilerName(const cmMakefile* mf) const;

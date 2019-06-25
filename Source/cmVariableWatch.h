@@ -62,24 +62,21 @@ public:
     static const char* GetAccessAsString(int access_type);
 
 protected:
-    struct Pair
+  struct Pair
+  {
+    WatchMethod Method = nullptr;
+    void* ClientData = nullptr;
+    DeleteData DeleteDataCall = nullptr;
+    ~Pair()
     {
-        WatchMethod Method;
-        void*       ClientData;
-        DeleteData  DeleteDataCall;
-        Pair()
-        : Method(nullptr)
-        , ClientData(nullptr)
-        , DeleteDataCall(nullptr)
-        {}
-        ~Pair()
-        {
-            if(this->DeleteDataCall && this->ClientData)
-            {
-                this->DeleteDataCall(this->ClientData);
-            }
-        }
-    };
+      if (this->DeleteDataCall && this->ClientData) {
+        this->DeleteDataCall(this->ClientData);
+      }
+    }
+    Pair() = default;
+    Pair(const Pair&) = delete;
+    Pair& operator=(const Pair&) = delete;
+  };
 
     typedef std::vector<std::shared_ptr<Pair>>   VectorOfPairs;
     typedef std::map<std::string, VectorOfPairs> StringToVectorOfPairs;

@@ -21,10 +21,29 @@ cmRemoveCommand::InitialPass(std::vector<std::string> const& args,
     // get the old value
     const char* cacheValue = this->Makefile->GetDefinition(variable);
 
-    // if there is no old value then return
-    if(!cacheValue)
-    {
-        return true;
+  // if there is no old value then return
+  if (!cacheValue) {
+    return true;
+  }
+
+  // expand the variable
+  std::vector<std::string> const varArgsExpanded =
+    cmSystemTools::ExpandedListArgument(cacheValue);
+
+  // expand the args
+  // check for REMOVE(VAR v1 v2 ... vn)
+  std::vector<std::string> const argsExpanded =
+    cmSystemTools::ExpandedLists(args.begin() + 1, args.end());
+
+  // now create the new value
+  std::string value;
+  for (std::string const& varArgExpanded : varArgsExpanded) {
+    int found = 0;
+    for (std::string const& argExpanded : argsExpanded) {
+      if (varArgExpanded == argExpanded) {
+        found = 1;
+        break;
+      }
     }
 
     // expand the variable

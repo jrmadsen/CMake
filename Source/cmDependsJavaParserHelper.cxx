@@ -5,6 +5,7 @@
 #include "cmDependsJavaLexer.h"
 #include "cmSystemTools.h"
 
+#include "cm_string_view.hxx"
 #include "cmsys/FStream.hxx"
 #include <iostream>
 #include <stdio.h>
@@ -68,18 +69,15 @@ cmDependsJavaParserHelper::DeallocateParserType(char** pt)
 void
 cmDependsJavaParserHelper::AddClassFound(const char* sclass)
 {
-    if(!sclass)
-    {
-        return;
+  if (!sclass) {
+    return;
+  }
+  for (std::string const& cf : this->ClassesFound) {
+    if (cf == sclass) {
+      return;
     }
-    for(std::string const& cf : this->ClassesFound)
-    {
-        if(cf == sclass)
-        {
-            return;
-        }
-    }
-    this->ClassesFound.push_back(sclass);
+  }
+  this->ClassesFound.emplace_back(sclass);
 }
 
 void
@@ -92,7 +90,8 @@ cmDependsJavaParserHelper::AddPackagesImport(const char* sclass)
             return;
         }
     }
-    this->PackagesImport.push_back(sclass);
+  }
+  this->PackagesImport.emplace_back(sclass);
 }
 
 void
@@ -357,18 +356,13 @@ cmDependsJavaParserHelper::LexInput(char* buf, int maxlen)
 void
 cmDependsJavaParserHelper::Error(const char* str)
 {
-    unsigned long pos = static_cast<unsigned long>(this->InputBufferPos);
-    fprintf(stderr, "JPError: %s (%lu / Line: %d)\n", str, pos,
-            this->CurrentLine);
-    int cc;
-    std::cerr << "String: [";
-    for(cc = 0;
-        cc < 30 && *(this->InputBuffer.c_str() + this->InputBufferPos + cc);
-        cc++)
-    {
-        std::cerr << *(this->InputBuffer.c_str() + this->InputBufferPos + cc);
-    }
-    std::cerr << "]" << std::endl;
+  unsigned long pos = static_cast<unsigned long>(this->InputBufferPos);
+  fprintf(stderr, "JPError: %s (%lu / Line: %d)\n", str, pos,
+          this->CurrentLine);
+  std::cerr << "String: ["
+            << cm::string_view{ this->InputBuffer }.substr(
+                 this->InputBufferPos, 30)
+            << "]" << std::endl;
 }
 
 void

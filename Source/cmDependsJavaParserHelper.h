@@ -16,41 +16,45 @@
 class cmDependsJavaParserHelper
 {
 public:
-    struct ParserType
-    {
-        char* str;
-    };
+  struct ParserType
+  {
+    char* str;
+  };
 
-    cmDependsJavaParserHelper();
-    ~cmDependsJavaParserHelper();
+  cmDependsJavaParserHelper();
+  ~cmDependsJavaParserHelper();
 
-    int ParseString(const char* str, int verb);
-    int ParseFile(const char* file);
+  cmDependsJavaParserHelper(const cmDependsJavaParserHelper&) = delete;
+  cmDependsJavaParserHelper& operator=(const cmDependsJavaParserHelper&) =
+    delete;
 
-    // For the lexer:
-    void AllocateParserType(cmDependsJavaParserHelper::ParserType* pt,
-                            const char* str, int len = 0);
+  int ParseString(const char* str, int verb);
+  int ParseFile(const char* file);
 
-    int  LexInput(char* buf, int maxlen);
-    void Error(const char* str);
+  // For the lexer:
+  void AllocateParserType(cmDependsJavaParserHelper::ParserType* pt,
+                          const char* str, int len = 0);
 
-    // For yacc
-    void AddClassFound(const char* sclass);
-    void PrepareElement(ParserType* me);
-    void DeallocateParserType(char** pt);
-    void CheckEmpty(int line, int cnt, ParserType* pt);
-    void StartClass(const char* cls);
-    void EndClass();
-    void AddPackagesImport(const char* sclass);
-    void SetCurrentPackage(const char* pkg) { this->CurrentPackage = pkg; }
-    const char* GetCurrentPackage() { return this->CurrentPackage.c_str(); }
-    void SetCurrentCombine(const char* cmb) { this->CurrentCombine = cmb; }
-    const char* GetCurrentCombine() { return this->CurrentCombine.c_str(); }
-    void        UpdateCombine(const char* str1, const char* str2);
+  int LexInput(char* buf, int maxlen);
+  void Error(const char* str);
 
-    std::vector<std::string>& GetClassesFound() { return this->ClassesFound; }
+  // For yacc
+  void AddClassFound(const char* sclass);
+  void PrepareElement(ParserType* me);
+  void DeallocateParserType(char** pt);
+  void CheckEmpty(int line, int cnt, ParserType* pt);
+  void StartClass(const char* cls);
+  void EndClass();
+  void AddPackagesImport(const char* sclass);
+  void SetCurrentPackage(const char* pkg) { this->CurrentPackage = pkg; }
+  const char* GetCurrentPackage() { return this->CurrentPackage.c_str(); }
+  void SetCurrentCombine(const char* cmb) { this->CurrentCombine = cmb; }
+  const char* GetCurrentCombine() { return this->CurrentCombine.c_str(); }
+  void UpdateCombine(const char* str1, const char* str2);
 
-    std::vector<std::string> GetFilesProduced();
+  std::vector<std::string>& GetClassesFound() { return this->ClassesFound; }
+
+  std::vector<std::string> GetFilesProduced();
 
 private:
     class CurrentClass

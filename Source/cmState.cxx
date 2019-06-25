@@ -22,14 +22,6 @@
 #include "cmake.h"
 
 cmState::cmState()
-: IsInTryCompile(false)
-, IsGeneratorMultiConfig(false)
-, WindowsShell(false)
-, WindowsVSIDE(false)
-, WatcomWMake(false)
-, MinGWMake(false)
-, NMake(false)
-, MSYSShell(false)
 {
     this->CacheManager            = new cmCacheManager;
     this->GlobVerificationManager = new cmGlobVerificationManager;
@@ -88,16 +80,23 @@ cmState::CacheEntryTypeToString(cmStateEnums::CacheEntryType type)
 cmStateEnums::CacheEntryType
 cmState::StringToCacheEntryType(const char* s)
 {
-    int i = 0;
-    while(cmCacheEntryTypes[i])
-    {
-        if(strcmp(s, cmCacheEntryTypes[i]) == 0)
-        {
-            return static_cast<cmStateEnums::CacheEntryType>(i);
-        }
-        ++i;
+  cmStateEnums::CacheEntryType type = cmStateEnums::STRING;
+  StringToCacheEntryType(s, type);
+  return type;
+}
+
+bool cmState::StringToCacheEntryType(const char* s,
+                                     cmStateEnums::CacheEntryType& type)
+{
+  int i = 0;
+  while (cmCacheEntryTypes[i]) {
+    if (strcmp(s, cmCacheEntryTypes[i]) == 0) {
+      type = static_cast<cmStateEnums::CacheEntryType>(i);
+      return true;
     }
-    return cmStateEnums::STRING;
+    ++i;
+  }
+  return false;
 }
 
 bool
@@ -596,38 +595,52 @@ cmState::AppendGlobalProperty(const std::string& prop, const char* value,
 const char*
 cmState::GetGlobalProperty(const std::string& prop)
 {
-    if(prop == "CACHE_VARIABLES")
-    {
-        std::vector<std::string> cacheKeys = this->GetCacheEntryKeys();
-        this->SetGlobalProperty("CACHE_VARIABLES",
-                                cmJoin(cacheKeys, ";").c_str());
-    } else if(prop == "COMMANDS")
-    {
-        std::vector<std::string> commands = this->GetCommandNames();
-        this->SetGlobalProperty("COMMANDS", cmJoin(commands, ";").c_str());
-    } else if(prop == "IN_TRY_COMPILE")
-    {
-        this->SetGlobalProperty("IN_TRY_COMPILE",
-                                this->IsInTryCompile ? "1" : "0");
-    } else if(prop == "GENERATOR_IS_MULTI_CONFIG")
-    {
-        this->SetGlobalProperty("GENERATOR_IS_MULTI_CONFIG",
-                                this->IsGeneratorMultiConfig ? "1" : "0");
-    } else if(prop == "ENABLED_LANGUAGES")
-    {
-        std::string langs;
-        langs = cmJoin(this->EnabledLanguages, ";");
-        this->SetGlobalProperty("ENABLED_LANGUAGES", langs.c_str());
-    }
+  if (prop == "CACHE_VARIABLES") {
+    std::vector<std::string> cacheKeys = this->GetCacheEntryKeys();
+    this->SetGlobalProperty("CACHE_VARIABLES", cmJoin(cacheKeys, ";").c_str());
+  } else if (prop == "COMMANDS") {
+    std::vector<std::string> commands = this->GetCommandNames();
+    this->SetGlobalProperty("COMMANDS", cmJoin(commands, ";").c_str());
+  } else if (prop == "IN_TRY_COMPILE") {
+    this->SetGlobalProperty("IN_TRY_COMPILE",
+                            this->IsInTryCompile ? "1" : "0");
+  } else if (prop == "GENERATOR_IS_MULTI_CONFIG") {
+    this->SetGlobalProperty("GENERATOR_IS_MULTI_CONFIG",
+                            this->IsGeneratorMultiConfig ? "1" : "0");
+  } else if (prop == "ENABLED_LANGUAGES") {
+    std::string langs;
+    langs = cmJoin(this->EnabledLanguages, ";");
+    this->SetGlobalProperty("ENABLED_LANGUAGES", langs.c_str());
+  } else if (prop == "CMAKE_ROLE") {
+    std::string mode = this->GetModeString();
+    this->SetGlobalProperty("CMAKE_ROLE", mode.c_str());
+  }
 #define STRING_LIST_ELEMENT(F) ";" #F
-    if(prop == "CMAKE_C_KNOWN_FEATURES")
-    {
-        return FOR_EACH_C_FEATURE(STRING_LIST_ELEMENT) + 1;
-    }
-    if(prop == "CMAKE_CXX_KNOWN_FEATURES")
-    {
-        return FOR_EACH_CXX_FEATURE(STRING_LIST_ELEMENT) + 1;
-    }
+  if (prop == "CMAKE_C_KNOWN_FEATURES") {
+    return &FOR_EACH_C_FEATURE(STRING_LIST_ELEMENT)[1];
+  }
+  if (prop == "CMAKE_C90_KNOWN_FEATURES") {
+    return &FOR_EACH_C90_FEATURE(STRING_LIST_ELEMENT)[1];
+  }
+  if (prop == "CMAKE_C99_KNOWN_FEATURES") {
+    return &FOR_EACH_C99_FEATURE(STRING_LIST_ELEMENT)[1];
+  }
+  if (prop == "CMAKE_C11_KNOWN_FEATURES") {
+    return &FOR_EACH_C11_FEATURE(STRING_LIST_ELEMENT)[1];
+  }
+  if (prop == "CMAKE_CXX_KNOWN_FEATURES") {
+    return &FOR_EACH_CXX_FEATURE(STRING_LIST_ELEMENT)[1];
+  }
+  if (prop == "CMAKE_CXX98_KNOWN_FEATURES") {
+    return &FOR_EACH_CXX98_FEATURE(STRING_LIST_ELEMENT)[1];
+  }
+  if (prop == "CMAKE_CXX11_KNOWN_FEATURES") {
+    return &FOR_EACH_CXX11_FEATURE(STRING_LIST_ELEMENT)[1];
+  }
+  if (prop == "CMAKE_CXX14_KNOWN_FEATURES") {
+    return &FOR_EACH_CXX14_FEATURE(STRING_LIST_ELEMENT)[1];
+  }
+
 #undef STRING_LIST_ELEMENT
     return this->GlobalProperties.GetPropertyValue(prop);
 }
@@ -682,8 +695,17 @@ cmState::UseWindowsVSIDE() const
     return this->WindowsVSIDE;
 }
 
-void
-cmState::SetWatcomWMake(bool watcomWMake)
+void cmState::SetGhsMultiIDE(bool ghsMultiIDE)
+{
+  this->GhsMultiIDE = ghsMultiIDE;
+}
+
+bool cmState::UseGhsMultiIDE() const
+{
+  return this->GhsMultiIDE;
+}
+
+void cmState::SetWatcomWMake(bool watcomWMake)
 {
     this->WatcomWMake = watcomWMake;
 }
@@ -742,8 +764,41 @@ cmState::GetCacheMinorVersion() const
     return this->CacheManager->GetCacheMinorVersion();
 }
 
-std::string const&
-cmState::GetBinaryDirectory() const
+cmState::Mode cmState::GetMode() const
+{
+  return this->CurrentMode;
+}
+
+std::string cmState::GetModeString() const
+{
+  return ModeToString(this->CurrentMode);
+}
+
+void cmState::SetMode(cmState::Mode mode)
+{
+  this->CurrentMode = mode;
+}
+
+std::string cmState::ModeToString(cmState::Mode mode)
+{
+  switch (mode) {
+    case Project:
+      return "PROJECT";
+    case Script:
+      return "SCRIPT";
+    case FindPackage:
+      return "FIND_PACKAGE";
+    case CTest:
+      return "CTEST";
+    case CPack:
+      return "CPACK";
+    case Unknown:
+      return "UNKNOWN";
+  }
+  return "UNKNOWN";
+}
+
+std::string const& cmState::GetBinaryDirectory() const
 {
     return this->BinaryDirectory;
 }
@@ -1021,6 +1076,75 @@ cmState::ParseCacheEntry(const std::string& entry, std::string& var,
     {
         return ParseEntryWithoutType(entry, var, value);
     }
+    this->SnapshotData.Pop(pos);
+  }
 
-    return flag;
+  return cmStateSnapshot(this, prevPos);
+}
+
+static bool ParseEntryWithoutType(const std::string& entry, std::string& var,
+                                  std::string& value)
+{
+  // input line is:         key=value
+  static cmsys::RegularExpression reg(
+    "^([^=]*)=(.*[^\r\t ]|[\r\t ]*)[\r\t ]*$");
+  // input line is:         "key"=value
+  static cmsys::RegularExpression regQuoted(
+    "^\"([^\"]*)\"=(.*[^\r\t ]|[\r\t ]*)[\r\t ]*$");
+  bool flag = false;
+  if (regQuoted.find(entry)) {
+    var = regQuoted.match(1);
+    value = regQuoted.match(2);
+    flag = true;
+  } else if (reg.find(entry)) {
+    var = reg.match(1);
+    value = reg.match(2);
+    flag = true;
+  }
+
+  // if value is enclosed in single quotes ('foo') then remove them
+  // it is used to enclose trailing space or tab
+  if (flag && value.size() >= 2 && value.front() == '\'' &&
+      value.back() == '\'') {
+    value = value.substr(1, value.size() - 2);
+  }
+
+  return flag;
+}
+
+bool cmState::ParseCacheEntry(const std::string& entry, std::string& var,
+                              std::string& value,
+                              cmStateEnums::CacheEntryType& type)
+{
+  // input line is:         key:type=value
+  static cmsys::RegularExpression reg(
+    "^([^=:]*):([^=]*)=(.*[^\r\t ]|[\r\t ]*)[\r\t ]*$");
+  // input line is:         "key":type=value
+  static cmsys::RegularExpression regQuoted(
+    "^\"([^\"]*)\":([^=]*)=(.*[^\r\t ]|[\r\t ]*)[\r\t ]*$");
+  bool flag = false;
+  if (regQuoted.find(entry)) {
+    var = regQuoted.match(1);
+    type = cmState::StringToCacheEntryType(regQuoted.match(2).c_str());
+    value = regQuoted.match(3);
+    flag = true;
+  } else if (reg.find(entry)) {
+    var = reg.match(1);
+    type = cmState::StringToCacheEntryType(reg.match(2).c_str());
+    value = reg.match(3);
+    flag = true;
+  }
+
+  // if value is enclosed in single quotes ('foo') then remove them
+  // it is used to enclose trailing space or tab
+  if (flag && value.size() >= 2 && value.front() == '\'' &&
+      value.back() == '\'') {
+    value = value.substr(1, value.size() - 2);
+  }
+
+  if (!flag) {
+    return ParseEntryWithoutType(entry, var, value);
+  }
+
+  return flag;
 }

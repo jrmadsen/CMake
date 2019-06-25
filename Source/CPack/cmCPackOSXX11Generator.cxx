@@ -11,9 +11,9 @@
 #include "cmSystemTools.h"
 #include "cm_sys_stat.h"
 
-cmCPackOSXX11Generator::cmCPackOSXX11Generator() {}
+cmCPackOSXX11Generator::cmCPackOSXX11Generator() = default;
 
-cmCPackOSXX11Generator::~cmCPackOSXX11Generator() {}
+cmCPackOSXX11Generator::~cmCPackOSXX11Generator() = default;
 
 int
 cmCPackOSXX11Generator::PackageFiles()
@@ -93,6 +93,10 @@ cmCPackOSXX11Generator::PackageFiles()
         this->ConfigureFile(iconFile, destFileName.c_str(), true);
         this->SetOptionIfNotSet("CPACK_APPLE_GUI_ICON", iconFileName.c_str());
     }
+    std::string destFileName = resourcesDirectory + "/" + iconFileName;
+    this->ConfigureFile(iconFile, destFileName, true);
+    this->SetOptionIfNotSet("CPACK_APPLE_GUI_ICON", iconFileName.c_str());
+  }
 
     std::string applicationsLinkName = diskImageDirectory + "/Applications";
     cmSystemTools::CreateSymlink("/Applications", applicationsLinkName);
@@ -148,45 +152,44 @@ cmCPackOSXX11Generator::PackageFiles()
                                   << std::endl);
     }
 
-    std::string output;
-    std::string tmpFile = this->GetOption("CPACK_TOPLEVEL_DIRECTORY");
-    tmpFile += "/hdiutilOutput.log";
-    std::ostringstream dmgCmd;
-    dmgCmd << "\"" << this->GetOption("CPACK_INSTALLER_PROGRAM_DISK_IMAGE")
-           << "\" create -ov -fs HFS+ -format UDZO -srcfolder \""
-           << diskImageDirectory << "\" \"" << packageFileNames[0] << "\"";
-    cmCPackLogger(cmCPackLog::LOG_VERBOSE, "Compress disk image using command: "
-                                               << dmgCmd.str() << std::endl);
-    // since we get random dashboard failures with this one
-    // try running it more than once
-    int  retVal   = 1;
-    int  numTries = 10;
-    bool res      = false;
-    while(numTries > 0)
-    {
-        res = cmSystemTools::RunSingleCommand(
-            dmgCmd.str().c_str(), &output, &output, &retVal, nullptr,
-            this->GeneratorVerbose, cmDuration::zero());
-        if(res && !retVal)
-        {
-            numTries = -1;
-            break;
-        }
-        cmSystemTools::Delay(500);
-        numTries--;
+  std::string output;
+  std::string tmpFile = this->GetOption("CPACK_TOPLEVEL_DIRECTORY");
+  tmpFile += "/hdiutilOutput.log";
+  std::ostringstream dmgCmd;
+  dmgCmd << "\"" << this->GetOption("CPACK_INSTALLER_PROGRAM_DISK_IMAGE")
+         << "\" create -ov -fs HFS+ -format UDZO -srcfolder \""
+         << diskImageDirectory << "\" \"" << packageFileNames[0] << "\"";
+  cmCPackLogger(cmCPackLog::LOG_VERBOSE,
+                "Compress disk image using command: " << dmgCmd.str()
+                                                      << std::endl);
+  // since we get random dashboard failures with this one
+  // try running it more than once
+  int retVal = 1;
+  int numTries = 10;
+  bool res = false;
+  while (numTries > 0) {
+    res = cmSystemTools::RunSingleCommand(
+      dmgCmd.str(), &output, &output, &retVal, nullptr, this->GeneratorVerbose,
+      cmDuration::zero());
+    if (res && !retVal) {
+      numTries = -1;
+      break;
     }
-    if(!res || retVal)
-    {
-        cmGeneratedFileStream ofs(tmpFile.c_str());
-        ofs << "# Run command: " << dmgCmd.str() << std::endl
-            << "# Output:" << std::endl
-            << output << std::endl;
-        cmCPackLogger(cmCPackLog::LOG_ERROR, "Problem running hdiutil command: "
-                                                 << dmgCmd.str() << std::endl
-                                                 << "Please check " << tmpFile
-                                                 << " for errors" << std::endl);
-        return 0;
-    }
+    cmSystemTools::Delay(500);
+    numTries--;
+  }
+  if (!res || retVal) {
+    cmGeneratedFileStream ofs(tmpFile);
+    ofs << "# Run command: " << dmgCmd.str() << std::endl
+        << "# Output:" << std::endl
+        << output << std::endl;
+    cmCPackLogger(cmCPackLog::LOG_ERROR,
+                  "Problem running hdiutil command: "
+                    << dmgCmd.str() << std::endl
+                    << "Please check " << tmpFile << " for errors"
+                    << std::endl);
+    return 0;
+  }
 
     return 1;
 }
@@ -249,7 +252,7 @@ bool cmCPackOSXX11Generator::CopyCreateResourceFile(const std::string& name)
   cmCPackLogger(cmCPackLog::LOG_VERBOSE, "Configure file: "
                 << (inFileName ? inFileName : "(NULL)")
                 << " to " << destFileName << std::endl);
-  this->ConfigureFile(inFileName, destFileName.c_str());
+  this->ConfigureFile(inFileName, destFileName);
   return true;
 }
 */
@@ -279,11 +282,11 @@ cmCPackOSXX11Generator::CopyResourcePlistFile(
     destFileName += "/";
     destFileName += outputFileName;
 
-    cmCPackLogger(cmCPackLog::LOG_VERBOSE,
-                  "Configure file: " << inFileName << " to " << destFileName
-                                     << std::endl);
-    this->ConfigureFile(inFileName.c_str(), destFileName.c_str(), copyOnly);
-    return true;
+  cmCPackLogger(cmCPackLog::LOG_VERBOSE,
+                "Configure file: " << inFileName << " to " << destFileName
+                                   << std::endl);
+  this->ConfigureFile(inFileName, destFileName, copyOnly);
+  return true;
 }
 
 const char*

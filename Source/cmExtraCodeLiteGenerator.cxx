@@ -21,10 +21,9 @@
 #include <utility>
 
 cmExtraCodeLiteGenerator::cmExtraCodeLiteGenerator()
-: cmExternalMakefileProjectGenerator()
-, ConfigName("NoConfig")
-, CpuCount(2)
-{}
+  : ConfigName("NoConfig")
+{
+}
 
 cmExternalMakefileProjectGeneratorFactory*
 cmExtraCodeLiteGenerator::GetFactory()
@@ -49,67 +48,31 @@ cmExtraCodeLiteGenerator::GetFactory()
 void
 cmExtraCodeLiteGenerator::Generate()
 {
-    // Hold root tree information for creating the workspace
-    std::string workspaceProjectName;
-    std::string workspaceOutputDir;
-    std::string workspaceFileName;
-    std::string workspaceSourcePath;
+  // Hold root tree information for creating the workspace
+  std::string workspaceProjectName;
+  std::string workspaceOutputDir;
+  std::string workspaceFileName;
+  std::string workspaceSourcePath;
 
-    const std::map<std::string, std::vector<cmLocalGenerator*>>& projectMap =
-        this->GlobalGenerator->GetProjectMap();
+  const std::map<std::string, std::vector<cmLocalGenerator*>>& projectMap =
+    this->GlobalGenerator->GetProjectMap();
 
-    // loop projects and locate the root project.
-    // and extract the information for creating the worspace
-    // root makefile
-    for(auto const& it : projectMap)
-    {
-        const cmMakefile* mf = it.second[0]->GetMakefile();
-        this->ConfigName     = GetConfigurationName(mf);
+  // loop projects and locate the root project.
+  // and extract the information for creating the worspace
+  // root makefile
+  for (auto const& it : projectMap) {
+    cmLocalGenerator* lg = it.second[0];
+    const cmMakefile* mf = lg->GetMakefile();
+    this->ConfigName = GetConfigurationName(mf);
 
-        if(it.second[0]->GetCurrentBinaryDirectory() ==
-           it.second[0]->GetBinaryDirectory())
-        {
-            workspaceOutputDir   = it.second[0]->GetCurrentBinaryDirectory();
-            workspaceProjectName = it.second[0]->GetProjectName();
-            workspaceSourcePath  = it.second[0]->GetSourceDirectory();
-            workspaceFileName    = workspaceOutputDir + "/";
-            workspaceFileName += workspaceProjectName + ".workspace";
-            this->WorkspacePath = it.second[0]->GetCurrentBinaryDirectory();
-            ;
-            break;
-        }
-    }
-
-    cmGeneratedFileStream fout(workspaceFileName);
-    cmXMLWriter           xml(fout);
-
-    xml.StartDocument("utf-8");
-    xml.StartElement("CodeLite_Workspace");
-    xml.Attribute("Name", workspaceProjectName);
-
-    bool const targetsAreProjects =
-        this->GlobalGenerator->GlobalSettingIsOn("CMAKE_CODELITE_USE_TARGETS");
-
-    std::vector<std::string> ProjectNames;
-    if(targetsAreProjects)
-    {
-        ProjectNames = CreateProjectsByTarget(&xml);
-    } else
-    {
-        ProjectNames = CreateProjectsByProjectMaps(&xml);
-    }
-
-    xml.StartElement("BuildMatrix");
-    xml.StartElement("WorkspaceConfiguration");
-    xml.Attribute("Name", this->ConfigName);
-    xml.Attribute("Selected", "yes");
-
-    for(std::string const& it : ProjectNames)
-    {
-        xml.StartElement("Project");
-        xml.Attribute("Name", it);
-        xml.Attribute("ConfigName", this->ConfigName);
-        xml.EndElement();
+    if (lg->GetCurrentBinaryDirectory() == lg->GetBinaryDirectory()) {
+      workspaceOutputDir = lg->GetCurrentBinaryDirectory();
+      workspaceProjectName = lg->GetProjectName();
+      workspaceSourcePath = lg->GetSourceDirectory();
+      workspaceFileName = workspaceOutputDir + "/";
+      workspaceFileName += workspaceProjectName + ".workspace";
+      this->WorkspacePath = lg->GetCurrentBinaryDirectory();
+      break;
     }
 
     xml.EndElement();  // WorkspaceConfiguration
@@ -209,27 +172,45 @@ cmExtraCodeLiteGenerator::CollectSourceFiles(
     std::map<std::string, cmSourceFile*>& cFiles,
     std::set<std::string>&                otherFiles)
 {
-    std::string projectType;
-    switch(gt->GetType())
-    {
-        case cmStateEnums::EXECUTABLE:
-        {
-            projectType = "Executable";
-        }
-        break;
-        case cmStateEnums::STATIC_LIBRARY:
-        {
-            projectType = "Static Library";
-        }
-        break;
-        case cmStateEnums::SHARED_LIBRARY:
-        {
-            projectType = "Dynamic Library";
-        }
-        break;
-        case cmStateEnums::MODULE_LIBRARY:
-        {
-            projectType = "Dynamic Library";
+  std::string projectType;
+  switch (gt->GetType()) {
+    case cmStateEnums::EXECUTABLE: {
+      projectType = "Executable";
+    } break;
+    case cmStateEnums::STATIC_LIBRARY: {
+      projectType = "Static Library";
+    } break;
+    case cmStateEnums::SHARED_LIBRARY: {
+      projectType = "Dynamic Library";
+    } break;
+    case cmStateEnums::MODULE_LIBRARY: {
+      projectType = "Dynamic Library";
+    } break;
+    default: // intended fallthrough
+      break;
+  }
+
+  switch (gt->GetType()) {
+    case cmStateEnums::EXECUTABLE:
+    case cmStateEnums::STATIC_LIBRARY:
+    case cmStateEnums::SHARED_LIBRARY:
+    case cmStateEnums::MODULE_LIBRARY: {
+      std::vector<cmSourceFile*> sources;
+      gt->GetSourceFiles(sources,
+                         makefile->GetSafeDefinition("CMAKE_BUILD_TYPE"));
+      for (cmSourceFile* s : sources) {
+        // check whether it is a source or a include file
+        // then put it accordingly into one of the two containers
+        switch (cmSystemTools::GetFileFormat(s->GetExtension())) {
+          case cmSystemTools::C_FILE_FORMAT:
+          case cmSystemTools::CXX_FILE_FORMAT:
+          case cmSystemTools::CUDA_FILE_FORMAT:
+          case cmSystemTools::FORTRAN_FILE_FORMAT: {
+            cFiles[s->GetFullPath()] = s;
+          } break;
+          default: {
+            otherFiles.insert(s->GetFullPath());
+          }
         }
         break;
         default:  // intended fallthrough
@@ -697,23 +678,20 @@ std::string
 cmExtraCodeLiteGenerator::GetBuildCommand(const cmMakefile*  mf,
                                           const std::string& targetName) const
 {
-    std::string        generator = mf->GetSafeDefinition("CMAKE_GENERATOR");
-    std::string        make = mf->GetRequiredDefinition("CMAKE_MAKE_PROGRAM");
-    std::string        buildCommand = make;  // Default
-    std::ostringstream ss;
-    if(generator == "NMake Makefiles" || generator == "Ninja")
-    {
-        ss << make;
-    } else if(generator == "MinGW Makefiles" || generator == "Unix Makefiles")
-    {
-        ss << make << " -f$(ProjectPath)/Makefile -j " << this->CpuCount;
-    }
-    if(!targetName.empty())
-    {
-        ss << " " << targetName;
-    }
-    buildCommand = ss.str();
-    return buildCommand;
+  const std::string& generator = mf->GetSafeDefinition("CMAKE_GENERATOR");
+  const std::string& make = mf->GetRequiredDefinition("CMAKE_MAKE_PROGRAM");
+  std::string buildCommand = make; // Default
+  std::ostringstream ss;
+  if (generator == "NMake Makefiles" || generator == "Ninja") {
+    ss << make;
+  } else if (generator == "MinGW Makefiles" || generator == "Unix Makefiles") {
+    ss << make << " -f$(ProjectPath)/Makefile -j " << this->CpuCount;
+  }
+  if (!targetName.empty()) {
+    ss << " " << targetName;
+  }
+  buildCommand = ss.str();
+  return buildCommand;
 }
 
 std::string
@@ -744,12 +722,11 @@ cmExtraCodeLiteGenerator::GetRebuildCommand(const cmMakefile*  mf,
 std::string
 cmExtraCodeLiteGenerator::GetSingleFileBuildCommand(const cmMakefile* mf) const
 {
-    std::string buildCommand;
-    std::string make      = mf->GetRequiredDefinition("CMAKE_MAKE_PROGRAM");
-    std::string generator = mf->GetSafeDefinition("CMAKE_GENERATOR");
-    if(generator == "Unix Makefiles" || generator == "MinGW Makefiles")
-    {
-        std::ostringstream ss;
+  std::string buildCommand;
+  const std::string& make = mf->GetRequiredDefinition("CMAKE_MAKE_PROGRAM");
+  const std::string& generator = mf->GetSafeDefinition("CMAKE_GENERATOR");
+  if (generator == "Unix Makefiles" || generator == "MinGW Makefiles") {
+    std::ostringstream ss;
 #if defined(_WIN32)
         ss << make
            << " -f$(ProjectPath)/Makefile -B $(CurrentFileFullName).obj";

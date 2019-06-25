@@ -13,6 +13,7 @@
 
 #include "cmsys/FStream.hxx"
 
+#include <map>
 #include <utility>
 #include <vector>
 
@@ -60,10 +61,7 @@ cmCPackExternalGenerator::PackageFiles()
         return 0;
     }
 
-    if(jout->write(root, &fout))
-    {
-        return 0;
-    }
+    bool res = this->MakefileMap->ReadListFile(packageScript);
 
     const char* packageScript =
         this->GetOption("CPACK_EXTERNAL_PACKAGE_SCRIPT");

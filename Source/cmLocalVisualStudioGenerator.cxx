@@ -2,6 +2,7 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmLocalVisualStudioGenerator.h"
 
+#include "cmCustomCommand.h"
 #include "cmCustomCommandGenerator.h"
 #include "cmGeneratorTarget.h"
 #include "cmGlobalGenerator.h"
@@ -250,22 +251,13 @@ cmLocalVisualStudioGenerator::ConstructScript(
         script += check_error;
     }
 
-    // Close the local context.
-    if(useLocal)
-    {
-        script += newline;
-        script += ":cmEnd";
-        script += newline;
-        script += "endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone";
-        script += newline;
-        script += ":cmErrorLevel";
-        script += newline;
-        script += "exit /b %1";
-        script += newline;
-        script += ":cmDone";
-        script += newline;
-        script += "if %errorlevel% neq 0 goto ";
-        script += this->GetReportErrorLabel();
+    if (workingDirectory.empty()) {
+      script +=
+        this->ConvertToOutputFormat(this->MaybeConvertToRelativePath(
+                                      this->GetCurrentBinaryDirectory(), cmd),
+                                    cmOutputConverter::SHELL);
+    } else {
+      script += this->ConvertToOutputFormat(cmd.c_str(), SHELL);
     }
 
     return script;

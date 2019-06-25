@@ -3,6 +3,7 @@
 #include "cmGlobalWatcomWMakeGenerator.h"
 
 #include "cmDocumentationEntry.h"
+#include "cmGlobalGenerator.h"
 #include "cmMakefile.h"
 #include "cmState.h"
 #include "cmake.h"
@@ -51,16 +52,16 @@ cmGlobalWatcomWMakeGenerator::GetDocumentation(cmDocumentationEntry& entry)
     entry.Brief = "Generates Watcom WMake makefiles.";
 }
 
-void
+std::vector<cmGlobalGenerator::GeneratedMakeCommand>
 cmGlobalWatcomWMakeGenerator::GenerateBuildCommand(
-    std::vector<std::string>& makeCommand, const std::string& makeProgram,
-    const std::string& projectName, const std::string& projectDir,
-    const std::string& targetName, const std::string& config, bool fast,
-    int /*jobs*/, bool verbose, std::vector<std::string> const& makeOptions)
+  const std::string& makeProgram, const std::string& projectName,
+  const std::string& projectDir, std::vector<std::string> const& targetNames,
+  const std::string& config, bool fast, int /*jobs*/, bool verbose,
+  std::vector<std::string> const& makeOptions)
 {
-    this->cmGlobalUnixMakefileGenerator3::GenerateBuildCommand(
-        makeCommand, makeProgram, projectName, projectDir, targetName, config,
-        fast, cmake::NO_BUILD_PARALLEL_LEVEL, verbose, makeOptions);
+  return this->cmGlobalUnixMakefileGenerator3::GenerateBuildCommand(
+    makeProgram, projectName, projectDir, targetNames, config, fast,
+    cmake::NO_BUILD_PARALLEL_LEVEL, verbose, makeOptions);
 }
 
 void

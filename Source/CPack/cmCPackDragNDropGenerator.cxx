@@ -62,24 +62,70 @@ cmCPackDragNDropGenerator::cmCPackDragNDropGenerator()
     this->componentPackageMethod = ONE_PACKAGE;
 }
 
-cmCPackDragNDropGenerator::~cmCPackDragNDropGenerator() {}
+cmCPackDragNDropGenerator::~cmCPackDragNDropGenerator() = default;
 
 int
 cmCPackDragNDropGenerator::InitializeInternal()
 {
-    // Starting with Xcode 4.3, look in "/Applications/Xcode.app" first:
-    //
-    std::vector<std::string> paths;
-    paths.push_back("/Applications/Xcode.app/Contents/Developer/Tools");
-    paths.push_back("/Developer/Tools");
+  // Starting with Xcode 4.3, look in "/Applications/Xcode.app" first:
+  //
+  std::vector<std::string> paths;
+  paths.emplace_back("/Applications/Xcode.app/Contents/Developer/Tools");
+  paths.emplace_back("/Developer/Tools");
 
-    const std::string hdiutil_path = cmSystemTools::FindProgram(
-        "hdiutil", std::vector<std::string>(), false);
-    if(hdiutil_path.empty())
-    {
-        cmCPackLogger(cmCPackLog::LOG_ERROR,
-                      "Cannot locate hdiutil command" << std::endl);
-        return 0;
+  const std::string hdiutil_path =
+    cmSystemTools::FindProgram("hdiutil", std::vector<std::string>(), false);
+  if (hdiutil_path.empty()) {
+    cmCPackLogger(cmCPackLog::LOG_ERROR,
+                  "Cannot locate hdiutil command" << std::endl);
+    return 0;
+  }
+  this->SetOptionIfNotSet("CPACK_COMMAND_HDIUTIL", hdiutil_path.c_str());
+
+  const std::string setfile_path =
+    cmSystemTools::FindProgram("SetFile", paths, false);
+  if (setfile_path.empty()) {
+    cmCPackLogger(cmCPackLog::LOG_ERROR,
+                  "Cannot locate SetFile command" << std::endl);
+    return 0;
+  }
+  this->SetOptionIfNotSet("CPACK_COMMAND_SETFILE", setfile_path.c_str());
+
+  const std::string rez_path = cmSystemTools::FindProgram("Rez", paths, false);
+  if (rez_path.empty()) {
+    cmCPackLogger(cmCPackLog::LOG_ERROR,
+                  "Cannot locate Rez command" << std::endl);
+    return 0;
+  }
+  this->SetOptionIfNotSet("CPACK_COMMAND_REZ", rez_path.c_str());
+
+  if (this->IsSet("CPACK_DMG_SLA_DIR")) {
+    slaDirectory = this->GetOption("CPACK_DMG_SLA_DIR");
+    if (!slaDirectory.empty() && this->IsSet("CPACK_RESOURCE_FILE_LICENSE")) {
+      std::string license_file =
+        this->GetOption("CPACK_RESOURCE_FILE_LICENSE");
+      if (!license_file.empty() &&
+          (license_file.find("CPack.GenericLicense.txt") ==
+           std::string::npos)) {
+        cmCPackLogger(
+          cmCPackLog::LOG_OUTPUT,
+          "Both CPACK_DMG_SLA_DIR and CPACK_RESOURCE_FILE_LICENSE specified, "
+          "using CPACK_RESOURCE_FILE_LICENSE as a license for all languages."
+            << std::endl);
+        singleLicense = true;
+      }
+    }
+    if (!this->IsSet("CPACK_DMG_SLA_LANGUAGES")) {
+      cmCPackLogger(cmCPackLog::LOG_ERROR,
+                    "CPACK_DMG_SLA_DIR set but no languages defined "
+                    "(set CPACK_DMG_SLA_LANGUAGES)"
+                      << std::endl);
+      return 0;
+    }
+    if (!cmSystemTools::FileExists(slaDirectory, false)) {
+      cmCPackLogger(cmCPackLog::LOG_ERROR,
+                    "CPACK_DMG_SLA_DIR does not exist" << std::endl);
+      return 0;
     }
     this->SetOptionIfNotSet("CPACK_COMMAND_HDIUTIL", hdiutil_path.c_str());
 
@@ -236,15 +282,13 @@ bool
 cmCPackDragNDropGenerator::CopyFile(std::ostringstream& source,
                                     std::ostringstream& target)
 {
-    if(!cmSystemTools::CopyFileIfDifferent(source.str().c_str(),
-                                           target.str().c_str()))
-    {
-        cmCPackLogger(cmCPackLog::LOG_ERROR, "Error copying "
-                                                 << source.str() << " to "
-                                                 << target.str() << std::endl);
+  if (!cmSystemTools::CopyFileIfDifferent(source.str(), target.str())) {
+    cmCPackLogger(cmCPackLog::LOG_ERROR,
+                  "Error copying " << source.str() << " to " << target.str()
+                                   << std::endl);
 
-        return false;
-    }
+    return false;
+  }
 
     return true;
 }
@@ -275,9 +319,9 @@ cmCPackDragNDropGenerator::RunCommand(std::ostringstream& command,
 {
     int exit_code = 1;
 
-    bool result = cmSystemTools::RunSingleCommand(
-        command.str().c_str(), output, output, &exit_code, nullptr,
-        this->GeneratorVerbose, cmDuration::zero());
+  bool result = cmSystemTools::RunSingleCommand(
+    command.str(), output, output, &exit_code, nullptr, this->GeneratorVerbose,
+    cmDuration::zero());
 
     if(!result || exit_code)
     {
@@ -578,17 +622,44 @@ cmCPackDragNDropGenerator::CreateDMG(const std::string& src_dir,
         }
     }
 
-    if(!cpack_license_file.empty() || !slaDirectory.empty())
-    {
-        // Use old hardcoded style if sla_dir is not set
-        bool        oldStyle = slaDirectory.empty();
-        std::string sla_r    = this->GetOption("CPACK_TOPLEVEL_DIRECTORY");
-        sla_r += "/sla.r";
+    cmGeneratedFileStream ofs(sla_r);
+    ofs << "#include <CoreServices/CoreServices.r>\n\n";
+    if (oldStyle) {
+      ofs << SLAHeader;
+      ofs << "\n";
+    } else {
+      /*
+       * LPic Layout
+       * (https://github.com/pypt/dmg-add-license/blob/master/main.c)
+       * as far as I can tell (no official documentation seems to exist):
+       * struct LPic {
+       *  uint16_t default_language; // points to a resid, defaulting to 0,
+       *                             // which is the first set language
+       *  uint16_t length;
+       *  struct {
+       *    uint16_t language_code;
+       *    uint16_t resid;
+       *    uint16_t encoding; // Encoding from TextCommon.h,
+       *                       // forcing MacRoman (0) for now. Might need to
+       *                       // allow overwrite per license by user later
+       *  } item[1];
+       * }
+       */
 
-        std::vector<std::string> languages;
-        if(!oldStyle)
-        {
-            cmSystemTools::ExpandListArgument(cpack_dmg_languages, languages);
+      // Create vector first for readability, then iterate to write to ofs
+      std::vector<uint16_t> header_data;
+      header_data.push_back(0);
+      header_data.push_back(languages.size());
+      for (size_t i = 0; i < languages.size(); ++i) {
+        CFStringRef language_cfstring = CFStringCreateWithCString(
+          nullptr, languages[i].c_str(), kCFStringEncodingUTF8);
+        CFStringRef iso_language =
+          CFLocaleCreateCanonicalLanguageIdentifierFromString(
+            nullptr, language_cfstring);
+        if (!iso_language) {
+          cmCPackLogger(cmCPackLog::LOG_ERROR,
+                        languages[i] << " is not a recognized language"
+                                     << std::endl);
         }
 
         cmGeneratedFileStream ofs(sla_r.c_str());

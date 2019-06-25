@@ -31,7 +31,7 @@ cmCPackPackageMakerGenerator::cmCPackPackageMakerGenerator()
     this->PackageCompatibilityVersion = getVersion(10, 4);
 }
 
-cmCPackPackageMakerGenerator::~cmCPackPackageMakerGenerator() {}
+cmCPackPackageMakerGenerator::~cmCPackPackageMakerGenerator() = default;
 
 bool
 cmCPackPackageMakerGenerator::SupportsComponentInstallation() const
@@ -507,48 +507,90 @@ cmCPackPackageMakerGenerator::InitializeInternal()
         this->SetOption("CPACK_OSX_PACKAGE_VERSION", "10.3");
         this->PackageCompatibilityVersion = getVersion(10, 3);
     }
+  } else {
+    // We have built the package in place. Generate the
+    // distribution.dist file to describe it for the installer.
+    WriteDistributionFile(packageDirFileName.c_str());
+  }
 
-    std::vector<std::string> no_paths;
-    pkgPath = cmSystemTools::FindProgram("hdiutil", no_paths, false);
-    if(pkgPath.empty())
-    {
-        cmCPackLogger(cmCPackLog::LOG_ERROR,
-                      "Cannot find hdiutil compiler" << std::endl);
-        return 0;
+  std::string tmpFile = this->GetOption("CPACK_TOPLEVEL_DIRECTORY");
+  tmpFile += "/hdiutilOutput.log";
+  std::ostringstream dmgCmd;
+  dmgCmd << "\"" << this->GetOption("CPACK_INSTALLER_PROGRAM_DISK_IMAGE")
+         << "\" create -ov -fs HFS+ -format UDZO -srcfolder \""
+         << packageDirFileName << "\" \"" << packageFileNames[0] << "\"";
+  std::string output;
+  int retVal = 1;
+  int numTries = 10;
+  bool res = false;
+  while (numTries > 0) {
+    res = cmSystemTools::RunSingleCommand(
+      dmgCmd.str(), &output, &output, &retVal, nullptr, this->GeneratorVerbose,
+      cmDuration::zero());
+    if (res && !retVal) {
+      numTries = -1;
+      break;
     }
-    this->SetOptionIfNotSet("CPACK_INSTALLER_PROGRAM_DISK_IMAGE",
-                            pkgPath.c_str());
+    cmSystemTools::Delay(500);
+    numTries--;
+  }
+  if (!res || retVal) {
+    cmGeneratedFileStream ofs(tmpFile);
+    ofs << "# Run command: " << dmgCmd.str() << std::endl
+        << "# Output:" << std::endl
+        << output << std::endl;
+    cmCPackLogger(cmCPackLog::LOG_ERROR,
+                  "Problem running hdiutil command: "
+                    << dmgCmd.str() << std::endl
+                    << "Please check " << tmpFile << " for errors"
+                    << std::endl);
+    return 0;
+  }
 
-    return this->Superclass::InitializeInternal();
+  return 1;
 }
 
 bool
 cmCPackPackageMakerGenerator::RunPackageMaker(const char* command,
                                               const char* packageFile)
 {
-    std::string tmpFile = this->GetOption("CPACK_TOPLEVEL_DIRECTORY");
-    tmpFile += "/PackageMakerOutput.log";
+  this->SetOptionIfNotSet("CPACK_PACKAGING_INSTALL_PREFIX", "/usr");
 
-    cmCPackLogger(cmCPackLog::LOG_VERBOSE, "Execute: " << command << std::endl);
-    std::string output;
-    int         retVal = 1;
-    bool        res    = cmSystemTools::RunSingleCommand(
-        command, &output, &output, &retVal, nullptr, this->GeneratorVerbose,
-        cmDuration::zero());
-    cmCPackLogger(cmCPackLog::LOG_VERBOSE,
-                  "Done running package maker" << std::endl);
-    if(!res || retVal)
-    {
-        cmGeneratedFileStream ofs(tmpFile.c_str());
-        ofs << "# Run command: " << command << std::endl
-            << "# Output:" << std::endl
-            << output << std::endl;
-        cmCPackLogger(cmCPackLog::LOG_ERROR,
-                      "Problem running PackageMaker command: "
-                          << command << std::endl
-                          << "Please check " << tmpFile << " for errors"
-                          << std::endl);
-        return false;
+  // Starting with Xcode 4.3, PackageMaker is a separate app, and you
+  // can put it anywhere you want. So... use a variable for its location.
+  // People who put it in unexpected places can use the variable to tell
+  // us where it is.
+  //
+  // Use the following locations, in "most recent installation" order,
+  // to search for the PackageMaker app. Assume people who copy it into
+  // the new Xcode 4.3 app in "/Applications" will copy it into the nested
+  // Applications folder inside the Xcode bundle itself. Or directly in
+  // the "/Applications" directory.
+  //
+  // If found, save result in the CPACK_INSTALLER_PROGRAM variable.
+
+  std::vector<std::string> paths;
+  paths.emplace_back("/Applications/Xcode.app/Contents/Applications"
+                     "/PackageMaker.app/Contents/MacOS");
+  paths.emplace_back("/Applications/Utilities"
+                     "/PackageMaker.app/Contents/MacOS");
+  paths.emplace_back("/Applications"
+                     "/PackageMaker.app/Contents/MacOS");
+  paths.emplace_back("/Developer/Applications/Utilities"
+                     "/PackageMaker.app/Contents/MacOS");
+  paths.emplace_back("/Developer/Applications"
+                     "/PackageMaker.app/Contents/MacOS");
+
+  std::string pkgPath;
+  const char* inst_program = this->GetOption("CPACK_INSTALLER_PROGRAM");
+  if (inst_program && *inst_program) {
+    pkgPath = inst_program;
+  } else {
+    pkgPath = cmSystemTools::FindProgram("PackageMaker", paths, false);
+    if (pkgPath.empty()) {
+      cmCPackLogger(cmCPackLog::LOG_ERROR,
+                    "Cannot find PackageMaker compiler" << std::endl);
+      return 0;
     }
     // sometimes the command finishes but the directory is not yet
     // created, so try 10 times to see if it shows up
@@ -568,7 +610,48 @@ cmCPackPackageMakerGenerator::RunPackageMaker(const char* command,
         return false;
     }
 
-    return true;
+bool cmCPackPackageMakerGenerator::RunPackageMaker(const char* command,
+                                                   const char* packageFile)
+{
+  std::string tmpFile = this->GetOption("CPACK_TOPLEVEL_DIRECTORY");
+  tmpFile += "/PackageMakerOutput.log";
+
+  cmCPackLogger(cmCPackLog::LOG_VERBOSE, "Execute: " << command << std::endl);
+  std::string output;
+  int retVal = 1;
+  bool res = cmSystemTools::RunSingleCommand(
+    command, &output, &output, &retVal, nullptr, this->GeneratorVerbose,
+    cmDuration::zero());
+  cmCPackLogger(cmCPackLog::LOG_VERBOSE,
+                "Done running package maker" << std::endl);
+  if (!res || retVal) {
+    cmGeneratedFileStream ofs(tmpFile);
+    ofs << "# Run command: " << command << std::endl
+        << "# Output:" << std::endl
+        << output << std::endl;
+    cmCPackLogger(cmCPackLog::LOG_ERROR,
+                  "Problem running PackageMaker command: "
+                    << command << std::endl
+                    << "Please check " << tmpFile << " for errors"
+                    << std::endl);
+    return false;
+  }
+  // sometimes the command finishes but the directory is not yet
+  // created, so try 10 times to see if it shows up
+  int tries = 10;
+  while (tries > 0 && !cmSystemTools::FileExists(packageFile)) {
+    cmSystemTools::Delay(500);
+    tries--;
+  }
+  if (!cmSystemTools::FileExists(packageFile)) {
+    cmCPackLogger(cmCPackLog::LOG_ERROR,
+                  "Problem running PackageMaker command: "
+                    << command << std::endl
+                    << "Package not created: " << packageFile << std::endl);
+    return false;
+  }
+
+  return true;
 }
 
 bool

@@ -120,46 +120,47 @@ struct VSInstanceInfo
     bool         IsWin10SDKInstalled = false;
     bool         IsWin81SDKInstalled = false;
 
-    VSInstanceInfo() = default;
-
-    std::string GetInstallLocation() const;
+  std::string GetInstallLocation() const;
 };
 
 class cmVSSetupAPIHelper
 {
 public:
-    cmVSSetupAPIHelper();
-    ~cmVSSetupAPIHelper();
+  cmVSSetupAPIHelper(unsigned int version);
+  ~cmVSSetupAPIHelper();
 
     bool SetVSInstance(std::string const& vsInstallLocation);
 
-    bool IsVS2017Installed();
-    bool GetVSInstanceInfo(std::string& vsInstallLocation);
-    bool GetVCToolsetVersion(std::string& vsToolsetVersion);
-    bool IsWin10SDKInstalled();
-    bool IsWin81SDKInstalled();
+  bool IsVSInstalled();
+  bool GetVSInstanceInfo(std::string& vsInstallLocation);
+  bool GetVCToolsetVersion(std::string& vsToolsetVersion);
+  bool IsWin10SDKInstalled();
+  bool IsWin81SDKInstalled();
 
 private:
-    bool Initialize();
-    bool GetVSInstanceInfo(SmartCOMPtr<ISetupInstance2> instance2,
-                           VSInstanceInfo&              vsInstanceInfo);
-    bool CheckInstalledComponent(SmartCOMPtr<ISetupPackageReference> package,
-                                 bool& bWin10SDK, bool& bWin81SDK);
-    int  ChooseVSInstance(const std::vector<VSInstanceInfo>& vecVSInstances);
-    bool EnumerateAndChooseVSInstance();
+  bool Initialize();
+  bool GetVSInstanceInfo(SmartCOMPtr<ISetupInstance2> instance2,
+                         VSInstanceInfo& vsInstanceInfo);
+  bool CheckInstalledComponent(SmartCOMPtr<ISetupPackageReference> package,
+                               bool& bWin10SDK, bool& bWin81SDK);
+  int ChooseVSInstance(const std::vector<VSInstanceInfo>& vecVSInstances);
+  bool EnumerateAndChooseVSInstance();
 
-    // COM ptrs to query about VS instances
-    SmartCOMPtr<ISetupConfiguration>  setupConfig;
-    SmartCOMPtr<ISetupConfiguration2> setupConfig2;
-    SmartCOMPtr<ISetupHelper>         setupHelper;
-    // used to indicate failure in Initialize(), so we don't have to call again
-    bool initializationFailure;
-    // indicated if COM initialization is successful
-    HRESULT comInitialized;
-    // current best instance of VS selected
-    VSInstanceInfo chosenInstanceInfo;
+  unsigned int Version;
 
-    std::string SpecifiedVSInstallLocation;
+  // COM ptrs to query about VS instances
+  SmartCOMPtr<ISetupConfiguration> setupConfig;
+  SmartCOMPtr<ISetupConfiguration2> setupConfig2;
+  SmartCOMPtr<ISetupHelper> setupHelper;
+  // used to indicate failure in Initialize(), so we don't have to call again
+  bool initializationFailure;
+  // indicated if COM initialization is successful
+  HRESULT comInitialized;
+  // current best instance of VS selected
+  VSInstanceInfo chosenInstanceInfo;
+  bool IsEWDKEnabled();
+
+  std::string SpecifiedVSInstallLocation;
 };
 
 #endif

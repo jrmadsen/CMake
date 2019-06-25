@@ -8,43 +8,39 @@
 #include "cmExecutionStatus.h"
 #include "cmMakefile.h"
 #include "cmPolicies.h"
+#include "cmRange.h"
 #include "cmState.h"
 
 // define the class for function commands
 class cmFunctionHelperCommand : public cmCommand
 {
 public:
-    cmFunctionHelperCommand() {}
+  /**
+   * This is a virtual constructor for the command.
+   */
+  cmCommand* Clone() override
+  {
+    cmFunctionHelperCommand* newC = new cmFunctionHelperCommand;
+    // we must copy when we clone
+    newC->Args = this->Args;
+    newC->Functions = this->Functions;
+    newC->Policies = this->Policies;
+    newC->FilePath = this->FilePath;
+    return newC;
+  }
 
-    ///! clean up any memory allocated by the function
-    ~cmFunctionHelperCommand() override {}
+  /**
+   * This is called when the command is first encountered in
+   * the CMakeLists.txt file.
+   */
+  bool InvokeInitialPass(const std::vector<cmListFileArgument>& args,
+                         cmExecutionStatus&) override;
 
-    /**
-     * This is a virtual constructor for the command.
-     */
-    cmCommand* Clone() override
-    {
-        cmFunctionHelperCommand* newC = new cmFunctionHelperCommand;
-        // we must copy when we clone
-        newC->Args      = this->Args;
-        newC->Functions = this->Functions;
-        newC->Policies  = this->Policies;
-        newC->FilePath  = this->FilePath;
-        return newC;
-    }
-
-    /**
-     * This is called when the command is first encountered in
-     * the CMakeLists.txt file.
-     */
-    bool InvokeInitialPass(const std::vector<cmListFileArgument>& args,
-                           cmExecutionStatus&) override;
-
-    bool InitialPass(std::vector<std::string> const&,
-                     cmExecutionStatus&) override
-    {
-        return false;
-    }
+  bool InitialPass(std::vector<std::string> const&,
+                   cmExecutionStatus&) override
+  {
+    return false;
+  }
 
     std::vector<std::string>        Args;
     std::vector<cmListFileFunction> Functions;
@@ -196,9 +192,9 @@ cmFunctionCommand::InitialPass(std::vector<std::string> const& args,
         return false;
     }
 
-    // create a function blocker
-    cmFunctionFunctionBlocker* f = new cmFunctionFunctionBlocker();
-    f->Args.insert(f->Args.end(), args.begin(), args.end());
-    this->Makefile->AddFunctionBlocker(f);
-    return true;
+  // create a function blocker
+  cmFunctionFunctionBlocker* f = new cmFunctionFunctionBlocker();
+  cmAppend(f->Args, args);
+  this->Makefile->AddFunctionBlocker(f);
+  return true;
 }

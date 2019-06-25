@@ -6,6 +6,7 @@
 #include "cmConfigure.h"  // IWYU pragma: keep
 
 #include <string>
+#include <utility>
 #include <vector>
 
 class cmInstallExportGenerator;
@@ -16,14 +17,18 @@ class cmTargetExport;
 class cmExportSet
 {
 public:
-    /// Construct an empty export set named \a name
-    cmExportSet(const std::string& name)
-    : Name(name)
-    {}
-    /// Destructor
-    ~cmExportSet();
+  /// Construct an empty export set named \a name
+  cmExportSet(std::string name)
+    : Name(std::move(name))
+  {
+  }
+  /// Destructor
+  ~cmExportSet();
 
-    void Compute(cmLocalGenerator* lg);
+  cmExportSet(const cmExportSet&) = delete;
+  cmExportSet& operator=(const cmExportSet&) = delete;
+
+  void Compute(cmLocalGenerator* lg);
 
     void AddTargetExport(cmTargetExport* tgt);
 

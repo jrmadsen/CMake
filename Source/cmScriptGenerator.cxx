@@ -4,21 +4,15 @@
 
 #include "cmSystemTools.h"
 
-cmScriptGenerator::cmScriptGenerator(
-    const std::string&              config_var,
-    std::vector<std::string> const& configurations)
-: RuntimeConfigVariable(config_var)
-, Configurations(configurations)
-, ConfigurationName("")
-, ConfigurationTypes(nullptr)
-, ActionsPerConfig(false)
-{}
+#include <utility>
 
-cmScriptGenerator::~cmScriptGenerator() {}
-
-void
-cmScriptGenerator::Generate(std::ostream& os, const std::string& config,
-                            std::vector<std::string> const& configurationTypes)
+cmScriptGenerator::cmScriptGenerator(std::string config_var,
+                                     std::vector<std::string> configurations)
+  : RuntimeConfigVariable(std::move(config_var))
+  , Configurations(std::move(configurations))
+  , ConfigurationName("")
+  , ConfigurationTypes(nullptr)
+  , ActionsPerConfig(false)
 {
     this->ConfigurationName  = config;
     this->ConfigurationTypes = &configurationTypes;
@@ -27,29 +21,7 @@ cmScriptGenerator::Generate(std::ostream& os, const std::string& config,
     this->ConfigurationTypes = nullptr;
 }
 
-static void
-cmScriptGeneratorEncodeConfig(const std::string& config, std::string& result)
-{
-    for(const char* c = config.c_str(); *c; ++c)
-    {
-        if(*c >= 'a' && *c <= 'z')
-        {
-            result += "[";
-            result += static_cast<char>(*c + 'A' - 'a');
-            result += *c;
-            result += "]";
-        } else if(*c >= 'A' && *c <= 'Z')
-        {
-            result += "[";
-            result += *c;
-            result += static_cast<char>(*c + 'a' - 'A');
-            result += "]";
-        } else
-        {
-            result += *c;
-        }
-    }
-}
+cmScriptGenerator::~cmScriptGenerator() = default;
 
 std::string
 cmScriptGenerator::CreateConfigTest(const std::string& config)

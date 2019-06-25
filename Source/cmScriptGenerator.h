@@ -12,10 +12,8 @@
 class cmScriptGeneratorIndent
 {
 public:
-    cmScriptGeneratorIndent()
-    : Level(0)
-    {}
-    cmScriptGeneratorIndent(int level)
+  cmScriptGeneratorIndent() = default;
+  cmScriptGeneratorIndent(int level)
     : Level(level)
     {}
     void Write(std::ostream& os) const
@@ -31,7 +29,7 @@ public:
     }
 
 private:
-    int Level;
+  int Level = 0;
 };
 inline std::ostream&
 operator<<(std::ostream& os, cmScriptGeneratorIndent indent)
@@ -46,15 +44,16 @@ operator<<(std::ostream& os, cmScriptGeneratorIndent indent)
  */
 class cmScriptGenerator
 {
-    CM_DISABLE_COPY(cmScriptGenerator)
-
 public:
-    cmScriptGenerator(const std::string&              config_var,
-                      std::vector<std::string> const& configurations);
-    virtual ~cmScriptGenerator();
+  cmScriptGenerator(std::string config_var,
+                    std::vector<std::string> configurations);
+  virtual ~cmScriptGenerator();
 
-    void Generate(std::ostream& os, const std::string& config,
-                  std::vector<std::string> const& configurationTypes);
+  cmScriptGenerator(cmScriptGenerator const&) = delete;
+  cmScriptGenerator& operator=(cmScriptGenerator const&) = delete;
+
+  void Generate(std::ostream& os, const std::string& config,
+                std::vector<std::string> const& configurationTypes);
 
 protected:
     typedef cmScriptGeneratorIndent Indent;

@@ -14,64 +14,59 @@
 class cmGlobalVisualStudio10Generator : public cmGlobalVisualStudio8Generator
 {
 public:
-    cmGlobalVisualStudio10Generator(cmake* cm, const std::string& name,
-                                    const std::string& platformName);
-    static cmGlobalGeneratorFactory* NewFactory();
+  static cmGlobalGeneratorFactory* NewFactory();
 
-    bool MatchesGeneratorName(const std::string& name) const override;
+  bool MatchesGeneratorName(const std::string& name) const override;
 
-    bool SetSystemName(std::string const& s, cmMakefile* mf) override;
-    bool SetGeneratorPlatform(std::string const& p, cmMakefile* mf) override;
-    bool SetGeneratorToolset(std::string const& ts, cmMakefile* mf) override;
+  bool SetSystemName(std::string const& s, cmMakefile* mf) override;
+  bool SetGeneratorPlatform(std::string const& p, cmMakefile* mf) override;
+  bool SetGeneratorToolset(std::string const& ts, cmMakefile* mf) override;
 
-    void GenerateBuildCommand(std::vector<std::string>& makeCommand,
-                              const std::string&        makeProgram,
-                              const std::string&        projectName,
-                              const std::string&        projectDir,
-                              const std::string&        targetName,
-                              const std::string& config, bool fast, int jobs,
-                              bool                            verbose,
-                              std::vector<std::string> const& makeOptions =
-                                  std::vector<std::string>()) override;
+  std::vector<GeneratedMakeCommand> GenerateBuildCommand(
+    const std::string& makeProgram, const std::string& projectName,
+    const std::string& projectDir, std::vector<std::string> const& targetNames,
+    const std::string& config, bool fast, int jobs, bool verbose,
+    std::vector<std::string> const& makeOptions =
+      std::vector<std::string>()) override;
 
-    ///! create the correct local generator
-    cmLocalGenerator* CreateLocalGenerator(cmMakefile* mf) override;
+  //! create the correct local generator
+  cmLocalGenerator* CreateLocalGenerator(cmMakefile* mf) override;
 
-    /**
-     * Try to determine system information such as shared library
-     * extension, pthreads, byte order etc.
-     */
-    void EnableLanguage(std::vector<std::string> const& languages, cmMakefile*,
-                        bool                            optional) override;
-    void WriteSLNHeader(std::ostream& fout) override;
+  /**
+   * Try to determine system information such as shared library
+   * extension, pthreads, byte order etc.
+   */
+  void EnableLanguage(std::vector<std::string> const& languages, cmMakefile*,
+                      bool optional) override;
 
-    bool IsCudaEnabled() const { return this->CudaEnabled; }
+  bool IsCudaEnabled() const { return this->CudaEnabled; }
 
-    /** Generating for Nsight Tegra VS plugin?  */
-    bool        IsNsightTegra() const;
-    std::string GetNsightTegraVersion() const;
+  /** Generating for Nsight Tegra VS plugin?  */
+  bool IsNsightTegra() const;
+  std::string GetNsightTegraVersion() const;
 
-    /** The toolset name for the target platform.  */
-    const char*        GetPlatformToolset() const;
-    std::string const& GetPlatformToolsetString() const;
+  /** The toolset name for the target platform.  */
+  const char* GetPlatformToolset() const;
+  std::string const& GetPlatformToolsetString() const;
 
-    /** The toolset version.  */
-    const char*        GetPlatformToolsetVersion() const;
-    std::string const& GetPlatformToolsetVersionString() const;
+  /** The toolset version.  */
+  const char* GetPlatformToolsetVersion() const;
+  std::string const& GetPlatformToolsetVersionString() const;
 
-    /** The toolset host architecture name (e.g. x64 for 64-bit host tools).  */
-    const char* GetPlatformToolsetHostArchitecture() const;
+  /** The toolset host architecture name (e.g. x64 for 64-bit host tools).  */
+  const char* GetPlatformToolsetHostArchitecture() const;
+  std::string const& GetPlatformToolsetHostArchitectureString() const;
 
-    /** The cuda toolset version.  */
-    const char*        GetPlatformToolsetCuda() const;
-    std::string const& GetPlatformToolsetCudaString() const;
+  /** The cuda toolset version.  */
+  const char* GetPlatformToolsetCuda() const;
+  std::string const& GetPlatformToolsetCudaString() const;
 
-    /** Return whether we need to use No/Debug instead of false/true
-        for GenerateDebugInformation.  */
-    bool GetPlatformToolsetNeedsDebugEnum() const
-    {
-        return this->PlatformToolsetNeedsDebugEnum;
-    }
+  /** Return whether we need to use No/Debug instead of false/true
+      for GenerateDebugInformation.  */
+  bool GetPlatformToolsetNeedsDebugEnum() const
+  {
+    return this->PlatformToolsetNeedsDebugEnum;
+  }
 
     /** Return the CMAKE_SYSTEM_NAME.  */
     std::string const& GetSystemName() const { return this->SystemName; }
@@ -85,8 +80,8 @@ public:
         return this->WindowsTargetPlatformVersion;
     }
 
-    /** Return true if building for WindowsCE */
-    bool TargetsWindowsCE() const { return this->SystemIsWindowsCE; }
+  /** Return true if building for WindowsCE */
+  bool TargetsWindowsCE() const override { return this->SystemIsWindowsCE; }
 
     /** Return true if building for WindowsPhone */
     bool TargetsWindowsPhone() const { return this->SystemIsWindowsPhone; }
@@ -106,8 +101,8 @@ public:
     void PathTooLong(cmGeneratorTarget* target, cmSourceFile const* sf,
                      std::string const& sfRel);
 
-    std::string         Encoding() override;
-    virtual const char* GetToolsVersion() { return "4.0"; }
+  std::string Encoding() override;
+  const char* GetToolsVersion() const;
 
     virtual bool        IsDefaultToolset(const std::string& version) const;
     virtual std::string GetAuxiliaryToolset() const;
@@ -118,60 +113,77 @@ public:
 
     static std::string GetInstalledNsightTegraVersion();
 
-    cmIDEFlagTable const* GetClFlagTable() const;
-    cmIDEFlagTable const* GetCSharpFlagTable() const;
-    cmIDEFlagTable const* GetRcFlagTable() const;
-    cmIDEFlagTable const* GetLibFlagTable() const;
-    cmIDEFlagTable const* GetLinkFlagTable() const;
-    cmIDEFlagTable const* GetCudaFlagTable() const;
-    cmIDEFlagTable const* GetCudaHostFlagTable() const;
-    cmIDEFlagTable const* GetMasmFlagTable() const;
-    cmIDEFlagTable const* GetNasmFlagTable() const;
+  /** Return the first two components of CMAKE_SYSTEM_VERSION.  */
+  std::string GetApplicationTypeRevision() const;
+
+  cmIDEFlagTable const* GetClFlagTable() const;
+  cmIDEFlagTable const* GetCSharpFlagTable() const;
+  cmIDEFlagTable const* GetRcFlagTable() const;
+  cmIDEFlagTable const* GetLibFlagTable() const;
+  cmIDEFlagTable const* GetLinkFlagTable() const;
+  cmIDEFlagTable const* GetCudaFlagTable() const;
+  cmIDEFlagTable const* GetCudaHostFlagTable() const;
+  cmIDEFlagTable const* GetMasmFlagTable() const;
+  cmIDEFlagTable const* GetNasmFlagTable() const;
 
 protected:
-    void         Generate() override;
-    virtual bool InitializeSystem(cmMakefile* mf);
-    virtual bool InitializeWindows(cmMakefile* mf);
-    virtual bool InitializeWindowsCE(cmMakefile* mf);
-    virtual bool InitializeWindowsPhone(cmMakefile* mf);
-    virtual bool InitializeWindowsStore(cmMakefile* mf);
+  cmGlobalVisualStudio10Generator(cmake* cm, const std::string& name,
+                                  std::string const& platformInGeneratorName);
 
-    virtual bool ProcessGeneratorToolsetField(std::string const& key,
-                                              std::string const& value);
+  void Generate() override;
+  virtual bool InitializeSystem(cmMakefile* mf);
+  virtual bool InitializeWindows(cmMakefile* mf);
+  virtual bool InitializeWindowsCE(cmMakefile* mf);
+  virtual bool InitializeWindowsPhone(cmMakefile* mf);
+  virtual bool InitializeWindowsStore(cmMakefile* mf);
 
-    virtual std::string SelectWindowsCEToolset() const;
-    virtual bool        SelectWindowsPhoneToolset(std::string& toolset) const;
-    virtual bool        SelectWindowsStoreToolset(std::string& toolset) const;
+  virtual bool ProcessGeneratorToolsetField(std::string const& key,
+                                            std::string const& value);
 
-    const char* GetIDEVersion() override { return "10.0"; }
+  virtual std::string SelectWindowsCEToolset() const;
+  virtual bool SelectWindowsPhoneToolset(std::string& toolset) const;
+  virtual bool SelectWindowsStoreToolset(std::string& toolset) const;
 
-    std::string const& GetMSBuildCommand();
+  std::string const& GetMSBuildCommand();
 
-    std::string           GeneratorToolset;
-    std::string           GeneratorToolsetVersion;
-    std::string           GeneratorToolsetHostArchitecture;
-    std::string           GeneratorToolsetCuda;
-    std::string           DefaultPlatformToolset;
-    std::string           WindowsTargetPlatformVersion;
-    std::string           SystemName;
-    std::string           SystemVersion;
-    std::string           NsightTegraVersion;
-    cmIDEFlagTable const* DefaultClFlagTable;
-    cmIDEFlagTable const* DefaultCSharpFlagTable;
-    cmIDEFlagTable const* DefaultLibFlagTable;
-    cmIDEFlagTable const* DefaultLinkFlagTable;
-    cmIDEFlagTable const* DefaultCudaFlagTable;
-    cmIDEFlagTable const* DefaultCudaHostFlagTable;
-    cmIDEFlagTable const* DefaultMasmFlagTable;
-    cmIDEFlagTable const* DefaultNasmFlagTable;
-    cmIDEFlagTable const* DefaultRcFlagTable;
-    bool                  SystemIsWindowsCE;
-    bool                  SystemIsWindowsPhone;
-    bool                  SystemIsWindowsStore;
+  cmIDEFlagTable const* LoadFlagTable(std::string const& optionsName,
+                                      std::string const& toolsetName,
+                                      std::string const& defaultName,
+                                      std::string const& table) const;
+
+  std::string GeneratorToolset;
+  std::string GeneratorToolsetVersion;
+  std::string GeneratorToolsetHostArchitecture;
+  std::string GeneratorToolsetCuda;
+  std::string DefaultPlatformToolset;
+  std::string DefaultPlatformToolsetHostArchitecture;
+  std::string WindowsTargetPlatformVersion;
+  std::string SystemName;
+  std::string SystemVersion;
+  std::string NsightTegraVersion;
+  std::string DefaultCLFlagTableName;
+  std::string DefaultCSharpFlagTableName;
+  std::string DefaultLibFlagTableName;
+  std::string DefaultLinkFlagTableName;
+  std::string DefaultCudaFlagTableName;
+  std::string DefaultCudaHostFlagTableName;
+  std::string DefaultMasmFlagTableName;
+  std::string DefaultNasmFlagTableName;
+  std::string DefaultRCFlagTableName;
+  bool SystemIsWindowsCE;
+  bool SystemIsWindowsPhone;
+  bool SystemIsWindowsStore;
 
 private:
-    class Factory;
-    struct LongestSourcePath
+  class Factory;
+  friend class Factory;
+
+  struct LongestSourcePath
+  {
+    LongestSourcePath()
+      : Length(0)
+      , Target(0)
+      , SourceFile(0)
     {
         LongestSourcePath()
         : Length(0)

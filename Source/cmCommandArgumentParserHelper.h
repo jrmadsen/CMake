@@ -12,8 +12,6 @@ class cmMakefile;
 
 class cmCommandArgumentParserHelper
 {
-    CM_DISABLE_COPY(cmCommandArgumentParserHelper)
-
 public:
     struct ParserType
     {
@@ -23,7 +21,11 @@ public:
     cmCommandArgumentParserHelper();
     ~cmCommandArgumentParserHelper();
 
-    int ParseString(const char* str, int verb);
+  cmCommandArgumentParserHelper(cmCommandArgumentParserHelper const&) = delete;
+  cmCommandArgumentParserHelper& operator=(
+    cmCommandArgumentParserHelper const&) = delete;
+
+  int ParseString(const char* str, int verb);
 
     // For the lexer:
     void AllocateParserType(cmCommandArgumentParserHelper::ParserType* pt,
@@ -55,32 +57,30 @@ public:
     const char* GetError() { return this->ErrorString.c_str(); }
 
 private:
-    std::string::size_type InputBufferPos;
-    std::string            InputBuffer;
-    std::vector<char>      OutputBuffer;
+  std::string::size_type InputBufferPos;
+  std::string InputBuffer;
+  std::vector<char> OutputBuffer;
 
-    void Print(const char* place, const char* str);
-    void SafePrintMissing(const char* str, int line, int cnt);
+  void Print(const char* place, const char* str);
+  void SafePrintMissing(const char* str, int line, int cnt);
 
-    const char* AddString(const std::string& str);
+  const char* AddString(const std::string& str);
 
-    void CleanupParser();
-    void SetError(std::string const& msg);
+  void CleanupParser();
+  void SetError(std::string const& msg);
 
-    std::vector<char*> Variables;
-    const cmMakefile*  Makefile;
-    std::string        Result;
-    std::string        ErrorString;
-    const char*        FileName;
-    long               FileLine;
-    int                CurrentLine;
-    int                Verbose;
-    bool               WarnUninitialized;
-    bool               CheckSystemVars;
-    bool               EscapeQuotes;
-    bool               NoEscapeMode;
-    bool               ReplaceAtSyntax;
-    bool               RemoveEmpty;
+  std::vector<char*> Variables;
+  const cmMakefile* Makefile;
+  std::string Result;
+  std::string ErrorString;
+  const char* FileName;
+  long FileLine;
+  int CurrentLine;
+  int Verbose;
+  bool EscapeQuotes;
+  bool NoEscapeMode;
+  bool ReplaceAtSyntax;
+  bool RemoveEmpty;
 };
 
 #define YYSTYPE cmCommandArgumentParserHelper::ParserType

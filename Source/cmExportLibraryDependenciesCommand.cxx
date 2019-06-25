@@ -53,43 +53,38 @@ cmExportLibraryDependenciesCommand::FinalPass()
 void
 cmExportLibraryDependenciesCommand::ConstFinalPass() const
 {
-    // Use copy-if-different if not appending.
-    std::unique_ptr<cmsys::ofstream> foutPtr;
-    if(this->Append)
-    {
-        foutPtr = cm::make_unique<cmsys::ofstream>(this->Filename.c_str(),
-                                                   std::ios::app);
-    } else
-    {
-        std::unique_ptr<cmGeneratedFileStream> ap(
-            new cmGeneratedFileStream(this->Filename, true));
-        ap->SetCopyIfDifferent(true);
-        foutPtr = std::move(ap);
-    }
-    std::ostream& fout = *foutPtr;
+  // Use copy-if-different if not appending.
+  std::unique_ptr<cmsys::ofstream> foutPtr;
+  if (this->Append) {
+    const auto openmodeApp = std::ios::app;
+    foutPtr =
+      cm::make_unique<cmsys::ofstream>(this->Filename.c_str(), openmodeApp);
+  } else {
+    std::unique_ptr<cmGeneratedFileStream> ap(
+      new cmGeneratedFileStream(this->Filename, true));
+    ap->SetCopyIfDifferent(true);
+    foutPtr = std::move(ap);
+  }
+  std::ostream& fout = *foutPtr;
 
-    if(!fout)
-    {
-        cmSystemTools::Error("Error Writing ", this->Filename.c_str());
-        cmSystemTools::ReportLastSystemError("");
-        return;
-    }
+  if (!fout) {
+    cmSystemTools::Error("Error Writing " + this->Filename);
+    cmSystemTools::ReportLastSystemError("");
+    return;
+  }
 
-    // Collect dependency information about all library targets built in
-    // the project.
-    cmake*                             cm = this->Makefile->GetCMakeInstance();
-    cmGlobalGenerator*                 global = cm->GetGlobalGenerator();
-    const std::vector<cmMakefile*>&    locals = global->GetMakefiles();
-    std::map<std::string, std::string> libDepsOld;
-    std::map<std::string, std::string> libDepsNew;
-    std::map<std::string, std::string> libTypes;
-    for(cmMakefile* local : locals)
-    {
-        const cmTargets& tgts = local->GetTargets();
-        for(auto const& tgt : tgts)
-        {
-            // Get the current target.
-            cmTarget const& target = tgt.second;
+  // Collect dependency information about all library targets built in
+  // the project.
+  cmake* cm = this->Makefile->GetCMakeInstance();
+  cmGlobalGenerator* global = cm->GetGlobalGenerator();
+  const std::vector<cmMakefile*>& locals = global->GetMakefiles();
+  std::map<std::string, std::string> libDepsOld;
+  std::map<std::string, std::string> libDepsNew;
+  std::map<std::string, std::string> libTypes;
+  for (cmMakefile* local : locals) {
+    for (auto const& tgt : local->GetTargets()) {
+      // Get the current target.
+      cmTarget const& target = tgt.second;
 
             // Skip non-library targets.
             if(target.GetType() < cmStateEnums::STATIC_LIBRARY ||

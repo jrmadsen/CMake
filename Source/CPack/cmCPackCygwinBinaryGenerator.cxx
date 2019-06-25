@@ -26,29 +26,25 @@ cmCPackCygwinBinaryGenerator::InitializeInternal()
 int
 cmCPackCygwinBinaryGenerator::PackageFiles()
 {
-    std::string packageName = this->GetOption("CPACK_PACKAGE_NAME");
-    packageName += "-";
-    packageName += this->GetOption("CPACK_PACKAGE_VERSION");
-    packageName          = cmsys::SystemTools::LowerCase(packageName);
-    std::string manifest = "/usr/share/doc/";
-    manifest += packageName;
-    manifest += "/MANIFEST";
-    std::string manifestFile = this->GetOption("CPACK_TEMPORARY_DIRECTORY");
-    // Create a MANIFEST file that contains all of the files in
-    // the tar file
-    std::string tempdir = manifestFile;
-    manifestFile += manifest;
-    // create an extra scope to force the stream
-    // to create the file before the super class is called
-    {
-        cmGeneratedFileStream ofs(manifestFile.c_str());
-        for(std::vector<std::string>::const_iterator i = files.begin();
-            i != files.end(); ++i)
-        {
-            // remove the temp dir and replace with /usr
-            ofs << (*i).substr(tempdir.size()) << "\n";
-        }
-        ofs << manifest << "\n";
+  std::string packageName = this->GetOption("CPACK_PACKAGE_NAME");
+  packageName += "-";
+  packageName += this->GetOption("CPACK_PACKAGE_VERSION");
+  packageName = cmsys::SystemTools::LowerCase(packageName);
+  std::string manifest = "/usr/share/doc/";
+  manifest += packageName;
+  manifest += "/MANIFEST";
+  std::string manifestFile = this->GetOption("CPACK_TEMPORARY_DIRECTORY");
+  // Create a MANIFEST file that contains all of the files in
+  // the tar file
+  std::string tempdir = manifestFile;
+  manifestFile += manifest;
+  // create an extra scope to force the stream
+  // to create the file before the super class is called
+  {
+    cmGeneratedFileStream ofs(manifestFile.c_str());
+    for (std::string const& file : files) {
+      // remove the temp dir and replace with /usr
+      ofs << file.substr(tempdir.size()) << "\n";
     }
     // add the manifest file to the list of all files
     files.push_back(manifestFile);

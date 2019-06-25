@@ -29,8 +29,8 @@ public:
     /** Get the error message if any.  */
     std::string const& GetErrorMessage() const;
 
-    /** Boolean conversion.  True if the Mach-O file is valid.  */
-    operator bool() const { return this->Valid(); }
+  /** Boolean conversion.  True if the Mach-O file is valid.  */
+  explicit operator bool() const { return this->Valid(); }
 
     /** Get Install name from binary **/
     bool GetInstallName(std::string& install_name);

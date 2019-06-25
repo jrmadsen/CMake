@@ -2,6 +2,7 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmCustomCommandGenerator.h"
 
+#include "cmAlgorithms.h"
 #include "cmCustomCommand.h"
 #include "cmCustomCommandLines.h"
 #include "cmGeneratorExpression.h"
@@ -16,44 +17,27 @@
 #include <utility>
 
 cmCustomCommandGenerator::cmCustomCommandGenerator(cmCustomCommand const& cc,
-                                                   const std::string& config,
-                                                   cmLocalGenerator*  lg)
-: CC(cc)
-, Config(config)
-, LG(lg)
-, OldStyle(cc.GetEscapeOldStyle())
-, MakeVars(cc.GetEscapeAllowMakeVars())
-, GE(new cmGeneratorExpression(cc.GetBacktrace()))
+                                                   std::string config,
+                                                   cmLocalGenerator* lg)
+  : CC(cc)
+  , Config(std::move(config))
+  , LG(lg)
+  , OldStyle(cc.GetEscapeOldStyle())
+  , MakeVars(cc.GetEscapeAllowMakeVars())
+  , GE(new cmGeneratorExpression(cc.GetBacktrace()))
 {
-    const cmCustomCommandLines& cmdlines = this->CC.GetCommandLines();
-    for(cmCustomCommandLine const& cmdline : cmdlines)
-    {
-        cmCustomCommandLine argv;
-        for(std::string const& clarg : cmdline)
-        {
-            std::unique_ptr<cmCompiledGeneratorExpression> cge =
-                this->GE->Parse(clarg);
-            std::string parsed_arg = cge->Evaluate(this->LG, this->Config);
-            if(this->CC.GetCommandExpandLists())
-            {
-                std::vector<std::string> ExpandedArg;
-                cmSystemTools::ExpandListArgument(parsed_arg, ExpandedArg);
-                argv.insert(argv.end(), ExpandedArg.begin(), ExpandedArg.end());
-            } else
-            {
-                argv.push_back(std::move(parsed_arg));
-            }
-        }
-
-        // Later code assumes at least one entry exists, but expanding
-        // lists on an empty command may have left this empty.
-        // FIXME: Should we define behavior for removing empty commands?
-        if(argv.empty())
-        {
-            argv.push_back(std::string());
-        }
-
-        this->CommandLines.push_back(std::move(argv));
+  const cmCustomCommandLines& cmdlines = this->CC.GetCommandLines();
+  for (cmCustomCommandLine const& cmdline : cmdlines) {
+    cmCustomCommandLine argv;
+    for (std::string const& clarg : cmdline) {
+      std::unique_ptr<cmCompiledGeneratorExpression> cge =
+        this->GE->Parse(clarg);
+      std::string parsed_arg = cge->Evaluate(this->LG, this->Config);
+      if (this->CC.GetCommandExpandLists()) {
+        cmAppend(argv, cmSystemTools::ExpandedListArgument(parsed_arg));
+      } else {
+        argv.push_back(std::move(parsed_arg));
+      }
     }
 
     std::vector<std::string> depends = this->CC.GetDepends();
@@ -73,21 +57,36 @@ cmCustomCommandGenerator::cmCustomCommandGenerator(cmCustomCommand const& cc,
         this->Depends.insert(this->Depends.end(), result.begin(), result.end());
     }
 
-    const std::string& workingdirectory = this->CC.GetWorkingDirectory();
-    if(!workingdirectory.empty())
-    {
-        std::unique_ptr<cmCompiledGeneratorExpression> cge =
-            this->GE->Parse(workingdirectory);
-        this->WorkingDirectory = cge->Evaluate(this->LG, this->Config);
-        // Convert working directory to a full path.
-        if(!this->WorkingDirectory.empty())
-        {
-            std::string const& build_dir =
-                this->LG->GetCurrentBinaryDirectory();
-            this->WorkingDirectory = cmSystemTools::CollapseFullPath(
-                this->WorkingDirectory, build_dir);
-        }
+    this->CommandLines.push_back(std::move(argv));
+  }
+
+  std::vector<std::string> depends = this->CC.GetDepends();
+  for (std::string const& d : depends) {
+    std::unique_ptr<cmCompiledGeneratorExpression> cge = this->GE->Parse(d);
+    std::vector<std::string> result = cmSystemTools::ExpandedListArgument(
+      cge->Evaluate(this->LG, this->Config));
+    for (std::string& it : result) {
+      if (cmSystemTools::FileIsFullPath(it)) {
+        it = cmSystemTools::CollapseFullPath(it);
+      }
     }
+    cmAppend(this->Depends, result);
+  }
+
+  const std::string& workingdirectory = this->CC.GetWorkingDirectory();
+  if (!workingdirectory.empty()) {
+    std::unique_ptr<cmCompiledGeneratorExpression> cge =
+      this->GE->Parse(workingdirectory);
+    this->WorkingDirectory = cge->Evaluate(this->LG, this->Config);
+    // Convert working directory to a full path.
+    if (!this->WorkingDirectory.empty()) {
+      std::string const& build_dir = this->LG->GetCurrentBinaryDirectory();
+      this->WorkingDirectory =
+        cmSystemTools::CollapseFullPath(this->WorkingDirectory, build_dir);
+    }
+  }
+
+  this->FillEmulatorsWithArguments();
 }
 
 cmCustomCommandGenerator::~cmCustomCommandGenerator() { delete this->GE; }
@@ -98,21 +97,38 @@ cmCustomCommandGenerator::GetNumberOfCommands() const
     return static_cast<unsigned int>(this->CC.GetCommandLines().size());
 }
 
-const char*
-cmCustomCommandGenerator::GetCrossCompilingEmulator(unsigned int c) const
+void cmCustomCommandGenerator::FillEmulatorsWithArguments()
 {
-    if(!this->LG->GetMakefile()->IsOn("CMAKE_CROSSCOMPILING"))
-    {
-        return nullptr;
-    }
-    std::string const& argv0  = this->CommandLines[c][0];
+  if (!this->LG->GetMakefile()->IsOn("CMAKE_CROSSCOMPILING")) {
+    return;
+  }
+
+  for (unsigned int c = 0; c < this->GetNumberOfCommands(); ++c) {
+    std::string const& argv0 = this->CommandLines[c][0];
     cmGeneratorTarget* target = this->LG->FindGeneratorTargetToUse(argv0);
-    if(target && target->GetType() == cmStateEnums::EXECUTABLE &&
-       !target->IsImported())
-    {
-        return target->GetProperty("CROSSCOMPILING_EMULATOR");
+    if (target && target->GetType() == cmStateEnums::EXECUTABLE &&
+        !target->IsImported()) {
+
+      const char* emulator_property =
+        target->GetProperty("CROSSCOMPILING_EMULATOR");
+      if (!emulator_property) {
+        continue;
+      }
+
+      this->EmulatorsWithArguments.emplace_back();
+      cmSystemTools::ExpandListArgument(emulator_property,
+                                        this->EmulatorsWithArguments[c]);
     }
-    return nullptr;
+  }
+}
+
+std::vector<std::string> cmCustomCommandGenerator::GetCrossCompilingEmulator(
+  unsigned int c) const
+{
+  if (c >= this->EmulatorsWithArguments.size()) {
+    return std::vector<std::string>();
+  }
+  return this->EmulatorsWithArguments[c];
 }
 
 const char*
@@ -149,16 +165,15 @@ cmCustomCommandGenerator::HasOnlyEmptyCommandLines() const
 std::string
 cmCustomCommandGenerator::GetCommand(unsigned int c) const
 {
-    if(const char* emulator = this->GetCrossCompilingEmulator(c))
-    {
-        return std::string(emulator);
-    }
-    if(const char* location = this->GetArgv0Location(c))
-    {
-        return std::string(location);
-    }
+  std::vector<std::string> emulator = this->GetCrossCompilingEmulator(c);
+  if (!emulator.empty()) {
+    return emulator[0];
+  }
+  if (const char* location = this->GetArgv0Location(c)) {
+    return std::string(location);
+  }
 
-    return this->CommandLines[c][0];
+  return this->CommandLines[c][0];
 }
 
 std::string
@@ -194,10 +209,30 @@ void
 cmCustomCommandGenerator::AppendArguments(unsigned int c,
                                           std::string& cmd) const
 {
-    unsigned int offset = 1;
-    if(this->GetCrossCompilingEmulator(c) != nullptr)
-    {
-        offset = 0;
+  unsigned int offset = 1;
+  std::vector<std::string> emulator = this->GetCrossCompilingEmulator(c);
+  if (!emulator.empty()) {
+    for (unsigned j = 1; j < emulator.size(); ++j) {
+      cmd += " ";
+      if (this->OldStyle) {
+        cmd += escapeForShellOldStyle(emulator[j]);
+      } else {
+        cmd += this->LG->EscapeForShell(emulator[j], this->MakeVars);
+      }
+    }
+
+    offset = 0;
+  }
+
+  cmCustomCommandLine const& commandLine = this->CommandLines[c];
+  for (unsigned int j = offset; j < commandLine.size(); ++j) {
+    std::string arg;
+    if (const char* location = j == 0 ? this->GetArgv0Location(c) : nullptr) {
+      // GetCommand returned the emulator instead of the argv0 location,
+      // so transform the latter now.
+      arg = location;
+    } else {
+      arg = commandLine[j];
     }
     cmCustomCommandLine const& commandLine = this->CommandLines[c];
     for(unsigned int j = offset; j < commandLine.size(); ++j)

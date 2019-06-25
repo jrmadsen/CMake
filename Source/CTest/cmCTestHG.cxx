@@ -2,6 +2,7 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmCTestHG.h"
 
+#include "cmAlgorithms.h"
 #include "cmCTest.h"
 #include "cmCTestVC.h"
 #include "cmProcessTools.h"
@@ -18,7 +19,7 @@ cmCTestHG::cmCTestHG(cmCTest* ct, std::ostream& log)
     this->PriorRev = this->Unknown;
 }
 
-cmCTestHG::~cmCTestHG() {}
+cmCTestHG::~cmCTestHG() = default;
 
 class cmCTestHG::IdentifyParser : public cmCTestVC::LineParser
 {
@@ -132,40 +133,38 @@ cmCTestHG::NoteNewRevision()
 bool
 cmCTestHG::UpdateImpl()
 {
-    // Use "hg pull" followed by "hg update" to update the working tree.
-    {
-        const char*  hg        = this->CommandLineTool.c_str();
-        const char*  hg_pull[] = { hg, "pull", "-v", nullptr };
-        OutputLogger out(this->Log, "pull-out> ");
-        OutputLogger err(this->Log, "pull-err> ");
-        this->RunChild(&hg_pull[0], &out, &err);
-    }
+  // Use "hg pull" followed by "hg update" to update the working tree.
+  {
+    const char* hg = this->CommandLineTool.c_str();
+    const char* hg_pull[] = { hg, "pull", "-v", nullptr };
+    OutputLogger out(this->Log, "pull-out> ");
+    OutputLogger err(this->Log, "pull-err> ");
+    this->RunChild(&hg_pull[0], &out, &err);
+  }
 
-    // TODO: if(this->CTest->GetTestModel() == cmCTest::NIGHTLY)
+  // TODO: if(this->CTest->GetTestModel() == cmCTest::NIGHTLY)
 
-    std::vector<char const*> hg_update;
-    hg_update.push_back(this->CommandLineTool.c_str());
-    hg_update.push_back("update");
-    hg_update.push_back("-v");
+  std::vector<char const*> hg_update;
+  hg_update.push_back(this->CommandLineTool.c_str());
+  hg_update.push_back("update");
+  hg_update.push_back("-v");
 
-    // Add user-specified update options.
-    std::string opts = this->CTest->GetCTestConfiguration("UpdateOptions");
-    if(opts.empty())
-    {
-        opts = this->CTest->GetCTestConfiguration("HGUpdateOptions");
-    }
-    std::vector<std::string> args = cmSystemTools::ParseArguments(opts.c_str());
-    for(std::string const& arg : args)
-    {
-        hg_update.push_back(arg.c_str());
-    }
+  // Add user-specified update options.
+  std::string opts = this->CTest->GetCTestConfiguration("UpdateOptions");
+  if (opts.empty()) {
+    opts = this->CTest->GetCTestConfiguration("HGUpdateOptions");
+  }
+  std::vector<std::string> args = cmSystemTools::ParseArguments(opts);
+  for (std::string const& arg : args) {
+    hg_update.push_back(arg.c_str());
+  }
 
-    // Sentinel argument.
-    hg_update.push_back(nullptr);
+  // Sentinel argument.
+  hg_update.push_back(nullptr);
 
-    OutputLogger out(this->Log, "update-out> ");
-    OutputLogger err(this->Log, "update-err> ");
-    return this->RunUpdateCommand(&hg_update[0], &out, &err);
+  OutputLogger out(this->Log, "update-out> ");
+  OutputLogger err(this->Log, "update-err> ");
+  return this->RunUpdateCommand(&hg_update[0], &out, &err);
 }
 
 class cmCTestHG::LogParser
@@ -182,33 +181,66 @@ public:
     ~LogParser() override { this->CleanupParser(); }
 
 private:
-    cmCTestHG* HG;
+  cmCTestHG* HG;
 
-    typedef cmCTestHG::Revision Revision;
-    typedef cmCTestHG::Change   Change;
-    Revision                    Rev;
-    std::vector<Change>         Changes;
-    Change                      CurChange;
-    std::vector<char>           CData;
+  typedef cmCTestHG::Revision Revision;
+  typedef cmCTestHG::Change Change;
+  Revision Rev;
+  std::vector<Change> Changes;
+  Change CurChange;
+  std::vector<char> CData;
 
-    bool ProcessChunk(const char* data, int length) override
-    {
-        this->OutputLogger::ProcessChunk(data, length);
-        this->ParseChunk(data, length);
-        return true;
+  bool ProcessChunk(const char* data, int length) override
+  {
+    this->OutputLogger::ProcessChunk(data, length);
+    this->ParseChunk(data, length);
+    return true;
+  }
+
+  void StartElement(const std::string& name, const char** atts) override
+  {
+    this->CData.clear();
+    if (name == "logentry") {
+      this->Rev = Revision();
+      if (const char* rev =
+            cmCTestHG::LogParser::FindAttribute(atts, "revision")) {
+        this->Rev.Rev = rev;
+      }
+      this->Changes.clear();
     }
+  }
 
-    void StartElement(const std::string& name, const char** atts) override
-    {
-        this->CData.clear();
-        if(name == "logentry")
-        {
-            this->Rev = Revision();
-            if(const char* rev = this->FindAttribute(atts, "revision"))
-            {
-                this->Rev.Rev = rev;
-            }
-            this->Changes.clear();
+  void CharacterDataHandler(const char* data, int length) override
+  {
+    cmAppend(this->CData, data, data + length);
+  }
+
+  void EndElement(const std::string& name) override
+  {
+    if (name == "logentry") {
+      this->HG->DoRevision(this->Rev, this->Changes);
+    } else if (!this->CData.empty() && name == "author") {
+      this->Rev.Author.assign(&this->CData[0], this->CData.size());
+    } else if (!this->CData.empty() && name == "email") {
+      this->Rev.EMail.assign(&this->CData[0], this->CData.size());
+    } else if (!this->CData.empty() && name == "date") {
+      this->Rev.Date.assign(&this->CData[0], this->CData.size());
+    } else if (!this->CData.empty() && name == "msg") {
+      this->Rev.Log.assign(&this->CData[0], this->CData.size());
+    } else if (!this->CData.empty() && name == "files") {
+      std::vector<std::string> paths = this->SplitCData();
+      for (std::string const& path : paths) {
+        // Updated by default, will be modified using file_adds and
+        // file_dels.
+        this->CurChange = Change('U');
+        this->CurChange.Path = path;
+        this->Changes.push_back(this->CurChange);
+      }
+    } else if (!this->CData.empty() && name == "file_adds") {
+      std::string added_paths(this->CData.begin(), this->CData.end());
+      for (Change& change : this->Changes) {
+        if (added_paths.find(change.Path) != std::string::npos) {
+          change.Action = 'A';
         }
     }
 

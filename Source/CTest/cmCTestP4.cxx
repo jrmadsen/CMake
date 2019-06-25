@@ -2,9 +2,11 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmCTestP4.h"
 
+#include "cmAlgorithms.h"
 #include "cmCTest.h"
 #include "cmCTestVC.h"
 #include "cmProcessTools.h"
+#include "cmRange.h"
 #include "cmSystemTools.h"
 
 #include "cmsys/RegularExpression.hxx"
@@ -19,7 +21,7 @@ cmCTestP4::cmCTestP4(cmCTest* ct, std::ostream& log)
     this->PriorRev = this->Unknown;
 }
 
-cmCTestP4::~cmCTestP4() {}
+cmCTestP4::~cmCTestP4() = default;
 
 class cmCTestP4::IdentifyParser : public cmCTestVC::LineParser
 {
@@ -199,11 +201,11 @@ public:
     : LineParser('\n', false)
     , P4(p4)
     , Section(SectionHeader)
-    {
-        this->SetLog(&P4->Log, prefix);
-        this->RegexHeader.compile("^Change ([0-9]+) by (.+)@(.+) on (.*)$");
-        this->RegexDiff.compile("^\\.\\.\\. (.*)#[0-9]+ ([^ ]+)$");
-    }
+  {
+    this->SetLog(&P4->Log, prefix);
+    this->RegexHeader.compile("^Change ([0-9]+) by (.+)@(.+) on (.*)$");
+    this->RegexDiff.compile(R"(^\.\.\. (.*)#[0-9]+ ([^ ]+)$)");
+  }
 
 private:
     cmsys::RegularExpression RegexHeader;
@@ -325,33 +327,28 @@ private:
 void
 cmCTestP4::SetP4Options(std::vector<char const*>& CommandOptions)
 {
-    if(P4Options.empty())
-    {
-        const char* p4 = this->CommandLineTool.c_str();
-        P4Options.push_back(p4);
+  if (P4Options.empty()) {
+    const char* p4 = this->CommandLineTool.c_str();
+    P4Options.emplace_back(p4);
 
-        // The CTEST_P4_CLIENT variable sets the P4 client used when issuing
-        // Perforce commands, if it's different from the default one.
-        std::string client = this->CTest->GetCTestConfiguration("P4Client");
-        if(!client.empty())
-        {
-            P4Options.push_back("-c");
-            P4Options.push_back(client);
-        }
-
-        // Set the message language to be English, in case the P4 admin
-        // has localized them
-        P4Options.push_back("-L");
-        P4Options.push_back("en");
-
-        // The CTEST_P4_OPTIONS variable adds additional Perforce command line
-        // options before the main command
-        std::string opts = this->CTest->GetCTestConfiguration("P4Options");
-        std::vector<std::string> args =
-            cmSystemTools::ParseArguments(opts.c_str());
-
-        P4Options.insert(P4Options.end(), args.begin(), args.end());
+    // The CTEST_P4_CLIENT variable sets the P4 client used when issuing
+    // Perforce commands, if it's different from the default one.
+    std::string client = this->CTest->GetCTestConfiguration("P4Client");
+    if (!client.empty()) {
+      P4Options.emplace_back("-c");
+      P4Options.push_back(client);
     }
+
+    // Set the message language to be English, in case the P4 admin
+    // has localized them
+    P4Options.emplace_back("-L");
+    P4Options.emplace_back("en");
+
+    // The CTEST_P4_OPTIONS variable adds additional Perforce command line
+    // options before the main command
+    std::string opts = this->CTest->GetCTestConfiguration("P4Options");
+    cmAppend(P4Options, cmSystemTools::ParseArguments(opts));
+  }
 
     CommandOptions.clear();
     for(std::string const& o : P4Options)
@@ -473,6 +470,22 @@ cmCTestP4::LoadRevisions()
         this->RunChild(&p4_describe[0], &outDescribe, &errDescribe);
     }
     return true;
+  }
+
+  // p4 describe -s ...@1111111,2222222
+  std::vector<char const*> p4_describe;
+  for (std::string const& i : cmReverseRange(ChangeLists)) {
+    SetP4Options(p4_describe);
+    p4_describe.push_back("describe");
+    p4_describe.push_back("-s");
+    p4_describe.push_back(i.c_str());
+    p4_describe.push_back(nullptr);
+
+    DescribeParser outDescribe(this, "p4_describe-out> ");
+    OutputLogger errDescribe(this->Log, "p4_describe-err> ");
+    this->RunChild(&p4_describe[0], &outDescribe, &errDescribe);
+  }
+  return true;
 }
 
 bool
@@ -518,55 +531,50 @@ cmCTestP4::UpdateCustom(const std::string& custom)
 bool
 cmCTestP4::UpdateImpl()
 {
-    std::string custom = this->CTest->GetCTestConfiguration("P4UpdateCustom");
-    if(!custom.empty())
-    {
-        return this->UpdateCustom(custom);
-    }
+  std::string custom = this->CTest->GetCTestConfiguration("P4UpdateCustom");
+  if (!custom.empty()) {
+    return this->UpdateCustom(custom);
+  }
 
-    // If we couldn't get a revision number before updating, abort.
-    if(this->OldRevision == "<unknown>")
-    {
-        this->UpdateCommandLine = "Unknown current revision";
-        cmCTestLog(this->CTest, ERROR_MESSAGE, "   Unknown current revision\n");
-        return false;
-    }
+  // If we couldn't get a revision number before updating, abort.
+  if (this->OldRevision == "<unknown>") {
+    this->UpdateCommandLine = "Unknown current revision";
+    cmCTestLog(this->CTest, ERROR_MESSAGE, "   Unknown current revision\n");
+    return false;
+  }
 
-    std::vector<char const*> p4_sync;
-    SetP4Options(p4_sync);
+  std::vector<char const*> p4_sync;
+  SetP4Options(p4_sync);
 
-    p4_sync.push_back("sync");
+  p4_sync.push_back("sync");
 
-    // Get user-specified update options.
-    std::string opts = this->CTest->GetCTestConfiguration("UpdateOptions");
-    if(opts.empty())
-    {
-        opts = this->CTest->GetCTestConfiguration("P4UpdateOptions");
-    }
-    std::vector<std::string> args = cmSystemTools::ParseArguments(opts.c_str());
-    for(std::string const& arg : args)
-    {
-        p4_sync.push_back(arg.c_str());
-    }
+  // Get user-specified update options.
+  std::string opts = this->CTest->GetCTestConfiguration("UpdateOptions");
+  if (opts.empty()) {
+    opts = this->CTest->GetCTestConfiguration("P4UpdateOptions");
+  }
+  std::vector<std::string> args = cmSystemTools::ParseArguments(opts);
+  for (std::string const& arg : args) {
+    p4_sync.push_back(arg.c_str());
+  }
 
-    std::string source = this->SourceDirectory + "/...";
+  std::string source = this->SourceDirectory + "/...";
 
-    // Specify the start time for nightly testing.
-    if(this->CTest->GetTestModel() == cmCTest::NIGHTLY)
-    {
-        std::string date = this->GetNightlyTime();
-        // CTest reports the date as YYYY-MM-DD, Perforce needs it as YYYY/MM/DD
-        std::replace(date.begin(), date.end(), '-', '/');
+  // Specify the start time for nightly testing.
+  if (this->CTest->GetTestModel() == cmCTest::NIGHTLY) {
+    std::string date = this->GetNightlyTime();
+    // CTest reports the date as YYYY-MM-DD, Perforce needs it as YYYY/MM/DD
+    std::replace(date.begin(), date.end(), '-', '/');
 
-        // Revision specification: /...@"YYYY/MM/DD HH:MM:SS"
-        source.append("@\"").append(date).append("\"");
-    }
+    // Revision specification: /...@"YYYY/MM/DD HH:MM:SS"
+    source.append("@\"").append(date).append("\"");
+  }
 
-    p4_sync.push_back(source.c_str());
-    p4_sync.push_back(nullptr);
+  p4_sync.push_back(source.c_str());
+  p4_sync.push_back(nullptr);
 
-    OutputLogger out(this->Log, "p4_sync-out> ");
-    OutputLogger err(this->Log, "p4_sync-err> ");
+  OutputLogger out(this->Log, "p4_sync-out> ");
+  OutputLogger err(this->Log, "p4_sync-err> ");
 
-    return this->RunUpdateCommand(&p4_sync[0], &out, &err);
+  return this->RunUpdateCommand(&p4_sync[0], &out, &err);
 }

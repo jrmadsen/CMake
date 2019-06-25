@@ -9,6 +9,7 @@
 #include <iosfwd>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 class cmGeneratorTarget;
@@ -23,47 +24,42 @@ class cmake;
 class cmComputeLinkInformation
 {
 public:
-    cmComputeLinkInformation(cmGeneratorTarget const* target,
-                             const std::string&       config);
-    ~cmComputeLinkInformation();
-    bool Compute();
+  cmComputeLinkInformation(cmGeneratorTarget const* target,
+                           const std::string& config);
+  ~cmComputeLinkInformation();
+  bool Compute();
 
-    struct Item
+  struct Item
+  {
+    Item() = default;
+    Item(std::string v, bool p, cmGeneratorTarget const* target = nullptr)
+      : Value(std::move(v))
+      , IsPath(p)
+      , Target(target)
     {
-        Item()
-        : Value()
-        , IsPath(true)
-        , Target(nullptr)
-        {}
-        Item(std::string const& v, bool p,
-             cmGeneratorTarget const* target = nullptr)
-        : Value(v)
-        , IsPath(p)
-        , Target(target)
-        {}
-        std::string              Value;
-        bool                     IsPath;
-        cmGeneratorTarget const* Target;
-    };
-    typedef std::vector<Item>       ItemVector;
-    ItemVector const&               GetItems() const;
-    std::vector<std::string> const& GetDirectories() const;
-    std::vector<std::string> const& GetDepends() const;
-    std::vector<std::string> const& GetFrameworkPaths() const;
-    std::string GetLinkLanguage() const { return this->LinkLanguage; }
-    std::vector<std::string> const& GetRuntimeSearchPath() const;
-    std::string const& GetRuntimeFlag() const { return this->RuntimeFlag; }
-    std::string const& GetRuntimeSep() const { return this->RuntimeSep; }
-    void               GetRPath(std::vector<std::string>& runtimeDirs,
-                                bool                      for_install) const;
-    std::string        GetRPathString(bool for_install) const;
-    std::string        GetChrpathString() const;
-    std::set<cmGeneratorTarget const*> const& GetSharedLibrariesLinked() const;
+    }
+    std::string Value;
+    bool IsPath = true;
+    cmGeneratorTarget const* Target = nullptr;
+  };
+  typedef std::vector<Item> ItemVector;
+  ItemVector const& GetItems() const;
+  std::vector<std::string> const& GetDirectories() const;
+  std::vector<std::string> const& GetDepends() const;
+  std::vector<std::string> const& GetFrameworkPaths() const;
+  std::string GetLinkLanguage() const { return this->LinkLanguage; }
+  std::vector<std::string> const& GetRuntimeSearchPath() const;
+  std::string const& GetRuntimeFlag() const { return this->RuntimeFlag; }
+  std::string const& GetRuntimeSep() const { return this->RuntimeSep; }
+  void GetRPath(std::vector<std::string>& runtimeDirs, bool for_install) const;
+  std::string GetRPathString(bool for_install) const;
+  std::string GetChrpathString() const;
+  std::set<cmGeneratorTarget const*> const& GetSharedLibrariesLinked() const;
 
-    std::string const& GetRPathLinkFlag() const { return this->RPathLinkFlag; }
-    std::string        GetRPathLinkString() const;
+  std::string const& GetRPathLinkFlag() const { return this->RPathLinkFlag; }
+  std::string GetRPathLinkString() const;
 
-    std::string GetConfig() const { return this->Config; }
+  std::string GetConfig() const { return this->Config; }
 
 private:
     void AddItem(std::string const& item, const cmGeneratorTarget* tgt);

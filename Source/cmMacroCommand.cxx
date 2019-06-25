@@ -10,6 +10,7 @@
 #include "cmExecutionStatus.h"
 #include "cmMakefile.h"
 #include "cmPolicies.h"
+#include "cmRange.h"
 #include "cmState.h"
 #include "cmSystemTools.h"
 
@@ -17,24 +18,32 @@
 class cmMacroHelperCommand : public cmCommand
 {
 public:
-    cmMacroHelperCommand() {}
+  /**
+   * This is a virtual constructor for the command.
+   */
+  cmCommand* Clone() override
+  {
+    cmMacroHelperCommand* newC = new cmMacroHelperCommand;
+    // we must copy when we clone
+    newC->Args = this->Args;
+    newC->Functions = this->Functions;
+    newC->FilePath = this->FilePath;
+    newC->Policies = this->Policies;
+    return newC;
+  }
 
-    ///! clean up any memory allocated by the macro
-    ~cmMacroHelperCommand() override {}
+  /**
+   * This is called when the command is first encountered in
+   * the CMakeLists.txt file.
+   */
+  bool InvokeInitialPass(const std::vector<cmListFileArgument>& args,
+                         cmExecutionStatus&) override;
 
-    /**
-     * This is a virtual constructor for the command.
-     */
-    cmCommand* Clone() override
-    {
-        cmMacroHelperCommand* newC = new cmMacroHelperCommand;
-        // we must copy when we clone
-        newC->Args      = this->Args;
-        newC->Functions = this->Functions;
-        newC->FilePath  = this->FilePath;
-        newC->Policies  = this->Policies;
-        return newC;
-    }
+  bool InitialPass(std::vector<std::string> const&,
+                   cmExecutionStatus&) override
+  {
+    return false;
+  }
 
     /**
      * This is called when the command is first encountered in
@@ -59,19 +68,81 @@ bool
 cmMacroHelperCommand::InvokeInitialPass(
     const std::vector<cmListFileArgument>& args, cmExecutionStatus& inStatus)
 {
-    // Expand the argument list to the macro.
-    std::vector<std::string> expandedArgs;
-    this->Makefile->ExpandArguments(args, expandedArgs);
+  // Expand the argument list to the macro.
+  std::vector<std::string> expandedArgs;
+  this->Makefile->ExpandArguments(args, expandedArgs);
 
-    // make sure the number of arguments passed is at least the number
-    // required by the signature
-    if(expandedArgs.size() < this->Args.size() - 1)
-    {
-        std::string errorMsg =
-            "Macro invoked with incorrect arguments for macro named: ";
-        errorMsg += this->Args[0];
-        this->SetError(errorMsg);
-        return false;
+  // make sure the number of arguments passed is at least the number
+  // required by the signature
+  if (expandedArgs.size() < this->Args.size() - 1) {
+    std::string errorMsg =
+      "Macro invoked with incorrect arguments for macro named: ";
+    errorMsg += this->Args[0];
+    this->SetError(errorMsg);
+    return false;
+  }
+
+  cmMakefile::MacroPushPop macroScope(this->Makefile, this->FilePath,
+                                      this->Policies);
+
+  // set the value of argc
+  std::ostringstream argcDefStream;
+  argcDefStream << expandedArgs.size();
+  std::string argcDef = argcDefStream.str();
+
+  std::vector<std::string>::const_iterator eit =
+    expandedArgs.begin() + (this->Args.size() - 1);
+  std::string expandedArgn = cmJoin(cmMakeRange(eit, expandedArgs.end()), ";");
+  std::string expandedArgv = cmJoin(expandedArgs, ";");
+  std::vector<std::string> variables;
+  variables.reserve(this->Args.size() - 1);
+  for (unsigned int j = 1; j < this->Args.size(); ++j) {
+    variables.push_back("${" + this->Args[j] + "}");
+  }
+  std::vector<std::string> argVs;
+  argVs.reserve(expandedArgs.size());
+  char argvName[60];
+  for (unsigned int j = 0; j < expandedArgs.size(); ++j) {
+    sprintf(argvName, "${ARGV%u}", j);
+    argVs.emplace_back(argvName);
+  }
+  // Invoke all the functions that were collected in the block.
+  cmListFileFunction newLFF;
+  // for each function
+  for (cmListFileFunction const& func : this->Functions) {
+    // Replace the formal arguments and then invoke the command.
+    newLFF.Arguments.clear();
+    newLFF.Arguments.reserve(func.Arguments.size());
+    newLFF.Name = func.Name;
+    newLFF.Line = func.Line;
+
+    // for each argument of the current function
+    for (cmListFileArgument const& k : func.Arguments) {
+      cmListFileArgument arg;
+      arg.Value = k.Value;
+      if (k.Delim != cmListFileArgument::Bracket) {
+        // replace formal arguments
+        for (unsigned int j = 0; j < variables.size(); ++j) {
+          cmSystemTools::ReplaceString(arg.Value, variables[j],
+                                       expandedArgs[j]);
+        }
+        // replace argc
+        cmSystemTools::ReplaceString(arg.Value, "${ARGC}", argcDef);
+
+        cmSystemTools::ReplaceString(arg.Value, "${ARGN}", expandedArgn);
+        cmSystemTools::ReplaceString(arg.Value, "${ARGV}", expandedArgv);
+
+        // if the current argument of the current function has ${ARGV in it
+        // then try replacing ARGV values
+        if (arg.Value.find("${ARGV") != std::string::npos) {
+          for (unsigned int t = 0; t < expandedArgs.size(); ++t) {
+            cmSystemTools::ReplaceString(arg.Value, argVs[t], expandedArgs[t]);
+          }
+        }
+      }
+      arg.Delim = k.Delim;
+      arg.Line = k.Line;
+      newLFF.Arguments.push_back(std::move(arg));
     }
 
     cmMakefile::MacroPushPop macroScope(this->Makefile, this->FilePath,
@@ -239,9 +310,9 @@ cmMacroCommand::InitialPass(std::vector<std::string> const& args,
         return false;
     }
 
-    // create a function blocker
-    cmMacroFunctionBlocker* f = new cmMacroFunctionBlocker();
-    f->Args.insert(f->Args.end(), args.begin(), args.end());
-    this->Makefile->AddFunctionBlocker(f);
-    return true;
+  // create a function blocker
+  cmMacroFunctionBlocker* f = new cmMacroFunctionBlocker();
+  cmAppend(f->Args, args);
+  this->Makefile->AddFunctionBlocker(f);
+  return true;
 }

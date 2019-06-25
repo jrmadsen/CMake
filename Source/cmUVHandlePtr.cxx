@@ -9,26 +9,61 @@
 
 #include "cm_uv.h"
 
-namespace cm
+namespace cm {
+
+struct uv_loop_deleter
 {
-static void
-close_delete(uv_handle_t* h)
+  void operator()(uv_loop_t* loop) const;
+};
+
+void uv_loop_deleter::operator()(uv_loop_t* loop) const
 {
-    free(h);
+  uv_run(loop, UV_RUN_DEFAULT);
+  int result = uv_loop_close(loop);
+  (void)result;
+  assert(result >= 0);
+  free(loop);
+}
+
+int uv_loop_ptr::init(void* data)
+{
+  this->reset();
+
+  this->loop.reset(static_cast<uv_loop_t*>(calloc(1, sizeof(uv_loop_t))),
+                   uv_loop_deleter());
+  this->loop->data = data;
+
+  return uv_loop_init(this->loop.get());
+}
+
+void uv_loop_ptr::reset()
+{
+  this->loop.reset();
+}
+
+uv_loop_ptr::operator uv_loop_t*()
+{
+  return this->loop.get();
+}
+
+uv_loop_t* uv_loop_ptr::operator->() const noexcept
+{
+  return this->loop.get();
+}
+
+uv_loop_t* uv_loop_ptr::get() const
+{
+  return this->loop.get();
 }
 
 template <typename T>
-static void
-default_delete(T* type_handle)
+static void handle_default_delete(T* type_handle)
 {
-    auto handle = reinterpret_cast<uv_handle_t*>(type_handle);
-    if(handle)
-    {
-        assert(!uv_is_closing(handle));
-        if(!uv_is_closing(handle))
-        {
-            uv_close(handle, &close_delete);
-        }
+  auto handle = reinterpret_cast<uv_handle_t*>(type_handle);
+  if (handle) {
+    assert(!uv_is_closing(handle));
+    if (!uv_is_closing(handle)) {
+      uv_close(handle, [](uv_handle_t* h) { free(h); });
     }
 }
 
@@ -37,7 +72,7 @@ default_delete(T* type_handle)
  */
 template <typename T> struct uv_handle_deleter
 {
-    void operator()(T* type_handle) const { default_delete(type_handle); }
+  void operator()(T* type_handle) const { handle_default_delete(type_handle); }
 };
 
 template <typename T>
@@ -103,13 +138,14 @@ template <> struct uv_handle_deleter<uv_async_t>
 
     uv_handle_deleter()
     : handleMutex(std::make_shared<std::mutex>())
-    {}
+  {
+  }
 
-    void operator()(uv_async_t* handle)
-    {
-        std::lock_guard<std::mutex> lock(*handleMutex);
-        default_delete(handle);
-    }
+  void operator()(uv_async_t* handle)
+  {
+    std::lock_guard<std::mutex> lock(*handleMutex);
+    handle_default_delete(handle);
+  }
 };
 
 void
@@ -136,13 +172,11 @@ uv_async_ptr::init(uv_loop_t& loop, uv_async_cb async_cb, void* data)
 
 template <> struct uv_handle_deleter<uv_signal_t>
 {
-    void operator()(uv_signal_t* handle) const
-    {
-        if(handle)
-        {
-            uv_signal_stop(handle);
-            default_delete(handle);
-        }
+  void operator()(uv_signal_t* handle) const
+  {
+    if (handle) {
+      uv_signal_stop(handle);
+      handle_default_delete(handle);
     }
 };
 
@@ -181,10 +215,8 @@ uv_pipe_ptr::operator uv_stream_t*() const
     return reinterpret_cast<uv_stream_t*>(handle.get());
 }
 
-#ifdef CMAKE_BUILD_WITH_CMAKE
-int
-uv_process_ptr::spawn(uv_loop_t& loop, uv_process_options_t const& options,
-                      void* data)
+int uv_process_ptr::spawn(uv_loop_t& loop, uv_process_options_t const& options,
+                          void* data)
 {
     allocate(data);
     return uv_spawn(&loop, *this, &options);
@@ -204,6 +236,7 @@ uv_timer_ptr::start(uv_timer_cb cb, uint64_t timeout, uint64_t repeat)
     return uv_timer_start(*this, cb, timeout, repeat);
 }
 
+#ifdef CMAKE_BUILD_WITH_CMAKE
 uv_tty_ptr::operator uv_stream_t*() const
 {
     return reinterpret_cast<uv_stream_t*>(handle.get());
@@ -229,12 +262,12 @@ UV_HANDLE_PTR_INSTANTIATE_EXPLICIT(pipe)
 
 UV_HANDLE_PTR_INSTANTIATE_EXPLICIT(stream)
 
-#ifdef CMAKE_BUILD_WITH_CMAKE
-UV_HANDLE_PTR_INSTANTIATE_EXPLICIT(async)
-
 UV_HANDLE_PTR_INSTANTIATE_EXPLICIT(process)
 
 UV_HANDLE_PTR_INSTANTIATE_EXPLICIT(timer)
+
+#ifdef CMAKE_BUILD_WITH_CMAKE
+UV_HANDLE_PTR_INSTANTIATE_EXPLICIT(async)
 
 UV_HANDLE_PTR_INSTANTIATE_EXPLICIT(tty)
 #endif

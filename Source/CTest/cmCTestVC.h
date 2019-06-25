@@ -65,12 +65,13 @@ public:
     int GetPathCount(PathStatus s) const { return this->PathCount[s]; }
 
 protected:
-    // Internal API to be implemented by subclasses.
-    virtual void CleanupImpl();
-    virtual bool NoteOldRevision();
-    virtual bool UpdateImpl();
-    virtual bool NoteNewRevision();
-    virtual bool WriteXMLUpdates(cmXMLWriter& xml);
+  // Internal API to be implemented by subclasses.
+  virtual void CleanupImpl();
+  virtual bool NoteOldRevision();
+  virtual bool UpdateImpl();
+  virtual bool NoteNewRevision();
+  virtual void SetNewRevision(std::string const& revision);
+  virtual bool WriteXMLUpdates(cmXMLWriter& xml);
 
 #if defined(__SUNPRO_CC) && __SUNPRO_CC <= 0x510
     // Sun CC 5.1 needs help to allow cmCTestSVN::Revision to see this

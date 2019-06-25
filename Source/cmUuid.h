@@ -15,10 +15,8 @@
 class cmUuid
 {
 public:
-    cmUuid();
-
-    std::string FromMd5(std::vector<unsigned char> const& uuidNamespace,
-                        std::string const&                name) const;
+  std::string FromMd5(std::vector<unsigned char> const& uuidNamespace,
+                      std::string const& name) const;
 
     std::string FromSha1(std::vector<unsigned char> const& uuidNamespace,
                          std::string const&                name) const;
@@ -41,9 +39,7 @@ private:
 
     std::string BinaryToString(const unsigned char* input) const;
 
-    bool IntFromHexDigit(char input, char& output) const;
-
-    std::vector<int> Groups;
+  bool IntFromHexDigit(char input, char& output) const;
 };
 
 #endif

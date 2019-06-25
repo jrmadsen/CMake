@@ -9,4 +9,4 @@ cmCPackZIPGenerator::cmCPackZIPGenerator()
 : cmCPackArchiveGenerator(cmArchiveWrite::CompressNone, "zip")
 {}
 
-cmCPackZIPGenerator::~cmCPackZIPGenerator() {}
+cmCPackZIPGenerator::~cmCPackZIPGenerator() = default;

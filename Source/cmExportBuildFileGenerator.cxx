@@ -9,6 +9,7 @@
 #include "cmGlobalGenerator.h"
 #include "cmLocalGenerator.h"
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmPolicies.h"
 #include "cmStateTypes.h"
 #include "cmSystemTools.h"
@@ -43,39 +44,80 @@ cmExportBuildFileGenerator::Compute(cmLocalGenerator* lg)
 bool
 cmExportBuildFileGenerator::GenerateMainFile(std::ostream& os)
 {
-    {
-        std::string              expectedTargets;
-        std::string              sep;
-        std::vector<std::string> targets;
-        this->GetTargets(targets);
-        for(std::string const& tei : targets)
-        {
-            cmGeneratorTarget* te = this->LG->FindGeneratorTargetToUse(tei);
-            expectedTargets += sep + this->Namespace + te->GetExportName();
-            sep = " ";
-            if(this->ExportedTargets.insert(te).second)
-            {
-                this->Exports.push_back(te);
-            } else
-            {
-                std::ostringstream e;
-                e << "given target \"" << te->GetName() << "\" more than once.";
-                this->LG->GetGlobalGenerator()
-                    ->GetCMakeInstance()
-                    ->IssueMessage(cmake::FATAL_ERROR, e.str(),
-                                   this->LG->GetMakefile()->GetBacktrace());
-                return false;
-            }
-            if(this->GetExportTargetType(te) == cmStateEnums::INTERFACE_LIBRARY)
-            {
-                this->GenerateRequiredCMakeVersion(os, "3.0.0");
-            }
-        }
-
-        this->GenerateExpectedTargetsCode(os, expectedTargets);
+  {
+    std::string expectedTargets;
+    std::string sep;
+    std::vector<std::string> targets;
+    this->GetTargets(targets);
+    for (std::string const& tei : targets) {
+      cmGeneratorTarget* te = this->LG->FindGeneratorTargetToUse(tei);
+      expectedTargets += sep + this->Namespace + te->GetExportName();
+      sep = " ";
+      if (this->ExportedTargets.insert(te).second) {
+        this->Exports.push_back(te);
+      } else {
+        std::ostringstream e;
+        e << "given target \"" << te->GetName() << "\" more than once.";
+        this->LG->GetGlobalGenerator()->GetCMakeInstance()->IssueMessage(
+          MessageType::FATAL_ERROR, e.str(),
+          this->LG->GetMakefile()->GetBacktrace());
+        return false;
+      }
+      if (this->GetExportTargetType(te) == cmStateEnums::INTERFACE_LIBRARY) {
+        this->GenerateRequiredCMakeVersion(os, "3.0.0");
+      }
     }
 
-    std::vector<std::string> missingTargets;
+    this->GenerateExpectedTargetsCode(os, expectedTargets);
+  }
+
+  std::vector<std::string> missingTargets;
+
+  // Create all the imported targets.
+  for (cmGeneratorTarget* gte : this->Exports) {
+    this->GenerateImportTargetCode(os, gte, this->GetExportTargetType(gte));
+
+    gte->Target->AppendBuildInterfaceIncludes();
+
+    ImportPropertyMap properties;
+
+    this->PopulateInterfaceProperty("INTERFACE_INCLUDE_DIRECTORIES", gte,
+                                    cmGeneratorExpression::BuildInterface,
+                                    properties, missingTargets);
+    this->PopulateInterfaceProperty("INTERFACE_SOURCES", gte,
+                                    cmGeneratorExpression::BuildInterface,
+                                    properties, missingTargets);
+    this->PopulateInterfaceProperty("INTERFACE_COMPILE_DEFINITIONS", gte,
+                                    cmGeneratorExpression::BuildInterface,
+                                    properties, missingTargets);
+    this->PopulateInterfaceProperty("INTERFACE_COMPILE_OPTIONS", gte,
+                                    cmGeneratorExpression::BuildInterface,
+                                    properties, missingTargets);
+    this->PopulateInterfaceProperty("INTERFACE_AUTOUIC_OPTIONS", gte,
+                                    cmGeneratorExpression::BuildInterface,
+                                    properties, missingTargets);
+    this->PopulateInterfaceProperty("INTERFACE_COMPILE_FEATURES", gte,
+                                    cmGeneratorExpression::BuildInterface,
+                                    properties, missingTargets);
+    this->PopulateInterfaceProperty("INTERFACE_LINK_OPTIONS", gte,
+                                    cmGeneratorExpression::BuildInterface,
+                                    properties, missingTargets);
+    this->PopulateInterfaceProperty("INTERFACE_LINK_DIRECTORIES", gte,
+                                    cmGeneratorExpression::BuildInterface,
+                                    properties, missingTargets);
+    this->PopulateInterfaceProperty("INTERFACE_LINK_DEPENDS", gte,
+                                    cmGeneratorExpression::BuildInterface,
+                                    properties, missingTargets);
+    this->PopulateInterfaceProperty("INTERFACE_POSITION_INDEPENDENT_CODE", gte,
+                                    properties);
+
+    std::string errorMessage;
+    if (!this->PopulateExportProperties(gte, properties, errorMessage)) {
+      this->LG->GetGlobalGenerator()->GetCMakeInstance()->IssueMessage(
+        MessageType::FATAL_ERROR, errorMessage,
+        this->LG->GetMakefile()->GetBacktrace());
+      return false;
+    }
 
     // Create all the imported targets.
     for(cmGeneratorTarget* gte : this->Exports)
@@ -347,27 +389,25 @@ void
 cmExportBuildFileGenerator::ComplainAboutMissingTarget(
     cmGeneratorTarget* depender, cmGeneratorTarget* dependee, int occurrences)
 {
-    if(cmSystemTools::GetErrorOccuredFlag())
-    {
-        return;
-    }
+  if (cmSystemTools::GetErrorOccuredFlag()) {
+    return;
+  }
 
-    std::ostringstream e;
-    e << "export called with target \"" << depender->GetName()
-      << "\" which requires target \"" << dependee->GetName() << "\" ";
-    if(occurrences == 0)
-    {
-        e << "that is not in the export set.\n";
-    } else
-    {
-        e << "that is not in this export set, but " << occurrences
-          << " times in others.\n";
-    }
-    e << "If the required target is not easy to reference in this call, "
-      << "consider using the APPEND option with multiple separate calls.";
+  std::ostringstream e;
+  e << "export called with target \"" << depender->GetName()
+    << "\" which requires target \"" << dependee->GetName() << "\" ";
+  if (occurrences == 0) {
+    e << "that is not in the export set.\n";
+  } else {
+    e << "that is not in this export set, but " << occurrences
+      << " times in others.\n";
+  }
+  e << "If the required target is not easy to reference in this call, "
+    << "consider using the APPEND option with multiple separate calls.";
 
-    this->LG->GetGlobalGenerator()->GetCMakeInstance()->IssueMessage(
-        cmake::FATAL_ERROR, e.str(), this->LG->GetMakefile()->GetBacktrace());
+  this->LG->GetGlobalGenerator()->GetCMakeInstance()->IssueMessage(
+    MessageType::FATAL_ERROR, e.str(),
+    this->LG->GetMakefile()->GetBacktrace());
 }
 
 std::string

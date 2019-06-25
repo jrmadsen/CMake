@@ -9,4 +9,4 @@ cmCPackTGZGenerator::cmCPackTGZGenerator()
 : cmCPackArchiveGenerator(cmArchiveWrite::CompressGZip, "paxr")
 {}
 
-cmCPackTGZGenerator::~cmCPackTGZGenerator() {}
+cmCPackTGZGenerator::~cmCPackTGZGenerator() = default;

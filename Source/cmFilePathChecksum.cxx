@@ -9,7 +9,7 @@
 
 #include <vector>
 
-cmFilePathChecksum::cmFilePathChecksum() {}
+cmFilePathChecksum::cmFilePathChecksum() = default;
 
 cmFilePathChecksum::cmFilePathChecksum(std::string const& currentSrcDir,
                                        std::string const& currentBinDir,
@@ -79,9 +79,9 @@ cmFilePathChecksum::get(std::string const& filePath) const
         cmCryptoHash(cmCryptoHash::AlgoSHA256)
             .ByteHashString(relSeed + relPath);
 
-    // Convert binary checksum to string
-    return cmBase32Encoder().encodeString(&hashBytes.front(), hashBytes.size(),
-                                          false);
+  // Convert binary checksum to string
+  return cmBase32Encoder().encodeString(hashBytes.data(), hashBytes.size(),
+                                        false);
 }
 
 std::string

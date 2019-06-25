@@ -27,7 +27,7 @@
 
 cmCPackNSISGenerator::cmCPackNSISGenerator(bool nsis64) { Nsis64 = nsis64; }
 
-cmCPackNSISGenerator::~cmCPackNSISGenerator() {}
+cmCPackNSISGenerator::~cmCPackNSISGenerator() = default;
 
 int
 cmCPackNSISGenerator::PackageFiles()
@@ -82,95 +82,124 @@ cmCPackNSISGenerator::PackageFiles()
         }
         std::replace(fileN.begin(), fileN.end(), '/', '\\');
 
-        str << "  Delete \"" << outputDir << "\\" << fileN << "\"" << std::endl;
+    const std::string componentOutputDir =
+      CustomComponentInstallDirectory(componentName);
+
+    dstr << "  RMDir \"" << componentOutputDir << "\\" << fileN << "\""
+         << std::endl;
+    if (!componentName.empty()) {
+      this->Components[componentName].Directories.push_back(std::move(fileN));
     }
-    cmCPackLogger(cmCPackLog::LOG_DEBUG,
-                  "Uninstall Files: " << str.str() << std::endl);
-    this->SetOptionIfNotSet("CPACK_NSIS_DELETE_FILES", str.str().c_str());
-    std::vector<std::string> dirs;
-    this->GetListOfSubdirectories(toplevel.c_str(), dirs);
-    std::ostringstream dstr;
-    for(std::string const& dir : dirs)
-    {
-        std::string componentName;
-        std::string fileN = cmSystemTools::RelativePath(toplevel, dir);
-        if(fileN.empty())
-        {
-            continue;
-        }
-        if(!Components.empty())
-        {
-            // If this is a component installation, strip off the component
-            // part of the path.
-            std::string::size_type slash = fileN.find('/');
-            if(slash != std::string::npos)
-            {
-                // If this is a component installation, determine which
-                // component it is.
-                componentName = fileN.substr(0, slash);
+  }
+  cmCPackLogger(cmCPackLog::LOG_DEBUG,
+                "Uninstall Dirs: " << dstr.str() << std::endl);
+  this->SetOptionIfNotSet("CPACK_NSIS_DELETE_DIRECTORIES", dstr.str().c_str());
 
-                // Strip off the component part of the path.
-                fileN = fileN.substr(slash + 1);
-            }
-        }
-        std::replace(fileN.begin(), fileN.end(), '/', '\\');
-
-        const std::string componentOutputDir =
-            CustomComponentInstallDirectory(componentName);
-
-        dstr << "  RMDir \"" << componentOutputDir << "\\" << fileN << "\""
-             << std::endl;
-        if(!componentName.empty())
-        {
-            this->Components[componentName].Directories.push_back(
-                std::move(fileN));
-        }
+  cmCPackLogger(cmCPackLog::LOG_VERBOSE,
+                "Configure file: " << nsisInFileName << " to " << nsisFileName
+                                   << std::endl);
+  if (this->IsSet("CPACK_NSIS_MUI_ICON") ||
+      this->IsSet("CPACK_NSIS_MUI_UNIICON")) {
+    std::string installerIconCode;
+    if (this->IsSet("CPACK_NSIS_MUI_ICON")) {
+      installerIconCode += "!define MUI_ICON \"";
+      installerIconCode += this->GetOption("CPACK_NSIS_MUI_ICON");
+      installerIconCode += "\"\n";
     }
-    cmCPackLogger(cmCPackLog::LOG_DEBUG,
-                  "Uninstall Dirs: " << dstr.str() << std::endl);
-    this->SetOptionIfNotSet("CPACK_NSIS_DELETE_DIRECTORIES",
-                            dstr.str().c_str());
-
-    cmCPackLogger(cmCPackLog::LOG_VERBOSE,
-                  "Configure file: " << nsisInFileName << " to " << nsisFileName
-                                     << std::endl);
-    if(this->IsSet("CPACK_NSIS_MUI_ICON") ||
-       this->IsSet("CPACK_NSIS_MUI_UNIICON"))
-    {
-        std::string installerIconCode;
-        if(this->IsSet("CPACK_NSIS_MUI_ICON"))
-        {
-            installerIconCode += "!define MUI_ICON \"";
-            installerIconCode += this->GetOption("CPACK_NSIS_MUI_ICON");
-            installerIconCode += "\"\n";
-        }
-        if(this->IsSet("CPACK_NSIS_MUI_UNIICON"))
-        {
-            installerIconCode += "!define MUI_UNICON \"";
-            installerIconCode += this->GetOption("CPACK_NSIS_MUI_UNIICON");
-            installerIconCode += "\"\n";
-        }
-        this->SetOptionIfNotSet("CPACK_NSIS_INSTALLER_MUI_ICON_CODE",
-                                installerIconCode.c_str());
+    if (this->IsSet("CPACK_NSIS_MUI_UNIICON")) {
+      installerIconCode += "!define MUI_UNICON \"";
+      installerIconCode += this->GetOption("CPACK_NSIS_MUI_UNIICON");
+      installerIconCode += "\"\n";
     }
-    if(this->IsSet("CPACK_PACKAGE_ICON"))
-    {
-        std::string installerIconCode = "!define MUI_HEADERIMAGE_BITMAP \"";
-        installerIconCode += this->GetOption("CPACK_PACKAGE_ICON");
-        installerIconCode += "\"\n";
-        this->SetOptionIfNotSet("CPACK_NSIS_INSTALLER_ICON_CODE",
-                                installerIconCode.c_str());
+    this->SetOptionIfNotSet("CPACK_NSIS_INSTALLER_MUI_ICON_CODE",
+                            installerIconCode.c_str());
+  }
+  if (this->IsSet("CPACK_PACKAGE_ICON")) {
+    std::string installerIconCode = "!define MUI_HEADERIMAGE_BITMAP \"";
+    installerIconCode += this->GetOption("CPACK_PACKAGE_ICON");
+    installerIconCode += "\"\n";
+    this->SetOptionIfNotSet("CPACK_NSIS_INSTALLER_ICON_CODE",
+                            installerIconCode.c_str());
+  }
+
+  if (this->IsSet("CPACK_NSIS_MUI_WELCOMEFINISHPAGE_BITMAP")) {
+    std::string installerBitmapCode =
+      "!define MUI_WELCOMEFINISHPAGE_BITMAP \"";
+    installerBitmapCode +=
+      this->GetOption("CPACK_NSIS_MUI_WELCOMEFINISHPAGE_BITMAP");
+    installerBitmapCode += "\"\n";
+    this->SetOptionIfNotSet("CPACK_NSIS_INSTALLER_MUI_WELCOMEFINISH_CODE",
+                            installerBitmapCode.c_str());
+  }
+
+  if (this->IsSet("CPACK_NSIS_MUI_UNWELCOMEFINISHPAGE_BITMAP")) {
+    std::string installerBitmapCode =
+      "!define MUI_UNWELCOMEFINISHPAGE_BITMAP \"";
+    installerBitmapCode +=
+      this->GetOption("CPACK_NSIS_MUI_UNWELCOMEFINISHPAGE_BITMAP");
+    installerBitmapCode += "\"\n";
+    this->SetOptionIfNotSet("CPACK_NSIS_INSTALLER_MUI_UNWELCOMEFINISH_CODE",
+                            installerBitmapCode.c_str());
+  }
+
+  if (this->IsSet("CPACK_NSIS_MUI_FINISHPAGE_RUN")) {
+    std::string installerRunCode = "!define MUI_FINISHPAGE_RUN \"$INSTDIR\\";
+    installerRunCode += this->GetOption("CPACK_NSIS_EXECUTABLES_DIRECTORY");
+    installerRunCode += "\\";
+    installerRunCode += this->GetOption("CPACK_NSIS_MUI_FINISHPAGE_RUN");
+    installerRunCode += "\"\n";
+    this->SetOptionIfNotSet("CPACK_NSIS_INSTALLER_MUI_FINISHPAGE_RUN_CODE",
+                            installerRunCode.c_str());
+  }
+
+  // Setup all of the component sections
+  if (this->Components.empty()) {
+    this->SetOptionIfNotSet("CPACK_NSIS_INSTALLATION_TYPES", "");
+    this->SetOptionIfNotSet("CPACK_NSIS_INSTALLER_MUI_COMPONENTS_DESC", "");
+    this->SetOptionIfNotSet("CPACK_NSIS_PAGE_COMPONENTS", "");
+    this->SetOptionIfNotSet("CPACK_NSIS_FULL_INSTALL",
+                            R"(File /r "${INST_DIR}\*.*")");
+    this->SetOptionIfNotSet("CPACK_NSIS_COMPONENT_SECTIONS", "");
+    this->SetOptionIfNotSet("CPACK_NSIS_COMPONENT_SECTION_LIST", "");
+    this->SetOptionIfNotSet("CPACK_NSIS_SECTION_SELECTED_VARS", "");
+  } else {
+    std::string componentCode;
+    std::string sectionList;
+    std::string selectedVarsList;
+    std::string componentDescriptions;
+    std::string groupDescriptions;
+    std::string installTypesCode;
+    std::string defines;
+    std::ostringstream macrosOut;
+    bool anyDownloadedComponents = false;
+
+    // Create installation types. The order is significant, so we first fill
+    // in a vector based on the indices, and print them in that order.
+    std::vector<cmCPackInstallationType*> installTypes(
+      this->InstallationTypes.size());
+    for (auto& installType : this->InstallationTypes) {
+      installTypes[installType.second.Index - 1] = &installType.second;
+    }
+    for (cmCPackInstallationType* installType : installTypes) {
+      installTypesCode += "InstType \"";
+      installTypesCode += installType->DisplayName;
+      installTypesCode += "\"\n";
     }
 
-    if(this->IsSet("CPACK_NSIS_MUI_WELCOMEFINISHPAGE_BITMAP"))
-    {
-        std::string installerBitmapCode =
-            "!define MUI_WELCOMEFINISHPAGE_BITMAP \"";
-        installerBitmapCode +=
-            this->GetOption("CPACK_NSIS_MUI_WELCOMEFINISHPAGE_BITMAP");
-        installerBitmapCode += "\"\n";
-        this->SetOptionIfNotSet("CPACK_NSIS_INSTALLER_MUI_WELCOMEFINISH_CODE",
-                                installerBitmapCode.c_str());
+    // Create installation groups first
+    for (auto& group : this->ComponentGroups) {
+      if (group.second.ParentGroup == nullptr) {
+        componentCode +=
+          this->CreateComponentGroupDescription(&group.second, macrosOut);
+      }
+
+      // Add the group description, if any.
+      if (!group.second.Description.empty()) {
+        groupDescriptions += "  !insertmacro MUI_DESCRIPTION_TEXT ${" +
+          group.first + "} \"" +
+          cmCPackNSISGenerator::TranslateNewlines(group.second.Description) +
+          "\"\n";
+      }
     }
 
     if(this->IsSet("CPACK_NSIS_MUI_UNWELCOMEFINISHPAGE_BITMAP"))
@@ -196,163 +225,86 @@ cmCPackNSISGenerator::PackageFiles()
                                 installerRunCode.c_str());
     }
 
-    // Setup all of the component sections
-    if(this->Components.empty())
-    {
-        this->SetOptionIfNotSet("CPACK_NSIS_INSTALLATION_TYPES", "");
-        this->SetOptionIfNotSet("CPACK_NSIS_INSTALLER_MUI_COMPONENTS_DESC", "");
-        this->SetOptionIfNotSet("CPACK_NSIS_PAGE_COMPONENTS", "");
-        this->SetOptionIfNotSet("CPACK_NSIS_FULL_INSTALL",
-                                "File /r \"${INST_DIR}\\*.*\"");
-        this->SetOptionIfNotSet("CPACK_NSIS_COMPONENT_SECTIONS", "");
-        this->SetOptionIfNotSet("CPACK_NSIS_COMPONENT_SECTION_LIST", "");
-        this->SetOptionIfNotSet("CPACK_NSIS_SECTION_SELECTED_VARS", "");
-    } else
-    {
-        std::string        componentCode;
-        std::string        sectionList;
-        std::string        selectedVarsList;
-        std::string        componentDescriptions;
-        std::string        groupDescriptions;
-        std::string        installTypesCode;
-        std::string        defines;
-        std::ostringstream macrosOut;
-        bool               anyDownloadedComponents = false;
+      if (!comp.second.Group) {
+        componentCode +=
+          this->CreateComponentDescription(&comp.second, macrosOut);
+      }
 
-        // Create installation types. The order is significant, so we first fill
-        // in a vector based on the indices, and print them in that order.
-        std::vector<cmCPackInstallationType*> installTypes(
-            this->InstallationTypes.size());
-        for(auto& installType : this->InstallationTypes)
-        {
-            installTypes[installType.second.Index - 1] = &installType.second;
-        }
-        for(cmCPackInstallationType* installType : installTypes)
-        {
-            installTypesCode += "InstType \"";
-            installTypesCode += installType->DisplayName;
-            installTypesCode += "\"\n";
-        }
+      // Add this component to the various section lists.
+      sectionList += R"(  !insertmacro "${MacroName}" ")";
+      sectionList += comp.first;
+      sectionList += "\"\n";
+      selectedVarsList += "Var " + comp.first + "_selected\n";
+      selectedVarsList += "Var " + comp.first + "_was_installed\n";
 
-        // Create installation groups first
-        for(auto& group : this->ComponentGroups)
-        {
-            if(group.second.ParentGroup == nullptr)
-            {
-                componentCode += this->CreateComponentGroupDescription(
-                    &group.second, macrosOut);
-            }
-
-            // Add the group description, if any.
-            if(!group.second.Description.empty())
-            {
-                groupDescriptions +=
-                    "  !insertmacro MUI_DESCRIPTION_TEXT ${" + group.first +
-                    "} \"" + this->TranslateNewlines(group.second.Description) +
-                    "\"\n";
-            }
-        }
-
-        // Create the remaining components, which aren't associated with groups.
-        for(auto& comp : this->Components)
-        {
-            if(comp.second.Files.empty())
-            {
-                // NSIS cannot cope with components that have no files.
-                continue;
-            }
-
-            anyDownloadedComponents =
-                anyDownloadedComponents || comp.second.IsDownloaded;
-
-            if(!comp.second.Group)
-            {
-                componentCode +=
-                    this->CreateComponentDescription(&comp.second, macrosOut);
-            }
-
-            // Add this component to the various section lists.
-            sectionList += "  !insertmacro \"${MacroName}\" \"";
-            sectionList += comp.first;
-            sectionList += "\"\n";
-            selectedVarsList += "Var " + comp.first + "_selected\n";
-            selectedVarsList += "Var " + comp.first + "_was_installed\n";
-
-            // Add the component description, if any.
-            if(!comp.second.Description.empty())
-            {
-                componentDescriptions +=
-                    "  !insertmacro MUI_DESCRIPTION_TEXT ${" + comp.first +
-                    "} \"" + this->TranslateNewlines(comp.second.Description) +
-                    "\"\n";
-            }
-        }
-
-        componentCode += macrosOut.str();
-
-        if(componentDescriptions.empty() && groupDescriptions.empty())
-        {
-            // Turn off the "Description" box
-            this->SetOptionIfNotSet("CPACK_NSIS_INSTALLER_MUI_COMPONENTS_DESC",
-                                    "!define MUI_COMPONENTSPAGE_NODESC");
-        } else
-        {
-            componentDescriptions =
-                "!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN\n" +
-                componentDescriptions + groupDescriptions +
-                "!insertmacro MUI_FUNCTION_DESCRIPTION_END\n";
-            this->SetOptionIfNotSet("CPACK_NSIS_INSTALLER_MUI_COMPONENTS_DESC",
-                                    componentDescriptions.c_str());
-        }
-
-        if(anyDownloadedComponents)
-        {
-            defines += "!define CPACK_USES_DOWNLOAD\n";
-            if(cmSystemTools::IsOn(this->GetOption("CPACK_ADD_REMOVE")))
-            {
-                defines += "!define CPACK_NSIS_ADD_REMOVE\n";
-            }
-        }
-
-        this->SetOptionIfNotSet("CPACK_NSIS_INSTALLATION_TYPES",
-                                installTypesCode.c_str());
-        this->SetOptionIfNotSet("CPACK_NSIS_PAGE_COMPONENTS",
-                                "!insertmacro MUI_PAGE_COMPONENTS");
-        this->SetOptionIfNotSet("CPACK_NSIS_FULL_INSTALL", "");
-        this->SetOptionIfNotSet("CPACK_NSIS_COMPONENT_SECTIONS",
-                                componentCode.c_str());
-        this->SetOptionIfNotSet("CPACK_NSIS_COMPONENT_SECTION_LIST",
-                                sectionList.c_str());
-        this->SetOptionIfNotSet("CPACK_NSIS_SECTION_SELECTED_VARS",
-                                selectedVarsList.c_str());
-        this->SetOption("CPACK_NSIS_DEFINES", defines.c_str());
+      // Add the component description, if any.
+      if (!comp.second.Description.empty()) {
+        componentDescriptions += "  !insertmacro MUI_DESCRIPTION_TEXT ${" +
+          comp.first + "} \"" +
+          cmCPackNSISGenerator::TranslateNewlines(comp.second.Description) +
+          "\"\n";
+      }
     }
 
-    this->ConfigureFile(nsisInInstallOptions.c_str(),
-                        nsisInstallOptions.c_str());
-    this->ConfigureFile(nsisInFileName.c_str(), nsisFileName.c_str());
-    std::string nsisCmd = "\"";
-    nsisCmd += this->GetOption("CPACK_INSTALLER_PROGRAM");
-    nsisCmd += "\" \"" + nsisFileName + "\"";
-    cmCPackLogger(cmCPackLog::LOG_VERBOSE, "Execute: " << nsisCmd << std::endl);
-    std::string output;
-    int         retVal = 1;
-    bool        res    = cmSystemTools::RunSingleCommand(
-        nsisCmd.c_str(), &output, &output, &retVal, nullptr,
-        this->GeneratorVerbose, cmDuration::zero());
-    if(!res || retVal)
-    {
-        cmGeneratedFileStream ofs(tmpFile);
-        ofs << "# Run command: " << nsisCmd << std::endl
-            << "# Output:" << std::endl
-            << output << std::endl;
-        cmCPackLogger(cmCPackLog::LOG_ERROR, "Problem running NSIS command: "
-                                                 << nsisCmd << std::endl
-                                                 << "Please check " << tmpFile
-                                                 << " for errors" << std::endl);
-        return 0;
+    componentCode += macrosOut.str();
+
+    if (componentDescriptions.empty() && groupDescriptions.empty()) {
+      // Turn off the "Description" box
+      this->SetOptionIfNotSet("CPACK_NSIS_INSTALLER_MUI_COMPONENTS_DESC",
+                              "!define MUI_COMPONENTSPAGE_NODESC");
+    } else {
+      componentDescriptions = "!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN\n" +
+        componentDescriptions + groupDescriptions +
+        "!insertmacro MUI_FUNCTION_DESCRIPTION_END\n";
+      this->SetOptionIfNotSet("CPACK_NSIS_INSTALLER_MUI_COMPONENTS_DESC",
+                              componentDescriptions.c_str());
     }
-    return 1;
+
+    if (anyDownloadedComponents) {
+      defines += "!define CPACK_USES_DOWNLOAD\n";
+      if (cmSystemTools::IsOn(this->GetOption("CPACK_ADD_REMOVE"))) {
+        defines += "!define CPACK_NSIS_ADD_REMOVE\n";
+      }
+    }
+
+    this->SetOptionIfNotSet("CPACK_NSIS_INSTALLATION_TYPES",
+                            installTypesCode.c_str());
+    this->SetOptionIfNotSet("CPACK_NSIS_PAGE_COMPONENTS",
+                            "!insertmacro MUI_PAGE_COMPONENTS");
+    this->SetOptionIfNotSet("CPACK_NSIS_FULL_INSTALL", "");
+    this->SetOptionIfNotSet("CPACK_NSIS_COMPONENT_SECTIONS",
+                            componentCode.c_str());
+    this->SetOptionIfNotSet("CPACK_NSIS_COMPONENT_SECTION_LIST",
+                            sectionList.c_str());
+    this->SetOptionIfNotSet("CPACK_NSIS_SECTION_SELECTED_VARS",
+                            selectedVarsList.c_str());
+    this->SetOption("CPACK_NSIS_DEFINES", defines.c_str());
+  }
+
+  this->ConfigureFile(nsisInInstallOptions, nsisInstallOptions);
+  this->ConfigureFile(nsisInFileName, nsisFileName);
+  std::string nsisCmd = "\"";
+  nsisCmd += this->GetOption("CPACK_INSTALLER_PROGRAM");
+  nsisCmd += "\" \"" + nsisFileName + "\"";
+  cmCPackLogger(cmCPackLog::LOG_VERBOSE, "Execute: " << nsisCmd << std::endl);
+  std::string output;
+  int retVal = 1;
+  bool res = cmSystemTools::RunSingleCommand(
+    nsisCmd, &output, &output, &retVal, nullptr, this->GeneratorVerbose,
+    cmDuration::zero());
+  if (!res || retVal) {
+    cmGeneratedFileStream ofs(tmpFile);
+    ofs << "# Run command: " << nsisCmd << std::endl
+        << "# Output:" << std::endl
+        << output << std::endl;
+    cmCPackLogger(cmCPackLog::LOG_ERROR,
+                  "Problem running NSIS command: " << nsisCmd << std::endl
+                                                   << "Please check "
+                                                   << tmpFile << " for errors"
+                                                   << std::endl);
+    return 0;
+  }
+  return 1;
 }
 
 int
@@ -421,23 +373,50 @@ cmCPackNSISGenerator::InitializeInternal()
     }
 #endif
 
-    nsisPath = cmSystemTools::FindProgram("makensis", path, false);
+  nsisPath = cmSystemTools::FindProgram("makensis", path, false);
 
-    if(nsisPath.empty())
-    {
-        cmCPackLogger(
-            cmCPackLog::LOG_ERROR,
-            "Cannot find NSIS compiler makensis: likely it is not installed, "
-            "or not in your PATH"
-                << std::endl);
+  if (nsisPath.empty()) {
+    cmCPackLogger(
+      cmCPackLog::LOG_ERROR,
+      "Cannot find NSIS compiler makensis: likely it is not installed, "
+      "or not in your PATH"
+        << std::endl);
 
-        if(!gotRegValue)
-        {
-            cmCPackLogger(
-                cmCPackLog::LOG_ERROR,
-                "Could not read NSIS registry value. This is usually caused by "
-                "NSIS not being installed. Please install NSIS from "
-                "http://nsis.sourceforge.net"
+    if (!gotRegValue) {
+      cmCPackLogger(
+        cmCPackLog::LOG_ERROR,
+        "Could not read NSIS registry value. This is usually caused by "
+        "NSIS not being installed. Please install NSIS from "
+        "http://nsis.sourceforge.net"
+          << std::endl);
+    }
+
+    return 0;
+  }
+
+  std::string nsisCmd = "\"" + nsisPath + "\" " NSIS_OPT "VERSION";
+  cmCPackLogger(cmCPackLog::LOG_VERBOSE,
+                "Test NSIS version: " << nsisCmd << std::endl);
+  std::string output;
+  int retVal = 1;
+  bool resS = cmSystemTools::RunSingleCommand(
+    nsisCmd, &output, &output, &retVal, nullptr, this->GeneratorVerbose,
+    cmDuration::zero());
+  cmsys::RegularExpression versionRex("v([0-9]+.[0-9]+)");
+  cmsys::RegularExpression versionRexCVS("v(.*)\\.cvs");
+  if (!resS || retVal ||
+      (!versionRex.find(output) && !versionRexCVS.find(output))) {
+    const char* topDir = this->GetOption("CPACK_TOPLEVEL_DIRECTORY");
+    std::string tmpFile = topDir ? topDir : ".";
+    tmpFile += "/NSISOutput.log";
+    cmGeneratedFileStream ofs(tmpFile);
+    ofs << "# Run command: " << nsisCmd << std::endl
+        << "# Output:" << std::endl
+        << output << std::endl;
+    cmCPackLogger(cmCPackLog::LOG_ERROR,
+                  "Problem checking NSIS version with command: "
+                    << nsisCmd << std::endl
+                    << "Please check " << tmpFile << " for errors"
                     << std::endl);
         }
 
@@ -608,25 +587,101 @@ cmCPackNSISGenerator::CreateMenuLinks(std::ostream& str,
         "^(mailto:|(ftps?|https?|news)://).*$");
 
     std::vector<std::string>::iterator it;
-    for(it = cpackMenuLinksVector.begin(); it != cpackMenuLinksVector.end();
-        ++it)
-    {
-        std::string sourceName = *it;
-        const bool  url        = urlRegex.find(sourceName);
+    for (it = cpackPackageExecutablesVector.begin();
+         it != cpackPackageExecutablesVector.end(); ++it) {
+      std::string execName = *it;
+      ++it;
+      std::string linkName = *it;
+      str << R"(  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\)" << linkName
+          << R"(.lnk" "$INSTDIR\)" << cpackNsisExecutablesDirectory << "\\"
+          << execName << ".exe\"" << std::endl;
+      deleteStr << R"(  Delete "$SMPROGRAMS\$MUI_TEMP\)" << linkName
+                << ".lnk\"" << std::endl;
+      // see if CPACK_CREATE_DESKTOP_LINK_ExeName is on
+      // if so add a desktop link
+      if (!cpackPackageDesktopLinksVector.empty() &&
+          std::find(cpackPackageDesktopLinksVector.begin(),
+                    cpackPackageDesktopLinksVector.end(),
+                    execName) != cpackPackageDesktopLinksVector.end()) {
+        str << "  StrCmp \"$INSTALL_DESKTOP\" \"1\" 0 +2\n";
+        str << "    CreateShortCut \"$DESKTOP\\" << linkName
+            << R"(.lnk" "$INSTDIR\)" << cpackNsisExecutablesDirectory << "\\"
+            << execName << ".exe\"" << std::endl;
+        deleteStr << "  StrCmp \"$INSTALL_DESKTOP\" \"1\" 0 +2\n";
+        deleteStr << "    Delete \"$DESKTOP\\" << linkName << ".lnk\""
+                  << std::endl;
+      }
+    }
+  }
 
-        // Convert / to \ in filenames, but not in urls:
-        //
-        if(!url)
-        {
-            std::replace(sourceName.begin(), sourceName.end(), '/', '\\');
-        }
+  this->CreateMenuLinks(str, deleteStr);
+  this->SetOptionIfNotSet("CPACK_NSIS_CREATE_ICONS", str.str().c_str());
+  this->SetOptionIfNotSet("CPACK_NSIS_DELETE_ICONS", deleteStr.str().c_str());
 
-        ++it;
-        std::string linkName = *it;
-        if(!url)
-        {
-            str << "  CreateShortCut \"$SMPROGRAMS\\$STARTMENU_FOLDER\\"
-                << linkName << ".lnk\" \"$INSTDIR\\" << sourceName << "\""
+  this->SetOptionIfNotSet("CPACK_NSIS_COMPRESSOR", "lzma");
+
+  return this->Superclass::InitializeInternal();
+}
+
+void cmCPackNSISGenerator::CreateMenuLinks(std::ostream& str,
+                                           std::ostream& deleteStr)
+{
+  const char* cpackMenuLinks = this->GetOption("CPACK_NSIS_MENU_LINKS");
+  if (!cpackMenuLinks) {
+    return;
+  }
+  cmCPackLogger(cmCPackLog::LOG_DEBUG,
+                "The cpackMenuLinks: " << cpackMenuLinks << "." << std::endl);
+  std::vector<std::string> cpackMenuLinksVector;
+  cmSystemTools::ExpandListArgument(cpackMenuLinks, cpackMenuLinksVector);
+  if (cpackMenuLinksVector.size() % 2 != 0) {
+    cmCPackLogger(
+      cmCPackLog::LOG_ERROR,
+      "CPACK_NSIS_MENU_LINKS should contain pairs of <shortcut target> and "
+      "<shortcut label>."
+        << std::endl);
+    return;
+  }
+
+  static cmsys::RegularExpression urlRegex(
+    "^(mailto:|(ftps?|https?|news)://).*$");
+
+  std::vector<std::string>::iterator it;
+  for (it = cpackMenuLinksVector.begin(); it != cpackMenuLinksVector.end();
+       ++it) {
+    std::string sourceName = *it;
+    const bool url = urlRegex.find(sourceName);
+
+    // Convert / to \ in filenames, but not in urls:
+    //
+    if (!url) {
+      std::replace(sourceName.begin(), sourceName.end(), '/', '\\');
+    }
+
+    ++it;
+    std::string linkName = *it;
+    if (!url) {
+      str << R"(  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\)" << linkName
+          << R"(.lnk" "$INSTDIR\)" << sourceName << "\"" << std::endl;
+      deleteStr << R"(  Delete "$SMPROGRAMS\$MUI_TEMP\)" << linkName
+                << ".lnk\"" << std::endl;
+    } else {
+      str << R"(  WriteINIStr "$SMPROGRAMS\$STARTMENU_FOLDER\)" << linkName
+          << R"(.url" "InternetShortcut" "URL" ")" << sourceName << "\""
+          << std::endl;
+      deleteStr << R"(  Delete "$SMPROGRAMS\$MUI_TEMP\)" << linkName
+                << ".url\"" << std::endl;
+    }
+    // see if CPACK_CREATE_DESKTOP_LINK_ExeName is on
+    // if so add a desktop link
+    std::string desktop = "CPACK_CREATE_DESKTOP_LINK_";
+    desktop += linkName;
+    if (this->IsSet(desktop)) {
+      str << "  StrCmp \"$INSTALL_DESKTOP\" \"1\" 0 +2\n";
+      str << "    CreateShortCut \"$DESKTOP\\" << linkName
+          << R"(.lnk" "$INSTDIR\)" << sourceName << "\"" << std::endl;
+      deleteStr << "  StrCmp \"$INSTALL_DESKTOP\" \"1\" 0 +2\n";
+      deleteStr << "    Delete \"$DESKTOP\\" << linkName << ".lnk\""
                 << std::endl;
             deleteStr << "  Delete \"$SMPROGRAMS\\$MUI_TEMP\\" << linkName
                       << ".lnk\"" << std::endl;
@@ -658,27 +713,23 @@ bool
 cmCPackNSISGenerator::GetListOfSubdirectories(const char*               topdir,
                                               std::vector<std::string>& dirs)
 {
-    cmsys::Directory dir;
-    dir.Load(topdir);
-    for(unsigned long i = 0; i < dir.GetNumberOfFiles(); ++i)
-    {
-        const char* fileName = dir.GetFile(i);
-        if(strcmp(fileName, ".") != 0 && strcmp(fileName, "..") != 0)
-        {
-            std::string const fullPath =
-                std::string(topdir).append("/").append(fileName);
-            if(cmsys::SystemTools::FileIsDirectory(fullPath) &&
-               !cmsys::SystemTools::FileIsSymlink(fullPath))
-            {
-                if(!this->GetListOfSubdirectories(fullPath.c_str(), dirs))
-                {
-                    return false;
-                }
-            }
+  cmsys::Directory dir;
+  dir.Load(topdir);
+  for (unsigned long i = 0; i < dir.GetNumberOfFiles(); ++i) {
+    const char* fileName = dir.GetFile(i);
+    if (strcmp(fileName, ".") != 0 && strcmp(fileName, "..") != 0) {
+      std::string const fullPath =
+        std::string(topdir).append("/").append(fileName);
+      if (cmsys::SystemTools::FileIsDirectory(fullPath) &&
+          !cmsys::SystemTools::FileIsSymlink(fullPath)) {
+        if (!this->GetListOfSubdirectories(fullPath.c_str(), dirs)) {
+          return false;
         }
+      }
     }
-    dirs.push_back(topdir);
-    return true;
+  }
+  dirs.emplace_back(topdir);
+  return true;
 }
 
 enum cmCPackGenerator::CPackSetDestdirSupport
@@ -748,127 +799,74 @@ cmCPackNSISGenerator::CreateComponentDescription(cmCPackComponent* component,
             component->ArchiveFile = out.str();
         }
 
-        // Create the directory for the upload area
-        const char* userUploadDirectory =
-            this->GetOption("CPACK_UPLOAD_DIRECTORY");
-        std::string uploadDirectory;
-        if(userUploadDirectory && *userUploadDirectory)
-        {
-            uploadDirectory = userUploadDirectory;
-        } else
-        {
-            uploadDirectory = this->GetOption("CPACK_PACKAGE_DIRECTORY");
-            uploadDirectory += "/CPackUploads";
+      if (!this->IsSet("ZIP_EXECUTABLE")) {
+        cmCPackLogger(cmCPackLog::LOG_ERROR,
+                      "Unable to find ZIP program" << std::endl);
+        return "";
+      }
+    }
+
+    // The directory where this component's files reside
+    std::string dirName = this->GetOption("CPACK_TEMPORARY_DIRECTORY");
+    dirName += '/';
+    dirName += component->Name;
+    dirName += '/';
+
+    // Build the list of files to go into this archive, and determine the
+    // size of the installed component.
+    std::string zipListFileName = this->GetOption("CPACK_TEMPORARY_DIRECTORY");
+    zipListFileName += "/winZip.filelist";
+    bool needQuotesInFile =
+      cmSystemTools::IsOn(this->GetOption("CPACK_ZIP_NEED_QUOTES"));
+    unsigned long totalSize = 0;
+    { // the scope is needed for cmGeneratedFileStream
+      cmGeneratedFileStream out(zipListFileName);
+      for (std::string const& file : component->Files) {
+        if (needQuotesInFile) {
+          out << "\"";
         }
-        if(!cmSystemTools::FileExists(uploadDirectory))
-        {
-            if(!cmSystemTools::MakeDirectory(uploadDirectory))
-            {
-                cmCPackLogger(cmCPackLog::LOG_ERROR,
-                              "Unable to create NSIS upload directory "
-                                  << uploadDirectory << std::endl);
-                return "";
-            }
+        out << file;
+        if (needQuotesInFile) {
+          out << "\"";
         }
+        out << std::endl;
 
-        // Remove the old archive, if one exists
-        std::string archiveFile =
-            uploadDirectory + '/' + component->ArchiveFile;
-        cmCPackLogger(cmCPackLog::LOG_OUTPUT,
-                      "-   Building downloaded component archive: "
-                          << archiveFile << std::endl);
-        if(cmSystemTools::FileExists(archiveFile, true))
-        {
-            if(!cmSystemTools::RemoveFile(archiveFile))
-            {
-                cmCPackLogger(cmCPackLog::LOG_ERROR,
-                              "Unable to remove archive file " << archiveFile
-                                                               << std::endl);
-                return "";
-            }
-        }
+        totalSize += cmSystemTools::FileLength(dirName + file);
+      }
+    }
 
-        // Find a ZIP program
-        if(!this->IsSet("ZIP_EXECUTABLE"))
-        {
-            this->ReadListFile("Internal/CPack/CPackZIP.cmake");
+    // Build the archive in the upload area
+    std::string cmd = this->GetOption("CPACK_ZIP_COMMAND");
+    cmsys::SystemTools::ReplaceString(cmd, "<ARCHIVE>", archiveFile.c_str());
+    cmsys::SystemTools::ReplaceString(cmd, "<FILELIST>",
+                                      zipListFileName.c_str());
+    std::string output;
+    int retVal = -1;
+    int res = cmSystemTools::RunSingleCommand(
+      cmd, &output, &output, &retVal, dirName.c_str(),
+      cmSystemTools::OUTPUT_NONE, cmDuration::zero());
+    if (!res || retVal) {
+      std::string tmpFile = this->GetOption("CPACK_TOPLEVEL_DIRECTORY");
+      tmpFile += "/CompressZip.log";
+      cmGeneratedFileStream ofs(tmpFile);
+      ofs << "# Run command: " << cmd << std::endl
+          << "# Output:" << std::endl
+          << output << std::endl;
+      cmCPackLogger(cmCPackLog::LOG_ERROR,
+                    "Problem running zip command: " << cmd << std::endl
+                                                    << "Please check "
+                                                    << tmpFile << " for errors"
+                                                    << std::endl);
+      return "";
+    }
 
-            if(!this->IsSet("ZIP_EXECUTABLE"))
-            {
-                cmCPackLogger(cmCPackLog::LOG_ERROR,
-                              "Unable to find ZIP program" << std::endl);
-                return "";
-            }
-        }
-
-        // The directory where this component's files reside
-        std::string dirName = this->GetOption("CPACK_TEMPORARY_DIRECTORY");
-        dirName += '/';
-        dirName += component->Name;
-        dirName += '/';
-
-        // Build the list of files to go into this archive, and determine the
-        // size of the installed component.
-        std::string zipListFileName =
-            this->GetOption("CPACK_TEMPORARY_DIRECTORY");
-        zipListFileName += "/winZip.filelist";
-        bool needQuotesInFile =
-            cmSystemTools::IsOn(this->GetOption("CPACK_ZIP_NEED_QUOTES"));
-        unsigned long totalSize = 0;
-        {  // the scope is needed for cmGeneratedFileStream
-            cmGeneratedFileStream out(zipListFileName);
-            for(std::string const& file : component->Files)
-            {
-                if(needQuotesInFile)
-                {
-                    out << "\"";
-                }
-                out << file;
-                if(needQuotesInFile)
-                {
-                    out << "\"";
-                }
-                out << std::endl;
-
-                totalSize += cmSystemTools::FileLength(dirName + file);
-            }
-        }
-
-        // Build the archive in the upload area
-        std::string cmd = this->GetOption("CPACK_ZIP_COMMAND");
-        cmsys::SystemTools::ReplaceString(cmd, "<ARCHIVE>",
-                                          archiveFile.c_str());
-        cmsys::SystemTools::ReplaceString(cmd, "<FILELIST>",
-                                          zipListFileName.c_str());
-        std::string output;
-        int         retVal = -1;
-        int         res    = cmSystemTools::RunSingleCommand(
-            cmd.c_str(), &output, &output, &retVal, dirName.c_str(),
-            cmSystemTools::OUTPUT_NONE, cmDuration::zero());
-        if(!res || retVal)
-        {
-            std::string tmpFile = this->GetOption("CPACK_TOPLEVEL_DIRECTORY");
-            tmpFile += "/CompressZip.log";
-            cmGeneratedFileStream ofs(tmpFile);
-            ofs << "# Run command: " << cmd << std::endl
-                << "# Output:" << std::endl
-                << output << std::endl;
-            cmCPackLogger(cmCPackLog::LOG_ERROR, "Problem running zip command: "
-                                                     << cmd << std::endl
-                                                     << "Please check "
-                                                     << tmpFile << " for errors"
-                                                     << std::endl);
-            return "";
-        }
-
-        // Create the NSIS code to download this file on-the-fly.
-        unsigned long totalSizeInKbytes = (totalSize + 512) / 1024;
-        if(totalSizeInKbytes == 0)
-        {
-            totalSizeInKbytes = 1;
-        }
-        std::ostringstream out;
-        /* clang-format off */
+    // Create the NSIS code to download this file on-the-fly.
+    unsigned long totalSizeInKbytes = (totalSize + 512) / 1024;
+    if (totalSizeInKbytes == 0) {
+      totalSizeInKbytes = 1;
+    }
+    std::ostringstream out;
+    /* clang-format off */
     out << "  AddSize " << totalSizeInKbytes << "\n"
         << "  Push \"" << component->ArchiveFile << "\"\n"
         << "  Call DownloadFile\n"

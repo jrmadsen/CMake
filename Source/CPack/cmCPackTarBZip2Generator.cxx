@@ -9,4 +9,4 @@ cmCPackTarBZip2Generator::cmCPackTarBZip2Generator()
 : cmCPackArchiveGenerator(cmArchiveWrite::CompressBZip2, "paxr")
 {}
 
-cmCPackTarBZip2Generator::~cmCPackTarBZip2Generator() {}
+cmCPackTarBZip2Generator::~cmCPackTarBZip2Generator() = default;

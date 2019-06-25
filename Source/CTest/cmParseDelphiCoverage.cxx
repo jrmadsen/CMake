@@ -17,24 +17,57 @@ public:
     HTMLParser(cmCTest* ctest, cmCTestCoverageHandlerContainer& cont)
     : CTest(ctest)
     , Coverage(cont)
-    {}
+  {
+  }
 
-    virtual ~HTMLParser() {}
+  virtual ~HTMLParser() = default;
 
-    bool initializeDelphiFile(
-        std::string const&                                filename,
-        cmParseDelphiCoverage::HTMLParser::FileLinesType& coverageVector)
-    {
-        std::string              line;
-        size_t                   comPos;
-        size_t                   semiPos;
-        bool                     blockComFlag = false;
-        bool                     lineComFlag  = false;
-        std::vector<std::string> beginSet;
-        cmsys::ifstream          in(filename.c_str());
-        if(!in)
-        {
-            return false;
+  bool initializeDelphiFile(
+    std::string const& filename,
+    cmParseDelphiCoverage::HTMLParser::FileLinesType& coverageVector)
+  {
+    std::string line;
+    size_t comPos;
+    size_t semiPos;
+    bool blockComFlag = false;
+    bool lineComFlag = false;
+    std::vector<std::string> beginSet;
+    cmsys::ifstream in(filename.c_str());
+    if (!in) {
+      return false;
+    }
+    while (cmSystemTools::GetLineFromStream(in, line)) {
+      lineComFlag = false;
+      // Unique cases found in lines.
+      size_t beginPos = line.find("begin");
+
+      // Check that the begin is the first non-space string on the line
+      if ((beginPos == line.find_first_not_of(' ')) &&
+          beginPos != std::string::npos) {
+        beginSet.emplace_back("begin");
+        coverageVector.push_back(-1);
+        continue;
+      }
+      if (line.find('{') != std::string::npos) {
+        blockComFlag = true;
+      } else if (line.find('}') != std::string::npos) {
+        blockComFlag = false;
+        coverageVector.push_back(-1);
+        continue;
+      } else if ((line.find("end;") != std::string::npos) &&
+                 !beginSet.empty()) {
+        beginSet.pop_back();
+        coverageVector.push_back(-1);
+        continue;
+      }
+
+      //  This checks for comments after lines of code, finding the
+      //  comment symbol after the ending semicolon.
+      comPos = line.find("//");
+      if (comPos != std::string::npos) {
+        semiPos = line.find(';');
+        if (comPos < semiPos) {
+          lineComFlag = true;
         }
         while(cmSystemTools::GetLineFromStream(in, line))
         {

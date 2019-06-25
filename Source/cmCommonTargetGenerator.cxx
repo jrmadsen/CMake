@@ -27,7 +27,7 @@ cmCommonTargetGenerator::cmCommonTargetGenerator(cmGeneratorTarget* gt)
 , ConfigName(LocalCommonGenerator->GetConfigName())
 {}
 
-cmCommonTargetGenerator::~cmCommonTargetGenerator() {}
+cmCommonTargetGenerator::~cmCommonTargetGenerator() = default;
 
 std::string const&
 cmCommonTargetGenerator::GetConfigName() const
@@ -211,21 +211,20 @@ cmCommonTargetGenerator::ComputeTargetCompilePDB() const
 std::string
 cmCommonTargetGenerator::GetManifests()
 {
-    std::vector<cmSourceFile const*> manifest_srcs;
-    this->GeneratorTarget->GetManifests(manifest_srcs, this->ConfigName);
+  std::vector<cmSourceFile const*> manifest_srcs;
+  this->GeneratorTarget->GetManifests(manifest_srcs, this->ConfigName);
 
-    std::vector<std::string> manifests;
-    manifests.reserve(manifest_srcs.size());
-    for(cmSourceFile const* manifest_src : manifest_srcs)
-    {
-        manifests.push_back(this->LocalCommonGenerator->ConvertToOutputFormat(
-            this->LocalCommonGenerator->ConvertToRelativePath(
-                this->LocalCommonGenerator->GetWorkingDirectory(),
-                manifest_src->GetFullPath()),
-            cmOutputConverter::SHELL));
-    }
+  std::vector<std::string> manifests;
+  manifests.reserve(manifest_srcs.size());
+  for (cmSourceFile const* manifest_src : manifest_srcs) {
+    manifests.push_back(this->LocalCommonGenerator->ConvertToOutputFormat(
+      this->LocalCommonGenerator->MaybeConvertToRelativePath(
+        this->LocalCommonGenerator->GetWorkingDirectory(),
+        manifest_src->GetFullPath()),
+      cmOutputConverter::SHELL));
+  }
 
-    return cmJoin(manifests, " ");
+  return cmJoin(manifests, " ");
 }
 
 void

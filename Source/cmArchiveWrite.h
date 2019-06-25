@@ -39,106 +39,104 @@ private:
  */
 class cmArchiveWrite
 {
-    typedef void (cmArchiveWrite::*safe_bool)();
-    void safe_bool_true() {}
-
 public:
-    /** Compression type.  */
-    enum Compress
-    {
-        CompressNone,
-        CompressCompress,
-        CompressGZip,
-        CompressBZip2,
-        CompressLZMA,
-        CompressXZ
-    };
+  /** Compression type.  */
+  enum Compress
+  {
+    CompressNone,
+    CompressCompress,
+    CompressGZip,
+    CompressBZip2,
+    CompressLZMA,
+    CompressXZ,
+    CompressZstd
+  };
 
-    /** Construct with output stream to which to write archive.  */
-    cmArchiveWrite(std::ostream& os, Compress c = CompressNone,
-                   std::string const& format = "paxr");
+  /** Construct with output stream to which to write archive.  */
+  cmArchiveWrite(std::ostream& os, Compress c = CompressNone,
+                 std::string const& format = "paxr");
 
-    ~cmArchiveWrite();
+  ~cmArchiveWrite();
 
-    /**
-     * Add a path (file or directory) to the archive.  Directories are
-     * added recursively.  The "path" must be readable on disk, either
-     * full path or relative to current working directory.  The "skip"
-     * value indicates how many leading bytes from the input path to
-     * skip.  The remaining part of the input path is appended to the
-     * "prefix" value to construct the final name in the archive.
-     */
-    bool Add(std::string path, size_t skip = 0, const char* prefix = nullptr,
-             bool recursive = true);
+  cmArchiveWrite(const cmArchiveWrite&) = delete;
+  cmArchiveWrite& operator=(const cmArchiveWrite&) = delete;
 
-    /** Returns true if there has been no error.  */
-    operator safe_bool() const
-    {
-        return this->Okay() ? &cmArchiveWrite::safe_bool_true : nullptr;
-    }
+  /**
+   * Add a path (file or directory) to the archive.  Directories are
+   * added recursively.  The "path" must be readable on disk, either
+   * full path or relative to current working directory.  The "skip"
+   * value indicates how many leading bytes from the input path to
+   * skip.  The remaining part of the input path is appended to the
+   * "prefix" value to construct the final name in the archive.
+   */
+  bool Add(std::string path, size_t skip = 0, const char* prefix = nullptr,
+           bool recursive = true);
 
-    /** Returns true if there has been an error.  */
-    bool operator!() const { return !this->Okay(); }
+  /** Returns true if there has been no error.  */
+  explicit operator bool() const { return this->Okay(); }
 
-    /** Return the error string; empty if none.  */
-    std::string GetError() const { return this->Error; }
+  /** Returns true if there has been an error.  */
+  bool operator!() const { return !this->Okay(); }
 
-    // TODO: More general callback instead of hard-coding calls to
-    // std::cout.
-    void SetVerbose(bool v) { this->Verbose = v; }
+  /** Return the error string; empty if none.  */
+  std::string GetError() const { return this->Error; }
 
-    void SetMTime(std::string const& t) { this->MTime = t; }
+  // TODO: More general callback instead of hard-coding calls to
+  // std::cout.
+  void SetVerbose(bool v) { this->Verbose = v; }
 
-    //! Sets the permissions of the added files/folders
-    void SetPermissions(int permissions_)
-    {
-        this->Permissions.Set(permissions_);
-    }
+  void SetMTime(std::string const& t) { this->MTime = t; }
 
-    //! Clears permissions - default is used instead
-    void ClearPermissions() { this->Permissions.Clear(); }
+  //! Sets the permissions of the added files/folders
+  void SetPermissions(int permissions_)
+  {
+    this->Permissions.Set(permissions_);
+  }
 
-    //! Sets the permissions mask of files/folders
-    //!
-    //! The permissions will be copied from the existing file
-    //! or folder. The mask will then be applied to unset
-    //! some of them
-    void SetPermissionsMask(int permissionsMask_)
-    {
-        this->PermissionsMask.Set(permissionsMask_);
-    }
+  //! Clears permissions - default is used instead
+  void ClearPermissions() { this->Permissions.Clear(); }
 
-    //! Clears permissions mask - default is used instead
-    void ClearPermissionsMask() { this->PermissionsMask.Clear(); }
+  //! Sets the permissions mask of files/folders
+  //!
+  //! The permissions will be copied from the existing file
+  //! or folder. The mask will then be applied to unset
+  //! some of them
+  void SetPermissionsMask(int permissionsMask_)
+  {
+    this->PermissionsMask.Set(permissionsMask_);
+  }
 
-    //! Sets UID and GID to be used in the tar file
-    void SetUIDAndGID(int uid_, int gid_)
-    {
-        this->Uid.Set(uid_);
-        this->Gid.Set(gid_);
-    }
+  //! Clears permissions mask - default is used instead
+  void ClearPermissionsMask() { this->PermissionsMask.Clear(); }
 
-    //! Clears UID and GID to be used in the tar file - default is used instead
-    void ClearUIDAndGID()
-    {
-        this->Uid.Clear();
-        this->Gid.Clear();
-    }
+  //! Sets UID and GID to be used in the tar file
+  void SetUIDAndGID(int uid_, int gid_)
+  {
+    this->Uid.Set(uid_);
+    this->Gid.Set(gid_);
+  }
 
-    //! Sets UNAME and GNAME to be used in the tar file
-    void SetUNAMEAndGNAME(const std::string& uname_, const std::string& gname_)
-    {
-        this->Uname = uname_;
-        this->Gname = gname_;
-    }
+  //! Clears UID and GID to be used in the tar file - default is used instead
+  void ClearUIDAndGID()
+  {
+    this->Uid.Clear();
+    this->Gid.Clear();
+  }
 
-    //! Clears UNAME and GNAME to be used in the tar file
-    //! default is used instead
-    void ClearUNAMEAndGNAME()
-    {
-        this->Uname = "";
-        this->Gname = "";
-    }
+  //! Sets UNAME and GNAME to be used in the tar file
+  void SetUNAMEAndGNAME(const std::string& uname_, const std::string& gname_)
+  {
+    this->Uname = uname_;
+    this->Gname = gname_;
+  }
+
+  //! Clears UNAME and GNAME to be used in the tar file
+  //! default is used instead
+  void ClearUNAMEAndGNAME()
+  {
+    this->Uname = "";
+    this->Gname = "";
+  }
 
 private:
     bool Okay() const { return this->Error.empty(); }

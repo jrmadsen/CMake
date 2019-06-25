@@ -16,8 +16,13 @@ struct cmGeneratorExpressionNode;
 
 struct cmGeneratorExpressionEvaluator
 {
-    cmGeneratorExpressionEvaluator() {}
-    virtual ~cmGeneratorExpressionEvaluator() {}
+  cmGeneratorExpressionEvaluator() = default;
+  virtual ~cmGeneratorExpressionEvaluator() = default;
+
+  cmGeneratorExpressionEvaluator(cmGeneratorExpressionEvaluator const&) =
+    delete;
+  cmGeneratorExpressionEvaluator& operator=(
+    cmGeneratorExpressionEvaluator const&) = delete;
 
     enum Type
     {
@@ -27,11 +32,8 @@ struct cmGeneratorExpressionEvaluator
 
     virtual Type GetType() const = 0;
 
-    virtual std::string Evaluate(cmGeneratorExpressionContext* context,
-                                 cmGeneratorExpressionDAGChecker*) const = 0;
-
-private:
-    CM_DISABLE_COPY(cmGeneratorExpressionEvaluator)
+  virtual std::string Evaluate(cmGeneratorExpressionContext* context,
+                               cmGeneratorExpressionDAGChecker*) const = 0;
 };
 
 struct TextContent : public cmGeneratorExpressionEvaluator

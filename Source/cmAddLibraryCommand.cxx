@@ -4,14 +4,15 @@
 
 #include <sstream>
 
+#include "cmAlgorithms.h"
 #include "cmGeneratorExpression.h"
 #include "cmGlobalGenerator.h"
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmState.h"
 #include "cmStateTypes.h"
 #include "cmSystemTools.h"
 #include "cmTarget.h"
-#include "cmake.h"
 
 class cmExecutionStatus;
 
@@ -288,11 +289,19 @@ cmAddLibraryCommand::InitialPass(std::vector<std::string> const& args,
         this->Makefile->AddAlias(libName, aliasedName);
         return true;
     }
-
-    if(importTarget && excludeFromAll)
-    {
-        this->SetError("excludeFromAll with IMPORTED target makes no sense.");
-        return false;
+    cmStateEnums::TargetType aliasedType = aliasedTarget->GetType();
+    if (aliasedType != cmStateEnums::SHARED_LIBRARY &&
+        aliasedType != cmStateEnums::STATIC_LIBRARY &&
+        aliasedType != cmStateEnums::MODULE_LIBRARY &&
+        aliasedType != cmStateEnums::OBJECT_LIBRARY &&
+        aliasedType != cmStateEnums::INTERFACE_LIBRARY &&
+        !(aliasedType == cmStateEnums::UNKNOWN_LIBRARY &&
+          aliasedTarget->IsImported())) {
+      std::ostringstream e;
+      e << "cannot create ALIAS target \"" << libName << "\" because target \""
+        << aliasedName << "\" is not a library.";
+      this->SetError(e.str());
+      return false;
     }
 
     /* ideally we should check whether for the linker language of the target
@@ -349,18 +358,38 @@ cmAddLibraryCommand::InitialPass(std::vector<std::string> const& args,
             }
         }
 
-        // Make sure the target does not already exist.
-        if(this->Makefile->FindTargetToUse(libName))
-        {
-            std::ostringstream e;
-            e << "cannot create imported target \"" << libName
-              << "\" because another target with the same name already exists.";
-            this->SetError(e.str());
-            return false;
-        }
+  /* ideally we should check whether for the linker language of the target
+    CMAKE_${LANG}_CREATE_SHARED_LIBRARY is defined and if not default to
+    STATIC. But at this point we know only the name of the target, but not
+    yet its linker language. */
+  if ((type == cmStateEnums::SHARED_LIBRARY ||
+       type == cmStateEnums::MODULE_LIBRARY) &&
+      !this->Makefile->GetState()->GetGlobalPropertyAsBool(
+        "TARGET_SUPPORTS_SHARED_LIBS")) {
+    std::ostringstream w;
+    w << "ADD_LIBRARY called with "
+      << (type == cmStateEnums::SHARED_LIBRARY ? "SHARED" : "MODULE")
+      << " option but the target platform does not support dynamic linking. "
+         "Building a STATIC library instead. This may lead to problems.";
+    this->Makefile->IssueMessage(MessageType::AUTHOR_WARNING, w.str());
+    type = cmStateEnums::STATIC_LIBRARY;
+  }
 
-        // Create the imported target.
-        this->Makefile->AddImportedTarget(libName, type, importGlobal);
+  // Handle imported target creation.
+  if (importTarget) {
+    // The IMPORTED signature requires a type to be specified explicitly.
+    if (!haveSpecifiedType) {
+      this->SetError("called with IMPORTED argument but no library type.");
+      return false;
+    }
+    if (type == cmStateEnums::OBJECT_LIBRARY) {
+      std::string reason;
+      if (!this->Makefile->GetGlobalGenerator()->HasKnownObjectFileLocation(
+            &reason)) {
+        this->Makefile->IssueMessage(
+          MessageType::FATAL_ERROR,
+          "The OBJECT library type may not be used for IMPORTED libraries" +
+            reason + ".");
         return true;
     }
 
@@ -385,16 +414,13 @@ cmAddLibraryCommand::InitialPass(std::vector<std::string> const& args,
 
     std::vector<std::string> srclists;
 
-    if(type == cmStateEnums::INTERFACE_LIBRARY)
-    {
-        if(!cmGeneratorExpression::IsValidTargetName(libName) ||
-           libName.find("::") != std::string::npos)
-        {
-            std::ostringstream e;
-            e << "Invalid name for INTERFACE library target: " << libName;
-            this->SetError(e.str());
-            return false;
-        }
+  // A non-imported target may not have UNKNOWN type.
+  if (type == cmStateEnums::UNKNOWN_LIBRARY) {
+    this->Makefile->IssueMessage(
+      MessageType::FATAL_ERROR,
+      "The UNKNOWN library type may be used only for IMPORTED libraries.");
+    return true;
+  }
 
         this->Makefile->AddLibrary(libName, type, srclists, excludeFromAll);
         return true;
@@ -403,6 +429,10 @@ cmAddLibraryCommand::InitialPass(std::vector<std::string> const& args,
     srclists.insert(srclists.end(), s, args.end());
 
     this->Makefile->AddLibrary(libName, type, srclists, excludeFromAll);
+    return true;
+  }
+
+  cmAppend(srclists, s, args.end());
 
     return true;
 }

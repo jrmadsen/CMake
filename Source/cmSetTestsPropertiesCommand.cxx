@@ -4,6 +4,7 @@
 
 #include <iterator>
 
+#include "cmAlgorithms.h"
 #include "cmMakefile.h"
 #include "cmTest.h"
 
@@ -45,6 +46,9 @@ cmSetTestsPropertiesCommand::InitialPass(std::vector<std::string> const& args,
         this->SetError("called with illegal arguments, maybe "
                        "missing a PROPERTIES specifier?");
         return false;
+      }
+      cmAppend(propertyPairs, j, args.end());
+      break;
     }
 
     // now loop over all the targets

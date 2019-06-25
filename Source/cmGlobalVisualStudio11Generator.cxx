@@ -6,12 +6,6 @@
 #include "cmDocumentationEntry.h"
 #include "cmLocalVisualStudio10Generator.h"
 #include "cmMakefile.h"
-#include "cmVS11CLFlagTable.h"
-#include "cmVS11CSharpFlagTable.h"
-#include "cmVS11LibFlagTable.h"
-#include "cmVS11LinkFlagTable.h"
-#include "cmVS11MASMFlagTable.h"
-#include "cmVS11RCFlagTable.h"
 
 static const char vs11generatorName[] = "Visual Studio 11 2012";
 
@@ -83,22 +77,61 @@ public:
                       "Optional [arch] can be \"Win64\" or \"ARM\".";
     }
 
-    void GetGenerators(std::vector<std::string>& names) const override
-    {
-        names.push_back(vs11generatorName);
-        names.push_back(vs11generatorName + std::string(" ARM"));
-        names.push_back(vs11generatorName + std::string(" Win64"));
+    cmGlobalVisualStudio11Generator* ret =
+      new cmGlobalVisualStudio11Generator(cm, name, p);
+    ret->WindowsCEVersion = "8.00";
+    return ret;
+  }
 
-        std::set<std::string> installedSDKs =
-            cmGlobalVisualStudio11Generator::GetInstalledWindowsCESDKs();
-        for(std::string const& i : installedSDKs)
-        {
-            names.push_back(std::string(vs11generatorName) + " " + i);
-        }
+  void GetDocumentation(cmDocumentationEntry& entry) const override
+  {
+    entry.Name = std::string(vs11generatorName) + " [arch]";
+    entry.Brief = "Generates Visual Studio 2012 project files.  "
+                  "Optional [arch] can be \"Win64\" or \"ARM\".";
+  }
+
+  std::vector<std::string> GetGeneratorNames() const override
+  {
+    std::vector<std::string> names;
+    names.push_back(vs11generatorName);
+    return names;
+  }
+
+  std::vector<std::string> GetGeneratorNamesWithPlatform() const override
+  {
+    std::vector<std::string> names;
+    names.push_back(vs11generatorName + std::string(" ARM"));
+    names.push_back(vs11generatorName + std::string(" Win64"));
+
+    std::set<std::string> installedSDKs =
+      cmGlobalVisualStudio11Generator::GetInstalledWindowsCESDKs();
+    for (std::string const& i : installedSDKs) {
+      names.push_back(std::string(vs11generatorName) + " " + i);
     }
 
-    bool SupportsToolset() const override { return true; }
-    bool SupportsPlatform() const override { return true; }
+    return names;
+  }
+
+  bool SupportsToolset() const override { return true; }
+  bool SupportsPlatform() const override { return true; }
+
+  std::vector<std::string> GetKnownPlatforms() const override
+  {
+    std::vector<std::string> platforms;
+    platforms.emplace_back("x64");
+    platforms.emplace_back("Win32");
+    platforms.emplace_back("ARM");
+
+    std::set<std::string> installedSDKs =
+      cmGlobalVisualStudio11Generator::GetInstalledWindowsCESDKs();
+    for (std::string const& i : installedSDKs) {
+      platforms.emplace_back(i);
+    }
+
+    return platforms;
+  }
+
+  std::string GetDefaultPlatformName() const override { return "Win32"; }
 };
 
 cmGlobalGeneratorFactory*
@@ -108,22 +141,23 @@ cmGlobalVisualStudio11Generator::NewFactory()
 }
 
 cmGlobalVisualStudio11Generator::cmGlobalVisualStudio11Generator(
-    cmake* cm, const std::string& name, const std::string& platformName)
-: cmGlobalVisualStudio10Generator(cm, name, platformName)
+  cmake* cm, const std::string& name,
+  std::string const& platformInGeneratorName)
+  : cmGlobalVisualStudio10Generator(cm, name, platformInGeneratorName)
 {
-    std::string vc11Express;
-    this->ExpressEdition = cmSystemTools::ReadRegistryValue(
-        "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\VCExpress\\11.0\\Setup\\VC;"
-        "ProductDir",
-        vc11Express, cmSystemTools::KeyWOW64_32);
-    this->DefaultPlatformToolset = "v110";
-    this->DefaultClFlagTable     = cmVS11CLFlagTable;
-    this->DefaultCSharpFlagTable = cmVS11CSharpFlagTable;
-    this->DefaultLibFlagTable    = cmVS11LibFlagTable;
-    this->DefaultLinkFlagTable   = cmVS11LinkFlagTable;
-    this->DefaultMasmFlagTable   = cmVS11MASMFlagTable;
-    this->DefaultRcFlagTable     = cmVS11RCFlagTable;
-    this->Version                = VS11;
+  std::string vc11Express;
+  this->ExpressEdition = cmSystemTools::ReadRegistryValue(
+    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\VCExpress\\11.0\\Setup\\VC;"
+    "ProductDir",
+    vc11Express, cmSystemTools::KeyWOW64_32);
+  this->DefaultPlatformToolset = "v110";
+  this->DefaultCLFlagTableName = "v11";
+  this->DefaultCSharpFlagTableName = "v11";
+  this->DefaultLibFlagTableName = "v11";
+  this->DefaultLinkFlagTableName = "v11";
+  this->DefaultMasmFlagTableName = "v11";
+  this->DefaultRCFlagTableName = "v11";
+  this->Version = VS11;
 }
 
 bool
@@ -159,7 +193,10 @@ cmGlobalVisualStudio11Generator::InitializeWindowsPhone(cmMakefile* mf)
         mf->IssueMessage(cmake::FATAL_ERROR, e.str());
         return false;
     }
-    return true;
+    mf->IssueMessage(MessageType::FATAL_ERROR, e.str());
+    return false;
+  }
+  return true;
 }
 
 bool
@@ -183,7 +220,10 @@ cmGlobalVisualStudio11Generator::InitializeWindowsStore(cmMakefile* mf)
         mf->IssueMessage(cmake::FATAL_ERROR, e.str());
         return false;
     }
-    return true;
+    mf->IssueMessage(MessageType::FATAL_ERROR, e.str());
+    return false;
+  }
+  return true;
 }
 
 bool
@@ -226,21 +266,7 @@ cmGlobalVisualStudio11Generator::SelectWindowsStoreToolset(
         toolset);
 }
 
-void
-cmGlobalVisualStudio11Generator::WriteSLNHeader(std::ostream& fout)
-{
-    fout << "Microsoft Visual Studio Solution File, Format Version 12.00\n";
-    if(this->ExpressEdition)
-    {
-        fout << "# Visual Studio Express 2012 for Windows Desktop\n";
-    } else
-    {
-        fout << "# Visual Studio 2012\n";
-    }
-}
-
-bool
-cmGlobalVisualStudio11Generator::UseFolderProperty()
+bool cmGlobalVisualStudio11Generator::UseFolderProperty() const
 {
     // Intentionally skip up to the top-level class implementation.
     // Folders are not supported by the Express editions in VS10 and earlier,
@@ -278,17 +304,10 @@ cmGlobalVisualStudio11Generator::GetInstalledWindowsCESDKs()
     return ret;
 }
 
-bool
-cmGlobalVisualStudio11Generator::NeedsDeploy(
-    cmStateEnums::TargetType type) const
+bool cmGlobalVisualStudio11Generator::TargetSystemSupportsDeployment() const
 {
-    if((type == cmStateEnums::EXECUTABLE ||
-        type == cmStateEnums::SHARED_LIBRARY) &&
-       (this->SystemIsWindowsPhone || this->SystemIsWindowsStore))
-    {
-        return true;
-    }
-    return cmGlobalVisualStudio10Generator::NeedsDeploy(type);
+  return this->SystemIsWindowsPhone || this->SystemIsWindowsStore ||
+    cmGlobalVisualStudio10Generator::TargetSystemSupportsDeployment();
 }
 
 bool

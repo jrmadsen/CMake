@@ -17,7 +17,20 @@ cmInstallGenerator::cmInstallGenerator(
 , ExcludeFromAll(exclude_from_all)
 {}
 
-cmInstallGenerator::~cmInstallGenerator() {}
+cmInstallGenerator::~cmInstallGenerator() = default;
+
+bool cmInstallGenerator::HaveInstall()
+{
+  return true;
+}
+
+void cmInstallGenerator::CheckCMP0082(bool& haveSubdirectoryInstall,
+                                      bool& haveInstallAfterSubdirectory)
+{
+  if (haveSubdirectoryInstall) {
+    haveInstallAfterSubdirectory = true;
+  }
+}
 
 void
 cmInstallGenerator::AddInstallRule(
@@ -27,31 +40,47 @@ cmInstallGenerator::AddInstallRule(
     const char* permissions_dir /* = 0 */, const char* rename /* = 0 */,
     const char* literal_args /* = 0 */, Indent indent)
 {
-    // Use the FILE command to install the file.
-    std::string stype;
-    switch(type)
-    {
-        case cmInstallType_DIRECTORY:
-            stype = "DIRECTORY";
-            break;
-        case cmInstallType_PROGRAMS:
-            stype = "PROGRAM";
-            break;
-        case cmInstallType_EXECUTABLE:
-            stype = "EXECUTABLE";
-            break;
-        case cmInstallType_STATIC_LIBRARY:
-            stype = "STATIC_LIBRARY";
-            break;
-        case cmInstallType_SHARED_LIBRARY:
-            stype = "SHARED_LIBRARY";
-            break;
-        case cmInstallType_MODULE_LIBRARY:
-            stype = "MODULE";
-            break;
-        case cmInstallType_FILES:
-            stype = "FILE";
-            break;
+  // Use the FILE command to install the file.
+  std::string stype;
+  switch (type) {
+    case cmInstallType_DIRECTORY:
+      stype = "DIRECTORY";
+      break;
+    case cmInstallType_PROGRAMS:
+      stype = "PROGRAM";
+      break;
+    case cmInstallType_EXECUTABLE:
+      stype = "EXECUTABLE";
+      break;
+    case cmInstallType_STATIC_LIBRARY:
+      stype = "STATIC_LIBRARY";
+      break;
+    case cmInstallType_SHARED_LIBRARY:
+      stype = "SHARED_LIBRARY";
+      break;
+    case cmInstallType_MODULE_LIBRARY:
+      stype = "MODULE";
+      break;
+    case cmInstallType_FILES:
+      stype = "FILE";
+      break;
+  }
+  os << indent;
+  if (cmSystemTools::FileIsFullPath(dest)) {
+    os << "list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES\n";
+    os << indent << " \"";
+    bool firstIteration = true;
+    for (std::string const& file : files) {
+      if (!firstIteration) {
+        os << ";";
+      }
+      os << dest << "/";
+      if (rename && *rename) {
+        os << rename;
+      } else {
+        os << cmSystemTools::GetFilenameName(file);
+      }
+      firstIteration = false;
     }
     os << indent;
     if(cmSystemTools::FileIsFullPath(dest))
@@ -145,14 +174,13 @@ std::string
 cmInstallGenerator::CreateComponentTest(const char* component,
                                         bool        exclude_from_all)
 {
-    std::string result = "\"x${CMAKE_INSTALL_COMPONENT}x\" STREQUAL \"x";
-    result += component;
-    result += "x\"";
-    if(!exclude_from_all)
-    {
-        result += " OR NOT CMAKE_INSTALL_COMPONENT";
-    }
-    return result;
+  std::string result = R"("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "x)";
+  result += component;
+  result += "x\"";
+  if (!exclude_from_all) {
+    result += " OR NOT CMAKE_INSTALL_COMPONENT";
+  }
+  return result;
 }
 
 void

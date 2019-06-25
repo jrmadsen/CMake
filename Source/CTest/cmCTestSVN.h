@@ -37,8 +37,12 @@ private:
     bool RunSVNCommand(std::vector<char const*> const& parameters,
                        OutputParser* out, OutputParser* err);
 
-    // Information about an SVN repository (root repository or external)
-    struct SVNInfo
+  // Information about an SVN repository (root repository or external)
+  struct SVNInfo
+  {
+
+    SVNInfo(std::string const& path = std::string())
+      : LocalPath(path)
     {
         SVNInfo(const char* path)
         : LocalPath(path)

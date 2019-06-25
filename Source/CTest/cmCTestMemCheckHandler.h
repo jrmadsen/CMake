@@ -81,75 +81,74 @@ public:
     };
 
 private:
-    enum
-    {  // Program statuses
-        NOT_RUN = 0,
-        TIMEOUT,
-        SEGFAULT,
-        ILLEGAL,
-        INTERRUPT,
-        NUMERICAL,
-        OTHER_FAULT,
-        FAILED,
-        BAD_COMMAND,
-        COMPLETED
-    };
-    std::string              BoundsCheckerDPBDFile;
-    std::string              BoundsCheckerXMLFile;
-    std::string              MemoryTester;
-    std::vector<std::string> MemoryTesterDynamicOptions;
-    std::vector<std::string> MemoryTesterOptions;
-    int                      MemoryTesterStyle;
-    std::string              MemoryTesterOutputFile;
-    std::string              MemoryTesterEnvironmentVariable;
-    // these are used to store the types of errors that can show up
-    std::vector<std::string> ResultStrings;
-    std::vector<std::string> ResultStringsLong;
-    std::vector<int>         GlobalResults;
-    bool                     LogWithPID;  // does log file add pid
-    int                      DefectCount;
+  enum
+  { // Program statuses
+    NOT_RUN = 0,
+    TIMEOUT,
+    SEGFAULT,
+    ILLEGAL,
+    INTERRUPT,
+    NUMERICAL,
+    OTHER_FAULT,
+    FAILED,
+    BAD_COMMAND,
+    COMPLETED
+  };
+  std::string BoundsCheckerDPBDFile;
+  std::string BoundsCheckerXMLFile;
+  std::string MemoryTester;
+  std::vector<std::string> MemoryTesterDynamicOptions;
+  std::vector<std::string> MemoryTesterOptions;
+  int MemoryTesterStyle;
+  std::string MemoryTesterOutputFile;
+  std::string MemoryTesterEnvironmentVariable;
+  // these are used to store the types of errors that can show up
+  std::vector<std::string> ResultStrings;
+  std::vector<std::string> ResultStringsLong;
+  std::vector<int> GlobalResults;
+  bool LogWithPID; // does log file add pid
+  int DefectCount;
 
-    std::vector<int>::size_type FindOrAddWarning(const std::string& warning);
-    // initialize the ResultStrings and ResultStringsLong for
-    // this type of checker
-    void InitializeResultsVectors();
+  std::vector<int>::size_type FindOrAddWarning(const std::string& warning);
+  // initialize the ResultStrings and ResultStringsLong for
+  // this type of checker
+  void InitializeResultsVectors();
 
-    ///! Initialize memory checking subsystem.
-    bool InitializeMemoryChecking();
+  //! Initialize memory checking subsystem.
+  bool InitializeMemoryChecking();
 
-    /**
-     * Generate the Dart compatible output
-     */
-    void GenerateDartOutput(cmXMLWriter& xml) override;
+  /**
+   * Generate the Dart compatible output
+   */
+  void GenerateDartOutput(cmXMLWriter& xml) override;
 
-    std::vector<std::string> CustomPreMemCheck;
-    std::vector<std::string> CustomPostMemCheck;
+  std::vector<std::string> CustomPreMemCheck;
+  std::vector<std::string> CustomPostMemCheck;
 
-    //! Parse Valgrind/Purify/Bounds Checker result out of the output
-    // string. After running, log holds the output and results hold the
-    // different memory errors.
-    bool ProcessMemCheckOutput(const std::string& str, std::string& log,
-                               std::vector<int>& results);
-    bool ProcessMemCheckValgrindOutput(const std::string& str, std::string& log,
-                                       std::vector<int>& results);
-    bool ProcessMemCheckPurifyOutput(const std::string& str, std::string& log,
+  //! Parse Valgrind/Purify/Bounds Checker result out of the output
+  // string. After running, log holds the output and results hold the
+  // different memory errors.
+  bool ProcessMemCheckOutput(const std::string& str, std::string& log,
+                             std::vector<int>& results);
+  bool ProcessMemCheckValgrindOutput(const std::string& str, std::string& log,
                                      std::vector<int>& results);
-    bool ProcessMemCheckSanitizerOutput(const std::string& str,
-                                        std::string&       log,
-                                        std::vector<int>&  results);
-    bool ProcessMemCheckBoundsCheckerOutput(const std::string& str,
-                                            std::string&       log,
-                                            std::vector<int>&  results);
+  bool ProcessMemCheckPurifyOutput(const std::string& str, std::string& log,
+                                   std::vector<int>& results);
+  bool ProcessMemCheckSanitizerOutput(const std::string& str, std::string& log,
+                                      std::vector<int>& results);
+  bool ProcessMemCheckBoundsCheckerOutput(const std::string& str,
+                                          std::string& log,
+                                          std::vector<int>& results);
 
-    void PostProcessTest(cmCTestTestResult& res, int test);
-    void PostProcessBoundsCheckerTest(cmCTestTestResult& res, int test);
+  void PostProcessTest(cmCTestTestResult& res, int test);
+  void PostProcessBoundsCheckerTest(cmCTestTestResult& res, int test);
 
-    ///! append MemoryTesterOutputFile to the test log
-    void AppendMemTesterOutput(cmCTestTestHandler::cmCTestTestResult& res,
-                               std::string const&                     filename);
+  //! append MemoryTesterOutputFile to the test log
+  void AppendMemTesterOutput(cmCTestTestHandler::cmCTestTestResult& res,
+                             std::string const& filename);
 
-    ///! generate the output filename for the given test index
-    void TestOutputFileNames(int test, std::vector<std::string>& files);
+  //! generate the output filename for the given test index
+  void TestOutputFileNames(int test, std::vector<std::string>& files);
 };
 
 #endif

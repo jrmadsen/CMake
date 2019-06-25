@@ -3,7 +3,8 @@
 #ifndef cmFindPackageCommand_h
 #define cmFindPackageCommand_h
 
-#include "cmConfigure.h"  // IWYU pragma: keep
+#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmPolicies.h"
 
 #include "cm_kwiml.h"
 #include <cstddef>
@@ -76,34 +77,128 @@ public:
 private:
     class PathLabel : public cmFindCommon::PathLabel
     {
-    protected:
-        PathLabel();
+    }
+    static PathLabel UserRegistry;
+    static PathLabel Builds;
+    static PathLabel SystemRegistry;
+  };
 
-    public:
-        PathLabel(const std::string& label)
-        : cmFindCommon::PathLabel(label)
-        {}
-        static PathLabel UserRegistry;
-        static PathLabel Builds;
-        static PathLabel SystemRegistry;
-    };
+  bool FindPackageUsingModuleMode();
+  bool FindPackageUsingConfigMode();
 
-    // Add additional search path labels and groups not present in the
-    // parent class
-    void AppendSearchPathGroups();
+  // Add additional search path labels and groups not present in the
+  // parent class
+  void AppendSearchPathGroups();
 
-    void AppendSuccessInformation();
-    void AppendToFoundProperty(bool found);
-    void SetModuleVariables(const std::string& components);
-    bool FindModule(bool& found);
-    void AddFindDefinition(const std::string& var, const char* val);
-    void RestoreFindDefinitions();
-    bool HandlePackageMode();
-    bool FindConfig();
-    bool FindPrefixedConfig();
-    bool FindFrameworkConfig();
-    bool FindAppBundleConfig();
-    enum PolicyScopeRule
+  void AppendSuccessInformation();
+  void AppendToFoundProperty(bool found);
+  void SetModuleVariables(const std::string& components);
+  bool FindModule(bool& found);
+  void AddFindDefinition(const std::string& var, const char* val);
+  void RestoreFindDefinitions();
+
+  enum /*class*/ HandlePackageModeType
+  {
+    Module,
+    Config
+  };
+  bool HandlePackageMode(HandlePackageModeType type);
+
+  bool FindConfig();
+  bool FindPrefixedConfig();
+  bool FindFrameworkConfig();
+  bool FindAppBundleConfig();
+  enum PolicyScopeRule
+  {
+    NoPolicyScope,
+    DoPolicyScope
+  };
+  bool ReadListFile(const std::string& f, PolicyScopeRule psr);
+  void StoreVersionFound();
+
+  void ComputePrefixes();
+  void FillPrefixesPackageRoot();
+  void FillPrefixesCMakeEnvironment();
+  void FillPrefixesCMakeVariable();
+  void FillPrefixesSystemEnvironment();
+  void FillPrefixesUserRegistry();
+  void FillPrefixesSystemRegistry();
+  void FillPrefixesCMakeSystemVariable();
+  void FillPrefixesUserGuess();
+  void FillPrefixesUserHints();
+  void LoadPackageRegistryDir(std::string const& dir, cmSearchPath& outPaths);
+  void LoadPackageRegistryWinUser();
+  void LoadPackageRegistryWinSystem();
+  void LoadPackageRegistryWin(bool user, unsigned int view,
+                              cmSearchPath& outPaths);
+  bool CheckPackageRegistryEntry(const std::string& fname,
+                                 cmSearchPath& outPaths);
+  bool SearchDirectory(std::string const& dir);
+  bool CheckDirectory(std::string const& dir);
+  bool FindConfigFile(std::string const& dir, std::string& file);
+  bool CheckVersion(std::string const& config_file);
+  bool CheckVersionFile(std::string const& version_file,
+                        std::string& result_version);
+  bool SearchPrefix(std::string const& prefix);
+  bool SearchFrameworkPrefix(std::string const& prefix_in);
+  bool SearchAppBundlePrefix(std::string const& prefix_in);
+
+  friend class cmFindPackageFileList;
+
+  struct OriginalDef
+  {
+    bool exists;
+    std::string value;
+  };
+  std::map<std::string, OriginalDef> OriginalDefs;
+
+  std::map<std::string, cmPolicies::PolicyID> DeprecatedFindModules;
+
+  std::string Name;
+  std::string Variable;
+  std::string Version;
+  unsigned int VersionMajor;
+  unsigned int VersionMinor;
+  unsigned int VersionPatch;
+  unsigned int VersionTweak;
+  unsigned int VersionCount;
+  bool VersionExact;
+  std::string FileFound;
+  std::string VersionFound;
+  unsigned int VersionFoundMajor;
+  unsigned int VersionFoundMinor;
+  unsigned int VersionFoundPatch;
+  unsigned int VersionFoundTweak;
+  unsigned int VersionFoundCount;
+  KWIML_INT_uint64_t RequiredCMakeVersion;
+  bool Quiet;
+  bool Required;
+  bool UseConfigFiles;
+  bool UseFindModules;
+  bool NoUserRegistry;
+  bool NoSystemRegistry;
+  bool DebugMode;
+  bool UseLib32Paths;
+  bool UseLib64Paths;
+  bool UseLibx32Paths;
+  bool UseRealPath;
+  bool PolicyScope;
+  std::string LibraryArchitecture;
+  std::vector<std::string> Names;
+  std::vector<std::string> Configs;
+  std::set<std::string> IgnoredPaths;
+
+  /*! the selected sortOrder (None by default)*/
+  SortOrderType SortOrder;
+  /*! the selected sortDirection (Asc by default)*/
+  SortDirectionType SortDirection;
+
+  struct ConfigFileInfo
+  {
+    std::string filename;
+    std::string version;
+
+    bool operator<(ConfigFileInfo const& rhs) const
     {
         NoPolicyScope,
         DoPolicyScope

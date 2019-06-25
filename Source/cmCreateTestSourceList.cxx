@@ -158,6 +158,32 @@ cmCreateTestSourceList::InitialPass(std::vector<std::string> const& args,
     {
         res = false;
     }
+    functionMapCode += "  {\n"
+                       "    \"";
+    functionMapCode += func_name;
+    functionMapCode += "\",\n"
+                       "    ";
+    functionMapCode += *j;
+    functionMapCode += "\n"
+                       "  },\n";
+    numTests++;
+  }
+  if (!extraInclude.empty()) {
+    this->Makefile->AddDefinition("CMAKE_TESTDRIVER_EXTRA_INCLUDES",
+                                  extraInclude.c_str());
+  }
+  if (!function.empty()) {
+    this->Makefile->AddDefinition("CMAKE_TESTDRIVER_ARGVC_FUNCTION",
+                                  function.c_str());
+  }
+  this->Makefile->AddDefinition("CMAKE_FORWARD_DECLARE_TESTS",
+                                forwardDeclareCode.c_str());
+  this->Makefile->AddDefinition("CMAKE_FUNCTION_TABLE_ENTIRES",
+                                functionMapCode.c_str());
+  bool res = true;
+  if (!this->Makefile->ConfigureFile(configFile, driver, false, true, false)) {
+    res = false;
+  }
 
     // Construct the source list.
     std::string sourceListValue;

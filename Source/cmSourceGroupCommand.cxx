@@ -86,12 +86,15 @@ std::vector<std::string>
 prepareFilesPathsForTree(const std::vector<std::string>& filesPaths,
                          const std::string&              currentSourceDir)
 {
-    std::vector<std::string> prepared;
+  std::vector<std::string> prepared;
+  prepared.reserve(filesPaths.size());
 
-    for(auto const& filePath : filesPaths)
-    {
-        prepared.push_back(prepareFilePathForTree(filePath, currentSourceDir));
+  for (auto const& filePath : filesPaths) {
+    // If provided file path is actually not a file, silently ignore it.
+    if (cmSystemTools::FileExists(filePath, /*isFile=*/true)) {
+      prepared.push_back(prepareFilePathForTree(filePath, currentSourceDir));
     }
+  }
 
     return prepared;
 }
@@ -137,7 +140,25 @@ addFilesToItsSourceGroups(const std::string&           root,
         }
     }
 
-    return true;
+    if (!tokenizedPath.empty()) {
+      tokenizedPath.pop_back();
+
+      if (tokenizedPath.empty()) {
+        tokenizedPath.emplace_back();
+      }
+
+      sg = makefile.GetOrCreateSourceGroup(tokenizedPath);
+
+      if (!sg) {
+        errorMsg = "Could not create source group for file: " + sgFilesPath;
+        return false;
+      }
+      const std::string fullPath = getFullFilePath(root, sgFilesPath);
+      sg->AddGroupFile(fullPath);
+    }
+  }
+
+  return true;
 }
 }
 
@@ -292,17 +313,12 @@ bool
 cmSourceGroupCommand::checkArgumentsPreconditions(
     const ParsedArguments& parsedArguments, std::string& errorMsg) const
 {
-    if(!checkSingleParameterArgumentPreconditions(kPrefixOptionName,
-                                                  parsedArguments, errorMsg) ||
-       !checkSingleParameterArgumentPreconditions(kTreeOptionName,
-                                                  parsedArguments, errorMsg) ||
-       !checkSingleParameterArgumentPreconditions(kRegexOptionName,
-                                                  parsedArguments, errorMsg))
-    {
-        return false;
-    }
-
-    return true;
+  return checkSingleParameterArgumentPreconditions(
+           kPrefixOptionName, parsedArguments, errorMsg) &&
+    checkSingleParameterArgumentPreconditions(kTreeOptionName, parsedArguments,
+                                              errorMsg) &&
+    checkSingleParameterArgumentPreconditions(kRegexOptionName,
+                                              parsedArguments, errorMsg);
 }
 
 bool
@@ -327,13 +343,8 @@ cmSourceGroupCommand::processTree(ParsedArguments& parsedArguments,
     std::set<std::string> sourceGroupPaths =
         getSourceGroupFilesPaths(root, filesVector);
 
-    if(!addFilesToItsSourceGroups(root, sourceGroupPaths, prefix,
-                                  *(this->Makefile), errorMsg))
-    {
-        return false;
-    }
-
-    return true;
+  return addFilesToItsSourceGroups(root, sourceGroupPaths, prefix,
+                                   *(this->Makefile), errorMsg);
 }
 
 bool

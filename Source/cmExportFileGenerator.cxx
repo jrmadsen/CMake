@@ -9,6 +9,7 @@
 #include "cmLinkItem.h"
 #include "cmLocalGenerator.h"
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmOutputConverter.h"
 #include "cmPolicies.h"
 #include "cmProperty.h"
@@ -17,7 +18,6 @@
 #include "cmSystemTools.h"
 #include "cmTarget.h"
 #include "cmTargetExport.h"
-#include "cmake.h"
 
 #include "cmsys/FStream.hxx"
 #include <assert.h>
@@ -71,30 +71,28 @@ cmExportFileGenerator::GetMainExportFileName() const
 bool
 cmExportFileGenerator::GenerateImportFile()
 {
-    // Open the output file to generate it.
-    std::unique_ptr<cmsys::ofstream> foutPtr;
-    if(this->AppendMode)
-    {
-        // Open for append.
-        foutPtr = cm::make_unique<cmsys::ofstream>(this->MainImportFile.c_str(),
-                                                   std::ios::app);
-    } else
-    {
-        // Generate atomically and with copy-if-different.
-        std::unique_ptr<cmGeneratedFileStream> ap(
-            new cmGeneratedFileStream(this->MainImportFile, true));
-        ap->SetCopyIfDifferent(true);
-        foutPtr = std::move(ap);
-    }
-    if(!foutPtr.get() || !*foutPtr)
-    {
-        std::string        se = cmSystemTools::GetLastSystemError();
-        std::ostringstream e;
-        e << "cannot write to file \"" << this->MainImportFile << "\": " << se;
-        cmSystemTools::Error(e.str().c_str());
-        return false;
-    }
-    std::ostream& os = *foutPtr;
+  // Open the output file to generate it.
+  std::unique_ptr<cmsys::ofstream> foutPtr;
+  if (this->AppendMode) {
+    // Open for append.
+    auto openmodeApp = std::ios::app;
+    foutPtr = cm::make_unique<cmsys::ofstream>(this->MainImportFile.c_str(),
+                                               openmodeApp);
+  } else {
+    // Generate atomically and with copy-if-different.
+    std::unique_ptr<cmGeneratedFileStream> ap(
+      new cmGeneratedFileStream(this->MainImportFile, true));
+    ap->SetCopyIfDifferent(true);
+    foutPtr = std::move(ap);
+  }
+  if (!foutPtr || !*foutPtr) {
+    std::string se = cmSystemTools::GetLastSystemError();
+    std::ostringstream e;
+    e << "cannot write to file \"" << this->MainImportFile << "\": " << se;
+    cmSystemTools::Error(e.str());
+    return false;
+  }
+  std::ostream& os = *foutPtr;
 
     // Start with the import file header.
     this->GeneratePolicyHeaderCode(os);
@@ -232,11 +230,21 @@ checkInterfaceDirs(const std::string& prepro, cmGeneratorTarget* target,
 
     bool hadFatalError = false;
 
-    for(std::string const& li : parts)
-    {
-        size_t genexPos = cmGeneratorExpression::Find(li);
-        if(genexPos == 0)
-        {
+  for (std::string const& li : parts) {
+    size_t genexPos = cmGeneratorExpression::Find(li);
+    if (genexPos == 0) {
+      continue;
+    }
+    MessageType messageType = MessageType::FATAL_ERROR;
+    std::ostringstream e;
+    if (genexPos != std::string::npos) {
+      if (prop == "INTERFACE_INCLUDE_DIRECTORIES") {
+        switch (target->GetPolicyStatusCMP0041()) {
+          case cmPolicies::WARN:
+            messageType = MessageType::WARNING;
+            e << cmPolicies::GetPolicyWarning(cmPolicies::CMP0041) << "\n";
+            break;
+          case cmPolicies::OLD:
             continue;
         }
         cmake::MessageType messageType = cmake::FATAL_ERROR;
@@ -275,63 +283,41 @@ checkInterfaceDirs(const std::string& prepro, cmGeneratorTarget* target,
       e << "Target \"" << target->GetName() << "\" " << prop <<
            " property contains relative path:\n"
            "  \"" << li << "\"";
-            /* clang-format on */
-            target->GetLocalGenerator()->IssueMessage(messageType, e.str());
-        }
-        bool inBinary = isSubDirectory(li, topBinaryDir);
-        bool inSource = isSubDirectory(li, topSourceDir);
-        if(isSubDirectory(li, installDir))
-        {
-            // The include directory is inside the install tree.  If the
-            // install tree is not inside the source tree or build tree then
-            // fall through to the checks below that the include directory is
-            // not also inside the source tree or build tree.
-            bool shouldContinue =
-                (!inBinary || isSubDirectory(installDir, topBinaryDir)) &&
-                (!inSource || isSubDirectory(installDir, topSourceDir));
+      /* clang-format on */
+      target->GetLocalGenerator()->IssueMessage(messageType, e.str());
+    }
+    bool inBinary = isSubDirectory(li, topBinaryDir);
+    bool inSource = isSubDirectory(li, topSourceDir);
+    if (isSubDirectory(li, installDir)) {
+      // The include directory is inside the install tree.  If the
+      // install tree is not inside the source tree or build tree then
+      // fall through to the checks below that the include directory is not
+      // also inside the source tree or build tree.
+      bool shouldContinue =
+        (!inBinary || isSubDirectory(installDir, topBinaryDir)) &&
+        (!inSource || isSubDirectory(installDir, topSourceDir));
 
-            if(prop == "INTERFACE_INCLUDE_DIRECTORIES")
-            {
-                if(!shouldContinue)
-                {
-                    switch(target->GetPolicyStatusCMP0052())
-                    {
-                        case cmPolicies::WARN:
-                        {
-                            std::ostringstream s;
-                            s << cmPolicies::GetPolicyWarning(
-                                     cmPolicies::CMP0052)
-                              << "\n";
-                            s << "Directory:\n    \"" << li
-                              << "\"\nin "
-                                 "INTERFACE_INCLUDE_DIRECTORIES of target \""
-                              << target->GetName()
-                              << "\" is a subdirectory of the install "
-                                 "directory:\n    \""
-                              << installDir
-                              << "\"\nhowever it is also "
-                                 "a subdirectory of the "
-                              << (inBinary ? "build" : "source")
-                              << " tree:\n    \""
-                              << (inBinary ? topBinaryDir : topSourceDir)
-                              << "\"" << std::endl;
-                            target->GetLocalGenerator()->IssueMessage(
-                                cmake::AUTHOR_WARNING, s.str());
-                            CM_FALLTHROUGH;
-                        }
-                        case cmPolicies::OLD:
-                            shouldContinue = true;
-                            break;
-                        case cmPolicies::REQUIRED_ALWAYS:
-                        case cmPolicies::REQUIRED_IF_USED:
-                        case cmPolicies::NEW:
-                            break;
-                    }
-                }
-            }
-            if(shouldContinue)
-            {
-                continue;
+      if (prop == "INTERFACE_INCLUDE_DIRECTORIES") {
+        if (!shouldContinue) {
+          switch (target->GetPolicyStatusCMP0052()) {
+            case cmPolicies::WARN: {
+              std::ostringstream s;
+              s << cmPolicies::GetPolicyWarning(cmPolicies::CMP0052) << "\n";
+              s << "Directory:\n    \"" << li
+                << "\"\nin "
+                   "INTERFACE_INCLUDE_DIRECTORIES of target \""
+                << target->GetName()
+                << "\" is a subdirectory of the install "
+                   "directory:\n    \""
+                << installDir
+                << "\"\nhowever it is also "
+                   "a subdirectory of the "
+                << (inBinary ? "build" : "source") << " tree:\n    \""
+                << (inBinary ? topBinaryDir : topSourceDir) << "\""
+                << std::endl;
+              target->GetLocalGenerator()->IssueMessage(
+                MessageType::AUTHOR_WARNING, s.str());
+              CM_FALLTHROUGH;
             }
         }
         if(inBinary)
@@ -421,65 +407,55 @@ cmExportFileGenerator::PopulateIncludeDirectoriesInterface(
     cmGeneratorExpression::PreprocessContext preprocessRule,
     ImportPropertyMap& properties, std::vector<std::string>& missingTargets)
 {
-    cmGeneratorTarget* target = tei->Target;
-    assert(preprocessRule == cmGeneratorExpression::InstallInterface);
+  cmGeneratorTarget* target = tei->Target;
+  assert(preprocessRule == cmGeneratorExpression::InstallInterface);
 
-    const char* propName = "INTERFACE_INCLUDE_DIRECTORIES";
-    const char* input    = target->GetProperty(propName);
+  const char* propName = "INTERFACE_INCLUDE_DIRECTORIES";
+  const char* input = target->GetProperty(propName);
 
-    cmGeneratorExpression ge;
+  cmGeneratorExpression ge;
 
-    std::string dirs = cmGeneratorExpression::Preprocess(
-        tei->InterfaceIncludeDirectories, preprocessRule, true);
-    this->ReplaceInstallPrefix(dirs);
-    std::unique_ptr<cmCompiledGeneratorExpression> cge = ge.Parse(dirs);
-    std::string                                    exportDirs =
-        cge->Evaluate(target->GetLocalGenerator(), "", false, target);
+  std::string dirs = cmGeneratorExpression::Preprocess(
+    tei->InterfaceIncludeDirectories, preprocessRule, true);
+  this->ReplaceInstallPrefix(dirs);
+  std::unique_ptr<cmCompiledGeneratorExpression> cge = ge.Parse(dirs);
+  std::string exportDirs =
+    cge->Evaluate(target->GetLocalGenerator(), "", false, target);
 
-    if(cge->GetHadContextSensitiveCondition())
-    {
-        cmLocalGenerator*  lg = target->GetLocalGenerator();
-        std::ostringstream e;
-        e << "Target \"" << target->GetName()
-          << "\" is installed with "
-             "INCLUDES DESTINATION set to a context sensitive path.  Paths "
-             "which "
-             "depend on the configuration, policy values or the link interface "
-             "are "
-             "not supported.  Consider using target_include_directories "
-             "instead.";
-        lg->IssueMessage(cmake::FATAL_ERROR, e.str());
-        return;
-    }
+  if (cge->GetHadContextSensitiveCondition()) {
+    cmLocalGenerator* lg = target->GetLocalGenerator();
+    std::ostringstream e;
+    e << "Target \"" << target->GetName()
+      << "\" is installed with "
+         "INCLUDES DESTINATION set to a context sensitive path.  Paths which "
+         "depend on the configuration, policy values or the link interface "
+         "are "
+         "not supported.  Consider using target_include_directories instead.";
+    lg->IssueMessage(MessageType::FATAL_ERROR, e.str());
+    return;
+  }
 
-    if(!input && exportDirs.empty())
-    {
-        return;
-    }
-    if((input && !*input) && exportDirs.empty())
-    {
-        // Set to empty
-        properties[propName].clear();
-        return;
-    }
+  if (!input && exportDirs.empty()) {
+    return;
+  }
+  if ((input && !*input) && exportDirs.empty()) {
+    // Set to empty
+    properties[propName].clear();
+    return;
+  }
 
-    prefixItems(exportDirs);
+  prefixItems(exportDirs);
 
-    std::string includes = (input ? input : "");
-    const char* sep      = input ? ";" : "";
-    includes += sep + exportDirs;
-    std::string prepro =
-        cmGeneratorExpression::Preprocess(includes, preprocessRule, true);
-    if(!prepro.empty())
-    {
-        this->ResolveTargetsInGeneratorExpressions(prepro, target,
-                                                   missingTargets);
+  std::string includes = (input ? input : "");
+  const char* sep = input ? ";" : "";
+  includes += sep + exportDirs;
+  std::string prepro =
+    cmGeneratorExpression::Preprocess(includes, preprocessRule, true);
+  if (!prepro.empty()) {
+    this->ResolveTargetsInGeneratorExpressions(prepro, target, missingTargets);
 
-        if(!checkInterfaceDirs(prepro, target, propName))
-        {
-            return;
-        }
-        properties[propName] = prepro;
+    if (!checkInterfaceDirs(prepro, target, propName)) {
+      return;
     }
 }
 
@@ -586,10 +562,28 @@ getCompatibleInterfaceProperties(cmGeneratorTarget*     target,
                                  std::set<std::string>& ifaceProperties,
                                  const std::string&     config)
 {
-    if(target->GetType() == cmStateEnums::OBJECT_LIBRARY)
-    {
-        // object libraries have no link information, so nothing to compute
-        return;
+  if (target->GetType() == cmStateEnums::OBJECT_LIBRARY) {
+    // object libraries have no link information, so nothing to compute
+    return;
+  }
+
+  cmComputeLinkInformation* info = target->GetLinkInformation(config);
+
+  if (!info) {
+    cmLocalGenerator* lg = target->GetLocalGenerator();
+    std::ostringstream e;
+    e << "Exporting the target \"" << target->GetName()
+      << "\" is not "
+         "allowed since its linker language cannot be determined";
+    lg->IssueMessage(MessageType::FATAL_ERROR, e.str());
+    return;
+  }
+
+  const cmComputeLinkInformation::ItemVector& deps = info->GetItems();
+
+  for (auto const& dep : deps) {
+    if (!dep.Target) {
+      continue;
     }
 
     cmComputeLinkInformation* info = target->GetLinkInformation(config);
@@ -844,11 +838,10 @@ cmExportFileGenerator::ResolveTargetsInGeneratorExpression(
 
     this->ReplaceInstallPrefix(input);
 
-    if(!errorString.empty())
-    {
-        target->GetLocalGenerator()->IssueMessage(cmake::FATAL_ERROR,
-                                                  errorString);
-    }
+  if (!errorString.empty()) {
+    target->GetLocalGenerator()->IssueMessage(MessageType::FATAL_ERROR,
+                                              errorString);
+  }
 }
 
 void
@@ -864,69 +857,60 @@ cmExportFileGenerator::SetImportLinkInterface(
     cmGeneratorTarget* target, ImportPropertyMap& properties,
     std::vector<std::string>& missingTargets)
 {
-    // Add the transitive link dependencies for this configuration.
-    cmLinkInterface const* iface = target->GetLinkInterface(config, target);
-    if(!iface)
-    {
-        return;
-    }
+  // Add the transitive link dependencies for this configuration.
+  cmLinkInterface const* iface = target->GetLinkInterface(config, target);
+  if (!iface) {
+    return;
+  }
 
-    if(iface->ImplementationIsInterface)
-    {
-        // Policy CMP0022 must not be NEW.
-        this->SetImportLinkProperty(
-            suffix, target, "IMPORTED_LINK_INTERFACE_LIBRARIES",
-            iface->Libraries, properties, missingTargets);
-        return;
-    }
+  if (iface->ImplementationIsInterface) {
+    // Policy CMP0022 must not be NEW.
+    this->SetImportLinkProperty(suffix, target,
+                                "IMPORTED_LINK_INTERFACE_LIBRARIES",
+                                iface->Libraries, properties, missingTargets);
+    return;
+  }
 
-    const char* propContent;
+  const char* propContent;
 
-    if(const char* prop_suffixed =
-           target->GetProperty("LINK_INTERFACE_LIBRARIES" + suffix))
-    {
-        propContent = prop_suffixed;
-    } else if(const char* prop =
-                  target->GetProperty("LINK_INTERFACE_LIBRARIES"))
-    {
-        propContent = prop;
-    } else
-    {
-        return;
-    }
+  if (const char* prop_suffixed =
+        target->GetProperty("LINK_INTERFACE_LIBRARIES" + suffix)) {
+    propContent = prop_suffixed;
+  } else if (const char* prop =
+               target->GetProperty("LINK_INTERFACE_LIBRARIES")) {
+    propContent = prop;
+  } else {
+    return;
+  }
 
-    const bool newCMP0022Behavior =
-        target->GetPolicyStatusCMP0022() != cmPolicies::WARN &&
-        target->GetPolicyStatusCMP0022() != cmPolicies::OLD;
+  const bool newCMP0022Behavior =
+    target->GetPolicyStatusCMP0022() != cmPolicies::WARN &&
+    target->GetPolicyStatusCMP0022() != cmPolicies::OLD;
 
-    if(newCMP0022Behavior && !this->ExportOld)
-    {
-        cmLocalGenerator*  lg = target->GetLocalGenerator();
-        std::ostringstream e;
-        e << "Target \"" << target->GetName()
-          << "\" has policy CMP0022 enabled, "
-             "but also has old-style LINK_INTERFACE_LIBRARIES properties "
-             "populated, but it was exported without the "
-             "EXPORT_LINK_INTERFACE_LIBRARIES to export the old-style "
-             "properties";
-        lg->IssueMessage(cmake::FATAL_ERROR, e.str());
-        return;
-    }
+  if (newCMP0022Behavior && !this->ExportOld) {
+    cmLocalGenerator* lg = target->GetLocalGenerator();
+    std::ostringstream e;
+    e << "Target \"" << target->GetName()
+      << "\" has policy CMP0022 enabled, "
+         "but also has old-style LINK_INTERFACE_LIBRARIES properties "
+         "populated, but it was exported without the "
+         "EXPORT_LINK_INTERFACE_LIBRARIES to export the old-style properties";
+    lg->IssueMessage(MessageType::FATAL_ERROR, e.str());
+    return;
+  }
 
-    if(!*propContent)
-    {
-        properties["IMPORTED_LINK_INTERFACE_LIBRARIES" + suffix].clear();
-        return;
-    }
+  if (!*propContent) {
+    properties["IMPORTED_LINK_INTERFACE_LIBRARIES" + suffix].clear();
+    return;
+  }
 
-    std::string prepro =
-        cmGeneratorExpression::Preprocess(propContent, preprocessRule);
-    if(!prepro.empty())
-    {
-        this->ResolveTargetsInGeneratorExpressions(
-            prepro, target, missingTargets, ReplaceFreeTargets);
-        properties["IMPORTED_LINK_INTERFACE_LIBRARIES" + suffix] = prepro;
-    }
+  std::string prepro =
+    cmGeneratorExpression::Preprocess(propContent, preprocessRule);
+  if (!prepro.empty()) {
+    this->ResolveTargetsInGeneratorExpressions(prepro, target, missingTargets,
+                                               ReplaceFreeTargets);
+    properties["IMPORTED_LINK_INTERFACE_LIBRARIES" + suffix] = prepro;
+  }
 }
 
 void

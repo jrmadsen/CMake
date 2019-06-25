@@ -2,6 +2,8 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmExternalMakefileProjectGenerator.h"
 
+#include <utility>
+
 class cmMakefile;
 
 void
@@ -36,15 +38,14 @@ cmExternalMakefileProjectGenerator::Open(const std::string& /*bindir*/,
 }
 
 cmExternalMakefileProjectGeneratorFactory::
-    cmExternalMakefileProjectGeneratorFactory(const std::string& n,
-                                              const std::string& doc)
-: Name(n)
-, Documentation(doc)
-{}
+  cmExternalMakefileProjectGeneratorFactory(std::string n, std::string doc)
+  : Name(std::move(n))
+  , Documentation(std::move(doc))
+{
+}
 
 cmExternalMakefileProjectGeneratorFactory::
-    ~cmExternalMakefileProjectGeneratorFactory()
-{}
+  ~cmExternalMakefileProjectGeneratorFactory() = default;
 
 std::string
 cmExternalMakefileProjectGeneratorFactory::GetName() const

@@ -25,8 +25,13 @@ public:
 
     void clear();
 
-    /// Overloaded destructor deletes all member export sets.
-    ~cmExportSetMap();
+  cmExportSetMap();
+
+  /// Overloaded destructor deletes all member export sets.
+  ~cmExportSetMap();
+
+  cmExportSetMap(const cmExportSetMap&) = delete;
+  cmExportSetMap& operator=(const cmExportSetMap&) = delete;
 };
 
 #endif

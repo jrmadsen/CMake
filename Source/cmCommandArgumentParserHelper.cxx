@@ -6,7 +6,6 @@
 #include "cmMakefile.h"
 #include "cmState.h"
 #include "cmSystemTools.h"
-#include "cmake.h"
 
 #include <iostream>
 #include <sstream>
@@ -17,11 +16,9 @@ cmCommandArgument_yyparse(yyscan_t yyscanner);
 //
 cmCommandArgumentParserHelper::cmCommandArgumentParserHelper()
 {
-    this->WarnUninitialized = false;
-    this->CheckSystemVars   = false;
-    this->FileLine          = -1;
-    this->FileName          = nullptr;
-    this->RemoveEmpty       = true;
+  this->FileLine = -1;
+  this->FileName = nullptr;
+  this->RemoveEmpty = true;
 
     this->NoEscapeMode    = false;
     this->ReplaceAtSyntax = false;
@@ -100,44 +97,25 @@ cmCommandArgumentParserHelper::ExpandSpecialVariable(const char* key,
 const char*
 cmCommandArgumentParserHelper::ExpandVariable(const char* var)
 {
-    if(!var)
-    {
-        return nullptr;
+  if (!var) {
+    return nullptr;
+  }
+  if (this->FileLine >= 0 && strcmp(var, "CMAKE_CURRENT_LIST_LINE") == 0) {
+    std::ostringstream ostr;
+    ostr << this->FileLine;
+    return this->AddString(ostr.str());
+  }
+  const char* value = this->Makefile->GetDefinition(var);
+  if (!value) {
+    this->Makefile->MaybeWarnUninitialized(var, this->FileName);
+    if (!this->RemoveEmpty) {
+      return nullptr;
     }
-    if(this->FileLine >= 0 && strcmp(var, "CMAKE_CURRENT_LIST_LINE") == 0)
-    {
-        std::ostringstream ostr;
-        ostr << this->FileLine;
-        return this->AddString(ostr.str());
-    }
-    const char* value = this->Makefile->GetDefinition(var);
-    if(!value && !this->RemoveEmpty)
-    {
-        // check to see if we need to print a warning
-        // if strict mode is on and the variable has
-        // not been "cleared"/initialized with a set(foo ) call
-        if(this->WarnUninitialized && !this->Makefile->VariableInitialized(var))
-        {
-            if(this->CheckSystemVars ||
-               (this->FileName &&
-                (cmSystemTools::IsSubDirectory(
-                     this->FileName, this->Makefile->GetHomeDirectory()) ||
-                 cmSystemTools::IsSubDirectory(
-                     this->FileName,
-                     this->Makefile->GetHomeOutputDirectory()))))
-            {
-                std::ostringstream msg;
-                msg << "uninitialized variable \'" << var << "\'";
-                this->Makefile->IssueMessage(cmake::AUTHOR_WARNING, msg.str());
-            }
-        }
-        return nullptr;
-    }
-    if(this->EscapeQuotes && value)
-    {
-        return this->AddString(cmSystemTools::EscapeQuotes(value));
-    }
-    return this->AddString(value ? value : "");
+  }
+  if (this->EscapeQuotes && value) {
+    return this->AddString(cmSystemTools::EscapeQuotes(value));
+  }
+  return this->AddString(value ? value : "");
 }
 
 const char*
@@ -331,9 +309,7 @@ cmCommandArgumentParserHelper::Error(const char* str)
 void
 cmCommandArgumentParserHelper::SetMakefile(const cmMakefile* mf)
 {
-    this->Makefile          = mf;
-    this->WarnUninitialized = mf->GetCMakeInstance()->GetWarnUninitialized();
-    this->CheckSystemVars   = mf->GetCMakeInstance()->GetCheckSystemVars();
+  this->Makefile = mf;
 }
 
 void

@@ -20,9 +20,9 @@ class cmXCodeScheme
 public:
     typedef std::vector<const cmXCodeObject*> TestObjects;
 
-    cmXCodeScheme(cmXCodeObject* xcObj, const TestObjects& tests,
-                  const std::vector<std::string>& configList,
-                  unsigned int                    xcVersion);
+  cmXCodeScheme(cmXCodeObject* xcObj, TestObjects tests,
+                const std::vector<std::string>& configList,
+                unsigned int xcVersion);
 
     void WriteXCodeSharedScheme(const std::string& xcProjDir,
                                 const std::string& container);

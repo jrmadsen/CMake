@@ -49,12 +49,12 @@ struct cmStateDetail::SnapshotDataType
 
 struct cmStateDetail::PolicyStackEntry : public cmPolicies::PolicyMap
 {
-    typedef cmPolicies::PolicyMap derived;
-    PolicyStackEntry(bool w = false)
-    : derived()
-    , Weak(w)
-    {}
-    PolicyStackEntry(derived const& d, bool w)
+  typedef cmPolicies::PolicyMap derived;
+  PolicyStackEntry(bool w = false)
+    : Weak(w)
+  {
+  }
+  PolicyStackEntry(derived const& d, bool w)
     : derived(d)
     , Weak(w)
     {}

@@ -55,11 +55,7 @@ template <typename T>
 bool
 read(cmsys::ifstream& fin, T& v)
 {
-    if(!fin.read(reinterpret_cast<char*>(&v), sizeof(T)))
-    {
-        return false;
-    }
-    return true;
+  return !!fin.read(reinterpret_cast<char*>(&v), sizeof(T));
 }
 
 // read from the file and fill multiple data structures where
@@ -78,6 +74,8 @@ read(cmsys::ifstream& fin, std::vector<T>& v)
         return false;
     }
     return true;
+  }
+  return !!fin.read(reinterpret_cast<char*>(&v[0]), sizeof(T) * v.size());
 }
 }
 
@@ -113,15 +111,25 @@ public:
         return this->LoadCommands;
     }
 
-    uint32_t swap(uint32_t v) const
-    {
-        if(this->Swap)
-        {
-            char* c = reinterpret_cast<char*>(&v);
-            std::swap(c[0], c[3]);
-            std::swap(c[1], c[2]);
-        }
-        return v;
+  cmMachOHeaderAndLoadCommands(bool _swap)
+    : Swap(_swap)
+  {
+  }
+  virtual ~cmMachOHeaderAndLoadCommands() = default;
+
+  virtual bool read_mach_o(cmsys::ifstream& fin) = 0;
+
+  const std::vector<RawLoadCommand>& load_commands() const
+  {
+    return this->LoadCommands;
+  }
+
+  uint32_t swap(uint32_t v) const
+  {
+    if (this->Swap) {
+      char* c = reinterpret_cast<char*>(&v);
+      std::swap(c[0], c[3]);
+      std::swap(c[1], c[2]);
     }
 
 protected:

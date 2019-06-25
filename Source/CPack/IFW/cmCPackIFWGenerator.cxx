@@ -18,7 +18,7 @@
 
 cmCPackIFWGenerator::cmCPackIFWGenerator() { this->Generator = this; }
 
-cmCPackIFWGenerator::~cmCPackIFWGenerator() {}
+cmCPackIFWGenerator::~cmCPackIFWGenerator() = default;
 
 int
 cmCPackIFWGenerator::PackageFiles()
@@ -143,105 +143,163 @@ cmCPackIFWGenerator::PackageFiles()
                 ++it;
             }
         }
-
-        ifwCmd += " -p " + this->toplevel + "/packages";
-
-        if(!this->PkgsDirsVector.empty())
-        {
-            for(std::string const& it : this->PkgsDirsVector)
-            {
-                ifwCmd += " -p " + it;
-            }
-        }
-
-        if(!this->RepoDirsVector.empty())
-        {
-            if(!this->IsVersionLess("3.1"))
-            {
-                for(std::string const& rd : this->RepoDirsVector)
-                {
-                    ifwCmd += " --repository " + rd;
-                }
-            } else
-            {
-                cmCPackIFWLogger(
-                    WARNING,
-                    "The \"CPACK_IFW_REPOSITORIES_DIRECTORIES\" "
-                        << "variable is set, but content will be skipped, "
-                        << "because this feature available only since "
-                        << "QtIFW 3.1. Please update your QtIFW instance."
-                        << std::endl);
-            }
-        }
-
-        if(this->OnlineOnly)
-        {
-            ifwCmd += " --online-only";
-        } else if(!this->DownloadedPackages.empty() &&
-                  !this->Installer.RemoteRepositories.empty())
-        {
-            ifwCmd += " -e ";
-            std::set<cmCPackIFWPackage*>::iterator it =
-                this->DownloadedPackages.begin();
-            ifwCmd += (*it)->Name;
-            ++it;
-            while(it != this->DownloadedPackages.end())
-            {
-                ifwCmd += "," + (*it)->Name;
-                ++it;
-            }
-        } else if(!this->DependentPackages.empty())
-        {
-            ifwCmd += " -i ";
-            // Binary
-            std::set<cmCPackIFWPackage*>::iterator bit =
-                this->BinaryPackages.begin();
-            while(bit != this->BinaryPackages.end())
-            {
-                ifwCmd += (*bit)->Name + ",";
-                ++bit;
-            }
-            // Depend
-            DependenceMap::iterator it = this->DependentPackages.begin();
-            ifwCmd += it->second.Name;
-            ++it;
-            while(it != this->DependentPackages.end())
-            {
-                ifwCmd += "," + it->second.Name;
-                ++it;
-            }
-        }
-        // TODO: set correct name for multipackages
-        if(!this->packageFileNames.empty())
-        {
-            ifwCmd += " " + this->packageFileNames[0];
-        } else
-        {
-            ifwCmd += " installer";
-            ifwCmd += this->OutputExtension;
-        }
-        cmCPackIFWLogger(VERBOSE, "Execute: " << ifwCmd << std::endl);
-        std::string output;
-        int         retVal = 1;
-        cmCPackIFWLogger(OUTPUT, "- Generate package" << std::endl);
-        bool res = cmSystemTools::RunSingleCommand(
-            ifwCmd.c_str(), &output, &output, &retVal, nullptr,
-            this->GeneratorVerbose, cmDuration::zero());
-        if(!res || retVal)
-        {
-            cmGeneratedFileStream ofs(ifwTmpFile);
-            ofs << "# Run command: " << ifwCmd << std::endl
-                << "# Output:" << std::endl
-                << output << std::endl;
-            cmCPackIFWLogger(ERROR, "Problem running IFW command: "
-                                        << ifwCmd << std::endl
-                                        << "Please check " << ifwTmpFile
-                                        << " for errors" << std::endl);
-            return 0;
-        }
+      } else {
+        cmCPackIFWLogger(WARNING,
+                         "The \"CPACK_IFW_REPOSITORIES_DIRECTORIES\" "
+                           << "variable is set, but content will be skipped, "
+                           << "because this feature available only since "
+                           << "QtIFW 3.1. Please update your QtIFW instance."
+                           << std::endl);
+      }
     }
 
-    return 1;
+    if (!this->OnlineOnly && !this->DownloadedPackages.empty()) {
+      ifwCmd += " -i ";
+      std::set<cmCPackIFWPackage*>::iterator it =
+        this->DownloadedPackages.begin();
+      ifwCmd += (*it)->Name;
+      ++it;
+      while (it != this->DownloadedPackages.end()) {
+        ifwCmd += "," + (*it)->Name;
+        ++it;
+      }
+    }
+    ifwCmd += " " + this->toplevel + "/repository";
+    cmCPackIFWLogger(VERBOSE, "Execute: " << ifwCmd << std::endl);
+    std::string output;
+    int retVal = 1;
+    cmCPackIFWLogger(OUTPUT, "- Generate repository" << std::endl);
+    bool res = cmSystemTools::RunSingleCommand(
+      ifwCmd, &output, &output, &retVal, nullptr, this->GeneratorVerbose,
+      cmDuration::zero());
+    if (!res || retVal) {
+      cmGeneratedFileStream ofs(ifwTmpFile);
+      ofs << "# Run command: " << ifwCmd << std::endl
+          << "# Output:" << std::endl
+          << output << std::endl;
+      cmCPackIFWLogger(ERROR,
+                       "Problem running IFW command: "
+                         << ifwCmd << std::endl
+                         << "Please check " << ifwTmpFile << " for errors"
+                         << std::endl);
+      return 0;
+    }
+
+    if (!this->Repository.RepositoryUpdate.empty() &&
+        !this->Repository.PatchUpdatesXml()) {
+      cmCPackIFWLogger(WARNING,
+                       "Problem patch IFW \"Updates\" "
+                         << "file: "
+                         << this->toplevel + "/repository/Updates.xml"
+                         << std::endl);
+    }
+
+    cmCPackIFWLogger(OUTPUT,
+                     "- repository: " << this->toplevel
+                                      << "/repository generated" << std::endl);
+  }
+
+  // Run binary creator
+  {
+    std::string ifwCmd = this->BinCreator;
+    ifwCmd += " -c " + this->toplevel + "/config/config.xml";
+
+    if (!this->Installer.Resources.empty()) {
+      ifwCmd += " -r ";
+      std::vector<std::string>::iterator it =
+        this->Installer.Resources.begin();
+      std::string path = this->toplevel + "/resources/";
+      ifwCmd += path + *it;
+      ++it;
+      while (it != this->Installer.Resources.end()) {
+        ifwCmd += "," + path + *it;
+        ++it;
+      }
+    }
+
+    ifwCmd += " -p " + this->toplevel + "/packages";
+
+    if (!this->PkgsDirsVector.empty()) {
+      for (std::string const& it : this->PkgsDirsVector) {
+        ifwCmd += " -p " + it;
+      }
+    }
+
+    if (!this->RepoDirsVector.empty()) {
+      if (!this->IsVersionLess("3.1")) {
+        for (std::string const& rd : this->RepoDirsVector) {
+          ifwCmd += " --repository " + rd;
+        }
+      } else {
+        cmCPackIFWLogger(WARNING,
+                         "The \"CPACK_IFW_REPOSITORIES_DIRECTORIES\" "
+                           << "variable is set, but content will be skipped, "
+                           << "because this feature available only since "
+                           << "QtIFW 3.1. Please update your QtIFW instance."
+                           << std::endl);
+      }
+    }
+
+    if (this->OnlineOnly) {
+      ifwCmd += " --online-only";
+    } else if (!this->DownloadedPackages.empty() &&
+               !this->Installer.RemoteRepositories.empty()) {
+      ifwCmd += " -e ";
+      std::set<cmCPackIFWPackage*>::iterator it =
+        this->DownloadedPackages.begin();
+      ifwCmd += (*it)->Name;
+      ++it;
+      while (it != this->DownloadedPackages.end()) {
+        ifwCmd += "," + (*it)->Name;
+        ++it;
+      }
+    } else if (!this->DependentPackages.empty()) {
+      ifwCmd += " -i ";
+      // Binary
+      std::set<cmCPackIFWPackage*>::iterator bit =
+        this->BinaryPackages.begin();
+      while (bit != this->BinaryPackages.end()) {
+        ifwCmd += (*bit)->Name + ",";
+        ++bit;
+      }
+      // Depend
+      DependenceMap::iterator it = this->DependentPackages.begin();
+      ifwCmd += it->second.Name;
+      ++it;
+      while (it != this->DependentPackages.end()) {
+        ifwCmd += "," + it->second.Name;
+        ++it;
+      }
+    }
+    // TODO: set correct name for multipackages
+    if (!this->packageFileNames.empty()) {
+      ifwCmd += " " + this->packageFileNames[0];
+    } else {
+      ifwCmd += " installer";
+      ifwCmd += this->OutputExtension;
+    }
+    cmCPackIFWLogger(VERBOSE, "Execute: " << ifwCmd << std::endl);
+    std::string output;
+    int retVal = 1;
+    cmCPackIFWLogger(OUTPUT, "- Generate package" << std::endl);
+    bool res = cmSystemTools::RunSingleCommand(
+      ifwCmd, &output, &output, &retVal, nullptr, this->GeneratorVerbose,
+      cmDuration::zero());
+    if (!res || retVal) {
+      cmGeneratedFileStream ofs(ifwTmpFile);
+      ofs << "# Run command: " << ifwCmd << std::endl
+          << "# Output:" << std::endl
+          << output << std::endl;
+      cmCPackIFWLogger(ERROR,
+                       "Problem running IFW command: "
+                         << ifwCmd << std::endl
+                         << "Please check " << ifwTmpFile << " for errors"
+                         << std::endl);
+      return 0;
+    }
+  }
+
+  return 1;
 }
 
 const char*

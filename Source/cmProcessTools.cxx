@@ -10,30 +10,24 @@ void
 cmProcessTools::RunProcess(struct cmsysProcess_s* cp, OutputParser* out,
                            OutputParser* err, Encoding encoding)
 {
-    cmsysProcess_Execute(cp);
-    char*           data   = nullptr;
-    int             length = 0;
-    int             p;
-    cmProcessOutput processOutput(encoding);
-    std::string     strdata;
-    while((out || err) &&
-          (p = cmsysProcess_WaitForData(cp, &data, &length, nullptr), p))
-    {
-        if(out && p == cmsysProcess_Pipe_STDOUT)
-        {
-            processOutput.DecodeText(data, length, strdata, 1);
-            if(!out->Process(strdata.c_str(), int(strdata.size())))
-            {
-                out = nullptr;
-            }
-        } else if(err && p == cmsysProcess_Pipe_STDERR)
-        {
-            processOutput.DecodeText(data, length, strdata, 2);
-            if(!err->Process(strdata.c_str(), int(strdata.size())))
-            {
-                err = nullptr;
-            }
-        }
+  cmsysProcess_Execute(cp);
+  char* data = nullptr;
+  int length = 0;
+  int p;
+  cmProcessOutput processOutput(encoding);
+  std::string strdata;
+  while ((out || err) &&
+         (p = cmsysProcess_WaitForData(cp, &data, &length, nullptr))) {
+    if (out && p == cmsysProcess_Pipe_STDOUT) {
+      processOutput.DecodeText(data, length, strdata, 1);
+      if (!out->Process(strdata.c_str(), int(strdata.size()))) {
+        out = nullptr;
+      }
+    } else if (err && p == cmsysProcess_Pipe_STDERR) {
+      processOutput.DecodeText(data, length, strdata, 2);
+      if (!err->Process(strdata.c_str(), int(strdata.size()))) {
+        err = nullptr;
+      }
     }
     if(out)
     {
@@ -55,12 +49,10 @@ cmProcessTools::RunProcess(struct cmsysProcess_s* cp, OutputParser* out,
 }
 
 cmProcessTools::LineParser::LineParser(char sep, bool ignoreCR)
-: Log(nullptr)
-, Prefix(nullptr)
-, Separator(sep)
-, LineEnd('\0')
-, IgnoreCR(ignoreCR)
-{}
+  : Separator(sep)
+  , IgnoreCR(ignoreCR)
+{
+}
 
 void
 cmProcessTools::LineParser::SetLog(std::ostream* log, const char* prefix)

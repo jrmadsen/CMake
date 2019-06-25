@@ -37,10 +37,9 @@ public:
                      cmExecutionStatus&              status) override;
 
 private:
-    static bool RunCommand(const char* command, std::string& output,
-                           int& retVal, const char* directory = nullptr,
-                           bool     verbose  = true,
-                           Encoding encoding = cmProcessOutput::Auto);
+  static bool RunCommand(std::string command, std::string& output, int& retVal,
+                         const char* directory = nullptr, bool verbose = true,
+                         Encoding encoding = cmProcessOutput::Auto);
 };
 
 #endif

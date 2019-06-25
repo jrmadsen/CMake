@@ -4,9 +4,9 @@
 
 #include "cmSystemTools.h"
 
-cmDependsJava::cmDependsJava() {}
+cmDependsJava::cmDependsJava() = default;
 
-cmDependsJava::~cmDependsJava() {}
+cmDependsJava::~cmDependsJava() = default;
 
 bool
 cmDependsJava::WriteDependencies(const std::set<std::string>& sources,
@@ -25,10 +25,9 @@ cmDependsJava::WriteDependencies(const std::set<std::string>& sources,
     return true;
 }
 
-bool
-cmDependsJava::CheckDependencies(
-    std::istream& /*internalDepends*/, const char* /*internalDependsFileName*/,
-    std::map<std::string, DependencyVector>& /*validDeps*/)
+bool cmDependsJava::CheckDependencies(
+  std::istream& /*internalDepends*/,
+  const std::string& /*internalDependsFileName*/, DependencyMap& /*validDeps*/)
 {
     return true;
 }

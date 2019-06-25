@@ -16,10 +16,39 @@ bool
 cmInstallTargetsCommand::InitialPass(std::vector<std::string> const& args,
                                      cmExecutionStatus&)
 {
-    if(args.size() < 2)
-    {
-        this->SetError("called with incorrect number of arguments");
+  if (args.size() < 2) {
+    this->SetError("called with incorrect number of arguments");
+    return false;
+  }
+
+  // Enable the install target.
+  this->Makefile->GetGlobalGenerator()->EnableInstallTarget();
+
+  cmMakefile::cmTargetMap& tgts = this->Makefile->GetTargets();
+  std::vector<std::string>::const_iterator s = args.begin();
+  ++s;
+  std::string runtime_dir = "/bin";
+  for (; s != args.end(); ++s) {
+    if (*s == "RUNTIME_DIRECTORY") {
+      ++s;
+      if (s == args.end()) {
+        this->SetError("called with RUNTIME_DIRECTORY but no actual "
+                       "directory");
         return false;
+      }
+
+      runtime_dir = *s;
+    } else {
+      cmMakefile::cmTargetMap::iterator ti = tgts.find(*s);
+      if (ti != tgts.end()) {
+        ti->second.SetInstallPath(args[0]);
+        ti->second.SetRuntimeInstallPath(runtime_dir);
+        ti->second.SetHaveInstallRule(true);
+      } else {
+        std::string str = "Cannot find target: \"" + *s + "\" to install.";
+        this->SetError(str);
+        return false;
+      }
     }
 
     // Enable the install target.

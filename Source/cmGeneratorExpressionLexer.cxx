@@ -2,10 +2,7 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmGeneratorExpressionLexer.h"
 
-cmGeneratorExpressionLexer::cmGeneratorExpressionLexer()
-: SawBeginExpression(false)
-, SawGeneratorExpression(false)
-{}
+cmGeneratorExpressionLexer::cmGeneratorExpressionLexer() = default;
 
 static void
 InsertText(const char* upto, const char* c,
@@ -22,12 +19,11 @@ cmGeneratorExpressionLexer::Tokenize(const std::string& input)
 {
     std::vector<cmGeneratorExpressionToken> result;
 
-    if(input.find('$') == std::string::npos)
-    {
-        result.push_back(cmGeneratorExpressionToken(
-            cmGeneratorExpressionToken::Text, input.c_str(), input.size()));
-        return result;
-    }
+  if (input.find('$') == std::string::npos) {
+    result.emplace_back(cmGeneratorExpressionToken::Text, input.c_str(),
+                        input.size());
+    return result;
+  }
 
     const char* c    = input.c_str();
     const char* upto = c;

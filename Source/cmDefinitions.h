@@ -40,38 +40,34 @@ public:
     static cmDefinitions MakeClosure(StackIter begin, StackIter end);
 
 private:
-    // String with existence boolean.
-    struct Def : public std::string
+  // String with existence boolean.
+  struct Def : public std::string
+  {
+  private:
+    typedef std::string std_string;
+
+  public:
+    Def() = default;
+    Def(const char* v)
+      : std_string(v ? v : "")
+      , Exists(v ? true : false)
     {
-    private:
-        typedef std::string std_string;
+    }
+    Def(const std_string& v)
+      : std_string(v)
+      , Exists(true)
+    {
+    }
+    bool Exists = false;
+    bool Used = false;
+  };
+  static Def NoDef;
 
-    public:
-        Def()
-        : std_string()
-        , Exists(false)
-        , Used(false)
-        {}
-        Def(const char* v)
-        : std_string(v ? v : "")
-        , Exists(v ? true : false)
-        , Used(false)
-        {}
-        Def(const std_string& v)
-        : std_string(v)
-        , Exists(true)
-        , Used(false)
-        {}
-        bool Exists;
-        bool Used;
-    };
-    static Def NoDef;
+  typedef std::unordered_map<std::string, Def> MapType;
+  MapType Map;
 
-    typedef std::unordered_map<std::string, Def> MapType;
-    MapType                                      Map;
-
-    static Def const& GetInternal(const std::string& key, StackIter begin,
-                                  StackIter end, bool raise);
+  static Def const& GetInternal(const std::string& key, StackIter begin,
+                                StackIter end, bool raise);
 };
 
 #endif

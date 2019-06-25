@@ -29,8 +29,34 @@ public:
     ~cmCTestGlobalVC() override;
 
 protected:
-    // Implement cmCTestVC internal API.
-    bool WriteXMLUpdates(cmXMLWriter& xml) override;
+  // Implement cmCTestVC internal API.
+  bool WriteXMLUpdates(cmXMLWriter& xml) override;
+
+  void SetNewRevision(std::string const& revision) override;
+
+  /** Represent a vcs-reported action for one path in a revision.  */
+  struct Change
+  {
+    char Action;
+    std::string Path;
+    Change(char a = '?')
+      : Action(a)
+    {
+    }
+  };
+
+  // Update status for files in each directory.
+  class Directory : public std::map<std::string, File>
+  {
+  };
+  std::map<std::string, Directory> Dirs;
+
+  // Old and new repository revisions.
+  std::string OldRevision;
+  std::string NewRevision;
+
+  // Information known about old revision.
+  Revision PriorRev;
 
     /** Represent a vcs-reported action for one path in a revision.  */
     struct Change

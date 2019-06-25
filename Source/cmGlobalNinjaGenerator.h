@@ -7,12 +7,15 @@
 
 #include <iosfwd>
 #include <map>
+#include <memory> // IWYU pragma: keep
 #include <set>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
+#include "cmGeneratedFileStream.h"
 #include "cmGlobalCommonGenerator.h"
 #include "cmGlobalGenerator.h"
 #include "cmGlobalGeneratorFactory.h"
@@ -21,7 +24,6 @@
 #include "cm_codecvt.hxx"
 
 class cmCustomCommand;
-class cmGeneratedFileStream;
 class cmGeneratorTarget;
 class cmLinkLineComputer;
 class cmLocalGenerator;
@@ -41,8 +43,6 @@ struct cmDocumentationEntry;
  *   it is handle by Ninja's -v option.
  * - We don't care about computing any progress status since Ninja manages
  *   it itself.
- * - We don't care about generating a clean target since Ninja already have
- *   a clean tool.
  * - We generate one build.ninja and one rules.ninja per project.
  * - We try to minimize the number of generated rules: one per target and
  *   language.
@@ -53,194 +53,174 @@ struct cmDocumentationEntry;
 class cmGlobalNinjaGenerator : public cmGlobalCommonGenerator
 {
 public:
-    /// The default name of Ninja's build file. Typically: build.ninja.
-    static const char* NINJA_BUILD_FILE;
+  /// The default name of Ninja's build file. Typically: build.ninja.
+  static const char* NINJA_BUILD_FILE;
 
-    /// The default name of Ninja's rules file. Typically: rules.ninja.
-    /// It is included in the main build.ninja file.
-    static const char* NINJA_RULES_FILE;
+  /// The default name of Ninja's rules file. Typically: rules.ninja.
+  /// It is included in the main build.ninja file.
+  static const char* NINJA_RULES_FILE;
 
-    /// The indentation string used when generating Ninja's build file.
-    static const char* INDENT;
+  /// The indentation string used when generating Ninja's build file.
+  static const char* INDENT;
 
-    /// The shell command used for a no-op.
-    static std::string const SHELL_NOOP;
+  /// The shell command used for a no-op.
+  static std::string const SHELL_NOOP;
 
-    /// Write @a count times INDENT level to output stream @a os.
-    static void Indent(std::ostream& os, int count);
+  /// Write @a count times INDENT level to output stream @a os.
+  static void Indent(std::ostream& os, int count);
 
-    /// Write a divider in the given output stream @a os.
-    static void WriteDivider(std::ostream& os);
+  /// Write a divider in the given output stream @a os.
+  static void WriteDivider(std::ostream& os);
 
-    static std::string EncodeRuleName(std::string const& name);
-    static std::string EncodeLiteral(const std::string& lit);
-    std::string        EncodePath(const std::string& path);
+  static std::string EncodeRuleName(std::string const& name);
+  static std::string EncodeLiteral(const std::string& lit);
+  std::string EncodePath(const std::string& path);
 
-    cmLinkLineComputer* CreateLinkLineComputer(
-        cmOutputConverter*      outputConverter,
-        cmStateDirectory const& stateDir) const override;
+  cmLinkLineComputer* CreateLinkLineComputer(
+    cmOutputConverter* outputConverter,
+    cmStateDirectory const& stateDir) const override;
 
-    /**
-     * Write the given @a comment to the output stream @a os. It
-     * handles new line character properly.
-     */
-    static void WriteComment(std::ostream& os, const std::string& comment);
+  /**
+   * Write the given @a comment to the output stream @a os. It
+   * handles new line character properly.
+   */
+  static void WriteComment(std::ostream& os, const std::string& comment);
 
-    /**
-     * Utilized by the generator factory to determine if this generator
-     * supports toolsets.
-     */
-    static bool SupportsToolset() { return false; }
+  /**
+   * Utilized by the generator factory to determine if this generator
+   * supports toolsets.
+   */
+  static bool SupportsToolset() { return false; }
 
-    /**
-     * Utilized by the generator factory to determine if this generator
-     * supports platforms.
-     */
-    static bool SupportsPlatform() { return false; }
+  /**
+   * Utilized by the generator factory to determine if this generator
+   * supports platforms.
+   */
+  static bool SupportsPlatform() { return false; }
 
-    bool IsIPOSupported() const override { return true; }
+  bool IsIPOSupported() const override { return true; }
 
-    /**
-     * Write a build statement to @a os with the @a comment using
-     * the @a rule the list of @a outputs files and inputs.
-     * It also writes the variables bound to this build statement.
-     * @warning no escaping of any kind is done here.
-     */
-    void WriteBuild(std::ostream& os, const std::string& comment,
-                    const std::string& rule, const cmNinjaDeps& outputs,
-                    const cmNinjaDeps& implicitOuts,
-                    const cmNinjaDeps& explicitDeps,
-                    const cmNinjaDeps& implicitDeps,
-                    const cmNinjaDeps& orderOnlyDeps,
-                    const cmNinjaVars& variables,
-                    const std::string& rspfile = std::string(),
-                    int cmdLineLimit = 0, bool* usedResponseFile = nullptr);
+  /**
+   * Write a build statement @a build to @a os.
+   * @warning no escaping of any kind is done here.
+   */
+  void WriteBuild(std::ostream& os, cmNinjaBuild const& build,
+                  int cmdLineLimit = 0, bool* usedResponseFile = nullptr);
 
-    /**
-     * Helper to write a build statement with the special 'phony' rule.
-     */
-    void WritePhonyBuild(std::ostream& os, const std::string& comment,
-                         const cmNinjaDeps& outputs,
-                         const cmNinjaDeps& explicitDeps,
-                         const cmNinjaDeps& implicitDeps  = cmNinjaDeps(),
-                         const cmNinjaDeps& orderOnlyDeps = cmNinjaDeps(),
-                         const cmNinjaVars& variables     = cmNinjaVars());
+  void WriteCustomCommandBuild(
+    const std::string& command, const std::string& description,
+    const std::string& comment, const std::string& depfile,
+    const std::string& pool, bool uses_terminal, bool restat,
+    const cmNinjaDeps& outputs,
+    const cmNinjaDeps& explicitDeps = cmNinjaDeps(),
+    const cmNinjaDeps& orderOnlyDeps = cmNinjaDeps());
 
-    void WriteCustomCommandBuild(const std::string& command,
-                                 const std::string& description,
-                                 const std::string& comment,
-                                 const std::string& depfile, bool uses_terminal,
-                                 bool restat, const cmNinjaDeps& outputs,
-                                 const cmNinjaDeps& deps      = cmNinjaDeps(),
-                                 const cmNinjaDeps& orderOnly = cmNinjaDeps());
-    void WriteMacOSXContentBuild(const std::string& input,
-                                 const std::string& output);
+  void WriteMacOSXContentBuild(std::string input, std::string output);
 
-    /**
-     * Write a rule statement named @a name to @a os with the @a comment,
-     * the mandatory @a command, the @a depfile and the @a description.
-     * It also writes the variables bound to this rule statement.
-     * @warning no escaping of any kind is done here.
-     */
-    static void WriteRule(
-        std::ostream& os, const std::string& name, const std::string& command,
-        const std::string& description, const std::string& comment,
-        const std::string& depfile, const std::string& deptype,
-        const std::string& rspfile, const std::string& rspcontent,
-        const std::string& restat, bool generator);
+  /**
+   * Write a rule statement to @a os.
+   * @warning no escaping of any kind is done here.
+   */
+  static void WriteRule(std::ostream& os, cmNinjaRule const& rule);
 
-    /**
-     * Write a variable named @a name to @a os with value @a value and an
-     * optional @a comment. An @a indent level can be specified.
-     * @warning no escaping of any kind is done here.
-     */
-    static void WriteVariable(std::ostream& os, const std::string& name,
-                              const std::string& value,
-                              const std::string& comment = "", int indent = 0);
+  /**
+   * Write a variable named @a name to @a os with value @a value and an
+   * optional @a comment. An @a indent level can be specified.
+   * @warning no escaping of any kind is done here.
+   */
+  static void WriteVariable(std::ostream& os, const std::string& name,
+                            const std::string& value,
+                            const std::string& comment = "", int indent = 0);
 
-    /**
-     * Write an include statement including @a filename with an optional
-     * @a comment to the @a os stream.
-     */
-    static void WriteInclude(std::ostream& os, const std::string& filename,
-                             const std::string& comment = "");
+  /**
+   * Write an include statement including @a filename with an optional
+   * @a comment to the @a os stream.
+   */
+  static void WriteInclude(std::ostream& os, const std::string& filename,
+                           const std::string& comment = "");
 
-    /**
-     * Write a default target statement specifying @a targets as
-     * the default targets.
-     */
-    static void WriteDefault(std::ostream& os, const cmNinjaDeps& targets,
-                             const std::string& comment = "");
+  /**
+   * Write a default target statement specifying @a targets as
+   * the default targets.
+   */
+  static void WriteDefault(std::ostream& os, const cmNinjaDeps& targets,
+                           const std::string& comment = "");
 
-    bool IsGCCOnWindows() const { return UsingGCCOnWindows; }
+  bool IsGCCOnWindows() const { return UsingGCCOnWindows; }
 
 public:
-    cmGlobalNinjaGenerator(cmake* cm);
+  cmGlobalNinjaGenerator(cmake* cm);
 
-    static cmGlobalGeneratorFactory* NewFactory()
-    {
-        return new cmGlobalGeneratorSimpleFactory<cmGlobalNinjaGenerator>();
-    }
+  static cmGlobalGeneratorFactory* NewFactory()
+  {
+    return new cmGlobalGeneratorSimpleFactory<cmGlobalNinjaGenerator>();
+  }
 
-    ~cmGlobalNinjaGenerator() override {}
+  cmLocalGenerator* CreateLocalGenerator(cmMakefile* mf) override;
 
-    cmLocalGenerator* CreateLocalGenerator(cmMakefile* mf) override;
+  std::string GetName() const override
+  {
+    return cmGlobalNinjaGenerator::GetActualName();
+  }
 
-    std::string GetName() const override
-    {
-        return cmGlobalNinjaGenerator::GetActualName();
-    }
+  static std::string GetActualName() { return "Ninja"; }
 
-    static std::string GetActualName() { return "Ninja"; }
+  /** Get encoding used by generator for ninja files */
+  codecvt::Encoding GetMakefileEncoding() const override;
 
-    /** Get encoding used by generator for ninja files */
-    codecvt::Encoding GetMakefileEncoding() const override;
+  static void GetDocumentation(cmDocumentationEntry& entry);
 
-    static void GetDocumentation(cmDocumentationEntry& entry);
+  void EnableLanguage(std::vector<std::string> const& languages,
+                      cmMakefile* mf, bool optional) override;
 
-    void EnableLanguage(std::vector<std::string> const& languages,
-                        cmMakefile* mf, bool optional) override;
+  std::vector<GeneratedMakeCommand> GenerateBuildCommand(
+    const std::string& makeProgram, const std::string& projectName,
+    const std::string& projectDir, std::vector<std::string> const& targetNames,
+    const std::string& config, bool fast, int jobs, bool verbose,
+    std::vector<std::string> const& makeOptions =
+      std::vector<std::string>()) override;
 
-    void GenerateBuildCommand(std::vector<std::string>& makeCommand,
-                              const std::string&        makeProgram,
-                              const std::string&        projectName,
-                              const std::string&        projectDir,
-                              const std::string&        targetName,
-                              const std::string& config, bool fast, int jobs,
-                              bool                            verbose,
-                              std::vector<std::string> const& makeOptions =
-                                  std::vector<std::string>()) override;
+  // Setup target names
+  const char* GetAllTargetName() const override { return "all"; }
+  const char* GetInstallTargetName() const override { return "install"; }
+  const char* GetInstallLocalTargetName() const override
+  {
+    return "install/local";
+  }
+  const char* GetInstallStripTargetName() const override
+  {
+    return "install/strip";
+  }
+  const char* GetTestTargetName() const override { return "test"; }
+  const char* GetPackageTargetName() const override { return "package"; }
+  const char* GetPackageSourceTargetName() const override
+  {
+    return "package_source";
+  }
+  const char* GetEditCacheTargetName() const override { return "edit_cache"; }
+  const char* GetRebuildCacheTargetName() const override
+  {
+    return "rebuild_cache";
+  }
+  const char* GetCleanTargetName() const override { return "clean"; }
 
-    // Setup target names
-    const char* GetAllTargetName() const override { return "all"; }
-    const char* GetInstallTargetName() const override { return "install"; }
-    const char* GetInstallLocalTargetName() const override
-    {
-        return "install/local";
-    }
-    const char* GetInstallStripTargetName() const override
-    {
-        return "install/strip";
-    }
-    const char* GetTestTargetName() const override { return "test"; }
-    const char* GetPackageTargetName() const override { return "package"; }
-    const char* GetPackageSourceTargetName() const override
-    {
-        return "package_source";
-    }
-    const char* GetEditCacheTargetName() const override { return "edit_cache"; }
-    const char* GetRebuildCacheTargetName() const override
-    {
-        return "rebuild_cache";
-    }
-    const char* GetCleanTargetName() const override { return "clean"; }
+  cmGeneratedFileStream* GetBuildFileStream() const
+  {
+    return this->BuildFileStream.get();
+  }
 
-    cmGeneratedFileStream* GetBuildFileStream() const
-    {
-        return this->BuildFileStream;
-    }
+  cmGeneratedFileStream* GetRulesFileStream() const
+  {
+    return this->RulesFileStream.get();
+  }
 
-    cmGeneratedFileStream* GetRulesFileStream() const
+  std::string const& ConvertToNinjaPath(const std::string& path) const;
+
+  struct MapToNinjaPathImpl
+  {
+    cmGlobalNinjaGenerator* GG;
+    MapToNinjaPathImpl(cmGlobalNinjaGenerator* gg)
+      : GG(gg)
     {
         return this->RulesFileStream;
     }
@@ -328,42 +308,119 @@ public:
     {
         return LocalGenerators;
     }
+  };
+  MapToNinjaPathImpl MapToNinjaPath() { return MapToNinjaPathImpl(this); }
 
-    bool IsExcluded(cmLocalGenerator* root, cmGeneratorTarget* target)
-    {
-        return cmGlobalGenerator::IsExcluded(root, target);
-    }
+  // -- Additional clean files
+  void AddAdditionalCleanFile(std::string fileName);
+  const char* GetAdditionalCleanTargetName() const
+  {
+    return "CMakeFiles/clean.additional";
+  }
 
-    int GetRuleCmdLength(const std::string& name)
-    {
-        return RuleCmdLength[name];
-    }
+  void AddCXXCompileCommand(const std::string& commandLine,
+                            const std::string& sourceFile);
 
-    void AddTargetAlias(const std::string& alias, cmGeneratorTarget* target);
+  /**
+   * Add a rule to the generated build system.
+   * Call WriteRule() behind the scene but perform some check before like:
+   * - Do not add twice the same rule.
+   */
+  void AddRule(cmNinjaRule const& rule);
 
-    void ComputeTargetObjectDirectory(cmGeneratorTarget* gt) const override;
+  bool HasRule(const std::string& name);
 
-    // Ninja generator uses 'deps' and 'msvc_deps_prefix' introduced in 1.3
-    static std::string RequiredNinjaVersion() { return "1.3"; }
-    static std::string RequiredNinjaVersionForConsolePool() { return "1.5"; }
-    static std::string RequiredNinjaVersionForImplicitOuts() { return "1.7"; }
-    static std::string RequiredNinjaVersionForManifestRestat() { return "1.8"; }
-    bool               SupportsConsolePool() const;
-    bool               SupportsImplicitOuts() const;
-    bool               SupportsManifestRestat() const;
+  void AddCustomCommandRule();
+  void AddMacOSXContentRule();
 
-    std::string NinjaOutputPath(std::string const& path) const;
-    bool HasOutputPathPrefix() const { return !this->OutputPathPrefix.empty(); }
-    void StripNinjaOutputPathPrefixAsSuffix(std::string& path);
+  bool HasCustomCommandOutput(const std::string& output)
+  {
+    return this->CustomCommandOutputs.find(output) !=
+      this->CustomCommandOutputs.end();
+  }
 
-    bool WriteDyndepFile(std::string const&              dir_top_src,
-                         std::string const&              dir_top_bld,
-                         std::string const&              dir_cur_src,
-                         std::string const&              dir_cur_bld,
-                         std::string const&              arg_dd,
-                         std::vector<std::string> const& arg_ddis,
-                         std::string const&              module_dir,
-                         std::vector<std::string> const& linked_target_dirs);
+  /// Called when we have seen the given custom command.  Returns true
+  /// if we has seen it before.
+  bool SeenCustomCommand(cmCustomCommand const* cc)
+  {
+    return !this->CustomCommands.insert(cc).second;
+  }
+
+  /// Called when we have seen the given custom command output.
+  void SeenCustomCommandOutput(const std::string& output)
+  {
+    this->CustomCommandOutputs.insert(output);
+    // We don't need the assumed dependencies anymore, because we have
+    // an output.
+    this->AssumedSourceDependencies.erase(output);
+  }
+
+  void AddAssumedSourceDependencies(const std::string& source,
+                                    const cmNinjaDeps& deps)
+  {
+    std::set<std::string>& ASD = this->AssumedSourceDependencies[source];
+    // Because we may see the same source file multiple times (same source
+    // specified in multiple targets), compute the union of any assumed
+    // dependencies.
+    ASD.insert(deps.begin(), deps.end());
+  }
+
+  void AppendTargetOutputs(
+    cmGeneratorTarget const* target, cmNinjaDeps& outputs,
+    cmNinjaTargetDepends depends = DependOnTargetArtifact);
+  void AppendTargetDepends(
+    cmGeneratorTarget const* target, cmNinjaDeps& outputs,
+    cmNinjaTargetDepends depends = DependOnTargetArtifact);
+  void AppendTargetDependsClosure(cmGeneratorTarget const* target,
+                                  cmNinjaDeps& outputs);
+  void AppendTargetDependsClosure(cmGeneratorTarget const* target,
+                                  cmNinjaOuts& outputs, bool omit_self);
+  void AddDependencyToAll(cmGeneratorTarget* target);
+  void AddDependencyToAll(const std::string& input);
+
+  const std::vector<cmLocalGenerator*>& GetLocalGenerators() const
+  {
+    return LocalGenerators;
+  }
+
+  bool IsExcluded(cmGeneratorTarget* target)
+  {
+    return cmGlobalGenerator::IsExcluded(target);
+  }
+
+  int GetRuleCmdLength(const std::string& name) { return RuleCmdLength[name]; }
+
+  void AddTargetAlias(const std::string& alias, cmGeneratorTarget* target);
+
+  void ComputeTargetObjectDirectory(cmGeneratorTarget* gt) const override;
+
+  // Ninja generator uses 'deps' and 'msvc_deps_prefix' introduced in 1.3
+  static std::string RequiredNinjaVersion() { return "1.3"; }
+  static std::string RequiredNinjaVersionForConsolePool() { return "1.5"; }
+  static std::string RequiredNinjaVersionForImplicitOuts() { return "1.7"; }
+  static std::string RequiredNinjaVersionForManifestRestat() { return "1.8"; }
+  static std::string RequiredNinjaVersionForMultilineDepfile()
+  {
+    return "1.9";
+  }
+  bool SupportsConsolePool() const;
+  bool SupportsImplicitOuts() const;
+  bool SupportsManifestRestat() const;
+  bool SupportsMultilineDepfile() const;
+
+  std::string NinjaOutputPath(std::string const& path) const;
+  bool HasOutputPathPrefix() const { return !this->OutputPathPrefix.empty(); }
+  void StripNinjaOutputPathPrefixAsSuffix(std::string& path);
+
+  bool WriteDyndepFile(std::string const& dir_top_src,
+                       std::string const& dir_top_bld,
+                       std::string const& dir_cur_src,
+                       std::string const& dir_cur_bld,
+                       std::string const& arg_dd,
+                       std::vector<std::string> const& arg_ddis,
+                       std::string const& module_dir,
+                       std::vector<std::string> const& linked_target_dirs,
+                       std::string const& arg_lang);
 
 protected:
     void Generate() override;
@@ -378,13 +435,13 @@ private:
                                cmMakefile*                     mf) const override;
     bool        CheckFortran(cmMakefile* mf) const;
 
-    void OpenBuildFileStream();
-    void CloseBuildFileStream();
+  bool OpenBuildFileStream();
+  void CloseBuildFileStream();
 
     void CloseCompileCommandsStream();
 
-    void OpenRulesFileStream();
-    void CloseRulesFileStream();
+  bool OpenRulesFileStream();
+  void CloseRulesFileStream();
 
     /// Write the common disclaimer text at the top of each build file.
     void WriteDisclaimer(std::ostream& os);
@@ -395,35 +452,33 @@ private:
     void WriteFolderTargets(std::ostream& os);
     void WriteUnknownExplicitDependencies(std::ostream& os);
 
-    void WriteBuiltinTargets(std::ostream& os);
-    void WriteTargetAll(std::ostream& os);
-    void WriteTargetRebuildManifest(std::ostream& os);
-    void WriteTargetClean(std::ostream& os);
-    void WriteTargetHelp(std::ostream& os);
+  void WriteBuiltinTargets(std::ostream& os);
+  void WriteTargetAll(std::ostream& os);
+  void WriteTargetRebuildManifest(std::ostream& os);
+  bool WriteTargetCleanAdditional(std::ostream& os);
+  void WriteTargetClean(std::ostream& os);
+  void WriteTargetHelp(std::ostream& os);
 
     void ComputeTargetDependsClosure(
         cmGeneratorTarget const*            target,
         std::set<cmGeneratorTarget const*>& depends);
 
-    std::string ninjaCmd() const;
+  std::string CMakeCmd() const;
+  std::string NinjaCmd() const;
 
-    /// The file containing the build statement. (the relationship of the
-    /// compilation DAG).
-    cmGeneratedFileStream* BuildFileStream;
-    /// The file containing the rule statements. (The action attached to each
-    /// edge of the compilation DAG).
-    cmGeneratedFileStream* RulesFileStream;
-    cmGeneratedFileStream* CompileCommandsStream;
+  /// The file containing the build statement. (the relationship of the
+  /// compilation DAG).
+  std::unique_ptr<cmGeneratedFileStream> BuildFileStream;
+  /// The file containing the rule statements. (The action attached to each
+  /// edge of the compilation DAG).
+  std::unique_ptr<cmGeneratedFileStream> RulesFileStream;
+  std::unique_ptr<cmGeneratedFileStream> CompileCommandsStream;
 
-    /// The type used to store the set of rules added to the generated build
-    /// system.
-    typedef std::set<std::string> RulesSetType;
+  /// The set of rules added to the generated build system.
+  std::unordered_set<std::string> Rules;
 
-    /// The set of rules added to the generated build system.
-    RulesSetType Rules;
-
-    /// Length of rule command, used by rsp file evaluation
-    std::map<std::string, int> RuleCmdLength;
+  /// Length of rule command, used by rsp file evaluation
+  std::unordered_map<std::string, int> RuleCmdLength;
 
     /// The set of dependencies to add to the "all" target.
     cmNinjaDeps AllDependencies;
@@ -460,19 +515,21 @@ private:
     mutable std::unordered_map<std::string, std::string>
         ConvertToNinjaPathCache;
 
-    std::string   NinjaCommand;
-    std::string   NinjaVersion;
-    bool          NinjaSupportsConsolePool;
-    bool          NinjaSupportsImplicitOuts;
-    bool          NinjaSupportsManifestRestat;
-    unsigned long NinjaSupportsDyndeps;
+  std::string NinjaCommand;
+  std::string NinjaVersion;
+  bool NinjaSupportsConsolePool;
+  bool NinjaSupportsImplicitOuts;
+  bool NinjaSupportsManifestRestat;
+  bool NinjaSupportsMultilineDepfile;
+  unsigned long NinjaSupportsDyndeps;
 
 private:
     void InitOutputPathPrefix();
 
-    std::string OutputPathPrefix;
-    std::string TargetAll;
-    std::string CMakeCacheFile;
+  std::string OutputPathPrefix;
+  std::string TargetAll;
+  std::string CMakeCacheFile;
+  std::set<std::string> AdditionalCleanFiles;
 };
 
 #endif  // ! cmGlobalNinjaGenerator_h

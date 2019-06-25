@@ -29,9 +29,8 @@ cmAddTestCommand::InitialPass(std::vector<std::string> const& args,
         return false;
     }
 
-    // Collect the command with arguments.
-    std::vector<std::string> command;
-    command.insert(command.end(), args.begin() + 1, args.end());
+  // Collect the command with arguments.
+  std::vector<std::string> command(args.begin() + 1, args.end());
 
     // Create the test but add a generator only the first time it is
     // seen.  This preserves behavior from before test generators.

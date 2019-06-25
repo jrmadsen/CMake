@@ -6,8 +6,8 @@
 
 #include "cmAlgorithms.h"
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmTarget.h"
-#include "cmake.h"
 
 class cmExecutionStatus;
 
@@ -21,11 +21,11 @@ cmTargetCompileDefinitionsCommand::InitialPass(
 void
 cmTargetCompileDefinitionsCommand::HandleMissingTarget(const std::string& name)
 {
-    std::ostringstream e;
-    e << "Cannot specify compile definitions for target \"" << name
-      << "\" "
-         "which is not built by this project.";
-    this->Makefile->IssueMessage(cmake::FATAL_ERROR, e.str());
+  std::ostringstream e;
+  e << "Cannot specify compile definitions for target \"" << name
+    << "\" "
+       "which is not built by this project.";
+  this->Makefile->IssueMessage(MessageType::FATAL_ERROR, e.str());
 }
 
 std::string

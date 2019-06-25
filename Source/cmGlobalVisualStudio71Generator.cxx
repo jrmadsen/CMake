@@ -6,7 +6,7 @@
 #include "cmGeneratorTarget.h"
 #include "cmLocalVisualStudio7Generator.h"
 #include "cmMakefile.h"
-#include "cmake.h"
+#include "cmMessageType.h"
 
 cmGlobalVisualStudio71Generator::cmGlobalVisualStudio71Generator(
     cmake* cm, const std::string& platformName)
@@ -152,49 +152,40 @@ cmGlobalVisualStudio71Generator::WriteProjectDepends(
     std::ostream&            fout, const std::string&, const char*,
     cmGeneratorTarget const* target)
 {
-    VSDependSet const& depends = this->VSTargetDepends[target];
-    for(std::string const& name : depends)
-    {
-        std::string guid = this->GetGUID(name);
-        if(guid.empty())
-        {
-            std::string m = "Target: ";
-            m += target->GetName();
-            m += " depends on unknown target: ";
-            m += name;
-            cmSystemTools::Error(m.c_str());
-        }
-        fout << "\t\t{" << guid << "} = {" << guid << "}\n";
+  VSDependSet const& depends = this->VSTargetDepends[target];
+  for (std::string const& name : depends) {
+    std::string guid = this->GetGUID(name);
+    if (guid.empty()) {
+      std::string m = "Target: ";
+      m += target->GetName();
+      m += " depends on unknown target: ";
+      m += name;
+      cmSystemTools::Error(m);
     }
 }
 
 // Write a dsp file into the SLN file, Note, that dependencies from
 // executables to the libraries it uses are also done here
-void
-cmGlobalVisualStudio71Generator::WriteExternalProject(
-    std::ostream& fout, const std::string& name, const char* location,
-    const char* typeGuid, const std::set<std::string>& depends)
+void cmGlobalVisualStudio71Generator::WriteExternalProject(
+  std::ostream& fout, const std::string& name, const char* location,
+  const char* typeGuid, const std::set<BT<std::string>>& depends)
 {
-    fout << "Project(\"{"
-         << (typeGuid ? typeGuid : this->ExternalProjectType(location))
-         << "}\") = \"" << name << "\", \""
-         << this->ConvertToSolutionPath(location) << "\", \"{"
-         << this->GetGUID(name) << "}\"\n";
+  fout << "Project(\"{"
+       << (typeGuid ? typeGuid : this->ExternalProjectType(location))
+       << "}\") = \"" << name << "\", \""
+       << this->ConvertToSolutionPath(location) << "\", \"{"
+       << this->GetGUID(name) << "}\"\n";
 
-    // write out the dependencies here VS 7.1 includes dependencies with the
-    // project instead of in the global section
-    if(!depends.empty())
-    {
-        fout << "\tProjectSection(ProjectDependencies) = postProject\n";
-        for(std::string const& it : depends)
-        {
-            if(!it.empty())
-            {
-                fout << "\t\t{" << this->GetGUID(it) << "} = {"
-                     << this->GetGUID(it) << "}\n";
-            }
-        }
-        fout << "\tEndProjectSection\n";
+  // write out the dependencies here VS 7.1 includes dependencies with the
+  // project instead of in the global section
+  if (!depends.empty()) {
+    fout << "\tProjectSection(ProjectDependencies) = postProject\n";
+    for (BT<std::string> const& it : depends) {
+      std::string const& dep = it.Value;
+      if (!dep.empty()) {
+        fout << "\t\t{" << this->GetGUID(dep) << "} = {" << this->GetGUID(dep)
+             << "}\n";
+      }
     }
 
     fout << "EndProject\n";
@@ -238,11 +229,4 @@ cmGlobalVisualStudio71Generator::WriteProjectConfigurations(
                  << "|" << platformName << std::endl;
         }
     }
-}
-
-// output standard header for dsw file
-void
-cmGlobalVisualStudio71Generator::WriteSLNHeader(std::ostream& fout)
-{
-    fout << "Microsoft Visual Studio Solution File, Format Version 8.00\n";
 }

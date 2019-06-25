@@ -2,6 +2,7 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmCTestSVN.h"
 
+#include "cmAlgorithms.h"
 #include "cmCTest.h"
 #include "cmCTestVC.h"
 #include "cmProcessTools.h"
@@ -26,7 +27,7 @@ cmCTestSVN::cmCTestSVN(cmCTest* ct, std::ostream& log)
     this->PriorRev = this->Unknown;
 }
 
-cmCTestSVN::~cmCTestSVN() {}
+cmCTestSVN::~cmCTestSVN() = default;
 
 void
 cmCTestSVN::CleanupImpl()
@@ -260,30 +261,27 @@ private:
 bool
 cmCTestSVN::UpdateImpl()
 {
-    // Get user-specified update options.
-    std::string opts = this->CTest->GetCTestConfiguration("UpdateOptions");
-    if(opts.empty())
-    {
-        opts = this->CTest->GetCTestConfiguration("SVNUpdateOptions");
-    }
-    std::vector<std::string> args = cmSystemTools::ParseArguments(opts.c_str());
+  // Get user-specified update options.
+  std::string opts = this->CTest->GetCTestConfiguration("UpdateOptions");
+  if (opts.empty()) {
+    opts = this->CTest->GetCTestConfiguration("SVNUpdateOptions");
+  }
+  std::vector<std::string> args = cmSystemTools::ParseArguments(opts);
 
-    // Specify the start time for nightly testing.
-    if(this->CTest->GetTestModel() == cmCTest::NIGHTLY)
-    {
-        args.push_back("-r{" + this->GetNightlyTime() + " +0000}");
-    }
+  // Specify the start time for nightly testing.
+  if (this->CTest->GetTestModel() == cmCTest::NIGHTLY) {
+    args.push_back("-r{" + this->GetNightlyTime() + " +0000}");
+  }
 
-    std::vector<char const*> svn_update;
-    svn_update.push_back("update");
-    for(std::string const& arg : args)
-    {
-        svn_update.push_back(arg.c_str());
-    }
+  std::vector<char const*> svn_update;
+  svn_update.push_back("update");
+  for (std::string const& arg : args) {
+    svn_update.push_back(arg.c_str());
+  }
 
-    UpdateParser out(this, "up-out> ");
-    OutputLogger err(this->Log, "up-err> ");
-    return this->RunSVNCommand(svn_update, &out, &err);
+  UpdateParser out(this, "up-out> ");
+  OutputLogger err(this->Log, "up-err> ");
+  return this->RunSVNCommand(svn_update, &out, &err);
 }
 
 bool
@@ -295,21 +293,18 @@ cmCTestSVN::RunSVNCommand(std::vector<char const*> const& parameters,
         return false;
     }
 
-    std::vector<char const*> args;
-    args.push_back(this->CommandLineTool.c_str());
-
-    args.insert(args.end(), parameters.begin(), parameters.end());
-
-    args.push_back("--non-interactive");
+  std::vector<char const*> args;
+  args.push_back(this->CommandLineTool.c_str());
+  cmAppend(args, parameters);
+  args.push_back("--non-interactive");
 
     std::string userOptions = this->CTest->GetCTestConfiguration("SVNOptions");
 
-    std::vector<std::string> parsedUserOptions =
-        cmSystemTools::ParseArguments(userOptions.c_str());
-    for(std::string const& opt : parsedUserOptions)
-    {
-        args.push_back(opt.c_str());
-    }
+  std::vector<std::string> parsedUserOptions =
+    cmSystemTools::ParseArguments(userOptions);
+  for (std::string const& opt : parsedUserOptions) {
+    args.push_back(opt.c_str());
+  }
 
     args.push_back(nullptr);
 
@@ -335,78 +330,71 @@ public:
     ~LogParser() override { this->CleanupParser(); }
 
 private:
-    cmCTestSVN*          SVN;
-    cmCTestSVN::SVNInfo& SVNRepo;
+  cmCTestSVN* SVN;
+  cmCTestSVN::SVNInfo& SVNRepo;
 
-    typedef cmCTestSVN::Revision Revision;
-    typedef cmCTestSVN::Change   Change;
-    Revision                     Rev;
-    std::vector<Change>          Changes;
-    Change                       CurChange;
-    std::vector<char>            CData;
+  typedef cmCTestSVN::Revision Revision;
+  typedef cmCTestSVN::Change Change;
+  Revision Rev;
+  std::vector<Change> Changes;
+  Change CurChange;
+  std::vector<char> CData;
 
-    bool ProcessChunk(const char* data, int length) override
-    {
-        this->OutputLogger::ProcessChunk(data, length);
-        this->ParseChunk(data, length);
-        return true;
+  bool ProcessChunk(const char* data, int length) override
+  {
+    this->OutputLogger::ProcessChunk(data, length);
+    this->ParseChunk(data, length);
+    return true;
+  }
+
+  void StartElement(const std::string& name, const char** atts) override
+  {
+    this->CData.clear();
+    if (name == "logentry") {
+      this->Rev = Revision();
+      this->Rev.SVNInfo = &SVNRepo;
+      if (const char* rev =
+            cmCTestSVN::LogParser::FindAttribute(atts, "revision")) {
+        this->Rev.Rev = rev;
+      }
+      this->Changes.clear();
+    } else if (name == "path") {
+      this->CurChange = Change();
+      if (const char* action =
+            cmCTestSVN::LogParser::FindAttribute(atts, "action")) {
+        this->CurChange.Action = action[0];
+      }
     }
+  }
 
-    void StartElement(const std::string& name, const char** atts) override
-    {
-        this->CData.clear();
-        if(name == "logentry")
-        {
-            this->Rev         = Revision();
-            this->Rev.SVNInfo = &SVNRepo;
-            if(const char* rev = this->FindAttribute(atts, "revision"))
-            {
-                this->Rev.Rev = rev;
-            }
-            this->Changes.clear();
-        } else if(name == "path")
-        {
-            this->CurChange = Change();
-            if(const char* action = this->FindAttribute(atts, "action"))
-            {
-                this->CurChange.Action = action[0];
-            }
-        }
-    }
+  void CharacterDataHandler(const char* data, int length) override
+  {
+    cmAppend(this->CData, data, data + length);
+  }
 
-    void CharacterDataHandler(const char* data, int length) override
-    {
-        this->CData.insert(this->CData.end(), data, data + length);
+  void EndElement(const std::string& name) override
+  {
+    if (name == "logentry") {
+      this->SVN->DoRevisionSVN(this->Rev, this->Changes);
+    } else if (!this->CData.empty() && name == "path") {
+      std::string orig_path(&this->CData[0], this->CData.size());
+      std::string new_path = SVNRepo.BuildLocalPath(orig_path);
+      this->CurChange.Path.assign(new_path);
+      this->Changes.push_back(this->CurChange);
+    } else if (!this->CData.empty() && name == "author") {
+      this->Rev.Author.assign(&this->CData[0], this->CData.size());
+    } else if (!this->CData.empty() && name == "date") {
+      this->Rev.Date.assign(&this->CData[0], this->CData.size());
+    } else if (!this->CData.empty() && name == "msg") {
+      this->Rev.Log.assign(&this->CData[0], this->CData.size());
     }
+    this->CData.clear();
+  }
 
-    void EndElement(const std::string& name) override
-    {
-        if(name == "logentry")
-        {
-            this->SVN->DoRevisionSVN(this->Rev, this->Changes);
-        } else if(!this->CData.empty() && name == "path")
-        {
-            std::string orig_path(&this->CData[0], this->CData.size());
-            std::string new_path = SVNRepo.BuildLocalPath(orig_path);
-            this->CurChange.Path.assign(new_path);
-            this->Changes.push_back(this->CurChange);
-        } else if(!this->CData.empty() && name == "author")
-        {
-            this->Rev.Author.assign(&this->CData[0], this->CData.size());
-        } else if(!this->CData.empty() && name == "date")
-        {
-            this->Rev.Date.assign(&this->CData[0], this->CData.size());
-        } else if(!this->CData.empty() && name == "msg")
-        {
-            this->Rev.Log.assign(&this->CData[0], this->CData.size());
-        }
-        this->CData.clear();
-    }
-
-    void ReportError(int /*line*/, int /*column*/, const char* msg) override
-    {
-        this->SVN->Log << "Error parsing svn log xml: " << msg << "\n";
-    }
+  void ReportError(int /*line*/, int /*column*/, const char* msg) override
+  {
+    this->SVN->Log << "Error parsing svn log xml: " << msg << "\n";
+  }
 };
 
 bool
@@ -559,64 +547,58 @@ private:
         return true;
     }
 
-    void DoPath(std::string const& path)
-    {
-        // Get local path relative to the source directory
-        std::string local_path;
-        if(path.size() > this->SVN->SourceDirectory.size() &&
-           strncmp(path.c_str(), this->SVN->SourceDirectory.c_str(),
-                   this->SVN->SourceDirectory.size()) == 0)
-        {
-            local_path = path.c_str() + this->SVN->SourceDirectory.size() + 1;
-        } else
-        {
-            local_path = path;
-        }
-        this->SVN->Repositories.emplace_back(local_path.c_str());
+  void DoPath(std::string const& path)
+  {
+    // Get local path relative to the source directory
+    std::string local_path;
+    if (path.size() > this->SVN->SourceDirectory.size() &&
+        strncmp(path.c_str(), this->SVN->SourceDirectory.c_str(),
+                this->SVN->SourceDirectory.size()) == 0) {
+      local_path = path.substr(this->SVN->SourceDirectory.size() + 1);
+    } else {
+      local_path = path;
     }
+    this->SVN->Repositories.emplace_back(local_path);
+  }
 };
 
 bool
 cmCTestSVN::LoadRepositories()
 {
-    if(!this->Repositories.empty())
-    {
-        return true;
-    }
+  if (!this->Repositories.empty()) {
+    return true;
+  }
 
-    // Info for root repository
-    this->Repositories.emplace_back("");
-    this->RootInfo = &(this->Repositories.back());
+  // Info for root repository
+  this->Repositories.emplace_back();
+  this->RootInfo = &(this->Repositories.back());
 
-    // Run "svn status" to get the list of external repositories
-    std::vector<const char*> svn_status;
-    svn_status.push_back("status");
-    ExternalParser out(this, "external-out> ");
-    OutputLogger   err(this->Log, "external-err> ");
-    return this->RunSVNCommand(svn_status, &out, &err);
+  // Run "svn status" to get the list of external repositories
+  std::vector<const char*> svn_status;
+  svn_status.push_back("status");
+  ExternalParser out(this, "external-out> ");
+  OutputLogger err(this->Log, "external-err> ");
+  return this->RunSVNCommand(svn_status, &out, &err);
 }
 
 std::string
 cmCTestSVN::SVNInfo::BuildLocalPath(std::string const& path) const
 {
-    std::string local_path;
+  std::string local_path;
 
-    // Add local path prefix if not empty
-    if(!this->LocalPath.empty())
-    {
-        local_path += this->LocalPath;
-        local_path += "/";
-    }
+  // Add local path prefix if not empty
+  if (!this->LocalPath.empty()) {
+    local_path += this->LocalPath;
+    local_path += "/";
+  }
 
-    // Add path with base prefix removed
-    if(path.size() > this->Base.size() &&
-       strncmp(path.c_str(), this->Base.c_str(), this->Base.size()) == 0)
-    {
-        local_path += (path.c_str() + this->Base.size());
-    } else
-    {
-        local_path += path;
-    }
+  // Add path with base prefix removed
+  if (path.size() > this->Base.size() &&
+      strncmp(path.c_str(), this->Base.c_str(), this->Base.size()) == 0) {
+    local_path += path.substr(this->Base.size());
+  } else {
+    local_path += path;
+  }
 
-    return local_path;
+  return local_path;
 }

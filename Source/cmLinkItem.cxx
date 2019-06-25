@@ -6,20 +6,19 @@
 
 #include <utility>  // IWYU pragma: keep
 
-cmLinkItem::cmLinkItem()
-: String()
-, Target(nullptr)
-{}
+cmLinkItem::cmLinkItem() = default;
 
-cmLinkItem::cmLinkItem(std::string const& n)
-: String(n)
-, Target(nullptr)
-{}
+cmLinkItem::cmLinkItem(std::string n, cmListFileBacktrace bt)
+  : String(std::move(n))
+  , Backtrace(std::move(bt))
+{
+}
 
-cmLinkItem::cmLinkItem(cmGeneratorTarget const* t)
-: String()
-, Target(t)
-{}
+cmLinkItem::cmLinkItem(cmGeneratorTarget const* t, cmListFileBacktrace bt)
+  : Target(t)
+  , Backtrace(std::move(bt))
+{
+}
 
 std::string const&
 cmLinkItem::AsStr() const
@@ -61,14 +60,12 @@ operator<<(std::ostream& os, cmLinkItem const& item)
 }
 
 cmLinkImplItem::cmLinkImplItem()
-: cmLinkItem()
-, Backtrace()
-, FromGenex(false)
-{}
+  : cmLinkItem()
+{
+}
 
-cmLinkImplItem::cmLinkImplItem(cmLinkItem item, cmListFileBacktrace const& bt,
-                               bool fromGenex)
-: cmLinkItem(std::move(item))
-, Backtrace(bt)
-, FromGenex(fromGenex)
-{}
+cmLinkImplItem::cmLinkImplItem(cmLinkItem item, bool fromGenex)
+  : cmLinkItem(std::move(item))
+  , FromGenex(fromGenex)
+{
+}

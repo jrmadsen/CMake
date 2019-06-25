@@ -13,10 +13,17 @@ bool
 cmGetFilenameComponentCommand::InitialPass(std::vector<std::string> const& args,
                                            cmExecutionStatus&)
 {
-    if(args.size() < 3)
-    {
-        this->SetError("called with incorrect number of arguments");
-        return false;
+  if (args.size() < 3) {
+    this->SetError("called with incorrect number of arguments");
+    return false;
+  }
+
+  // Check and see if the value has been stored in the cache
+  // already, if so use that value
+  if (args.size() >= 4 && args.back() == "CACHE") {
+    const char* cacheValue = this->Makefile->GetDefinition(args.front());
+    if (cacheValue && !cmSystemTools::IsNOTFOUND(cacheValue)) {
+      return true;
     }
 
     // Check and see if the value has been stored in the cache
@@ -82,27 +89,29 @@ cmGetFilenameComponentCommand::InitialPass(std::vector<std::string> const& args,
         {
             result = cmSystemTools::FindProgram(filename);
         }
-
-        // If that failed then assume a command-line string was given
-        // and split the program part from the rest of the arguments.
-        if(result.empty())
-        {
-            std::string program;
-            if(cmSystemTools::SplitProgramFromArgs(filename, program,
-                                                   programArgs))
-            {
-                if(cmSystemTools::FileExists(program))
-                {
-                    result = program;
-                } else
-                {
-                    result = cmSystemTools::FindProgram(program);
-                }
-            }
-            if(result.empty())
-            {
-                programArgs.clear();
-            }
+      }
+      if (result.empty()) {
+        programArgs.clear();
+      }
+    }
+  } else if (args[2] == "EXT") {
+    result = cmSystemTools::GetFilenameExtension(filename);
+  } else if (args[2] == "NAME_WE") {
+    result = cmSystemTools::GetFilenameWithoutExtension(filename);
+  } else if (args[2] == "LAST_EXT") {
+    result = cmSystemTools::GetFilenameLastExtension(filename);
+  } else if (args[2] == "NAME_WLE") {
+    result = cmSystemTools::GetFilenameWithoutLastExtension(filename);
+  } else if (args[2] == "ABSOLUTE" || args[2] == "REALPATH") {
+    // If the path given is relative, evaluate it relative to the
+    // current source directory unless the user passes a different
+    // base directory.
+    std::string baseDir = this->Makefile->GetCurrentSourceDirectory();
+    for (unsigned int i = 3; i < args.size(); ++i) {
+      if (args[i] == "BASE_DIR") {
+        ++i;
+        if (i < args.size()) {
+          baseDir = args[i];
         }
     } else if(args[2] == "EXT")
     {
@@ -141,26 +150,21 @@ cmGetFilenameComponentCommand::InitialPass(std::vector<std::string> const& args,
         return false;
     }
 
-    if(args.size() >= 4 && args[args.size() - 1] == "CACHE")
-    {
-        if(!programArgs.empty() && !storeArgs.empty())
-        {
-            this->Makefile->AddCacheDefinition(
-                storeArgs, programArgs.c_str(), "",
-                args[2] == "PATH" ? cmStateEnums::FILEPATH
-                                  : cmStateEnums::STRING);
-        }
-        this->Makefile->AddCacheDefinition(
-            args[0], result.c_str(), "",
-            args[2] == "PATH" ? cmStateEnums::FILEPATH : cmStateEnums::STRING);
-    } else
-    {
-        if(!programArgs.empty() && !storeArgs.empty())
-        {
-            this->Makefile->AddDefinition(storeArgs, programArgs.c_str());
-        }
-        this->Makefile->AddDefinition(args[0], result.c_str());
+  if (args.size() >= 4 && args.back() == "CACHE") {
+    if (!programArgs.empty() && !storeArgs.empty()) {
+      this->Makefile->AddCacheDefinition(
+        storeArgs, programArgs.c_str(), "",
+        args[2] == "PATH" ? cmStateEnums::FILEPATH : cmStateEnums::STRING);
     }
+    this->Makefile->AddCacheDefinition(
+      args.front(), result.c_str(), "",
+      args[2] == "PATH" ? cmStateEnums::FILEPATH : cmStateEnums::STRING);
+  } else {
+    if (!programArgs.empty() && !storeArgs.empty()) {
+      this->Makefile->AddDefinition(storeArgs, programArgs.c_str());
+    }
+    this->Makefile->AddDefinition(args.front(), result.c_str());
+  }
 
     return true;
 }

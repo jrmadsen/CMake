@@ -5,6 +5,7 @@
 #include "cmAlgorithms.h"
 #include "cmGeneratorTarget.h"
 #include "cmGlobalGenerator.h"
+#include "cmMessageType.h"
 #include "cmSystemTools.h"
 #include "cmake.h"
 
@@ -57,25 +58,29 @@ public:
     {
         this->DirectoryIndex = this->OD->AddOriginalDirectory(this->Directory);
     }
+  }
+  virtual ~cmOrderDirectoriesConstraint() = default;
 
-    virtual void Report(std::ostream& e) = 0;
+  void AddDirectory()
+  {
+    this->DirectoryIndex = this->OD->AddOriginalDirectory(this->Directory);
+  }
 
-    void FindConflicts(unsigned int index)
-    {
-        for(unsigned int i = 0; i < this->OD->OriginalDirectories.size(); ++i)
-        {
-            // Check if this directory conflicts with the entry.
-            std::string const& dir = this->OD->OriginalDirectories[i];
-            if(!this->OD->IsSameDirectory(dir, this->Directory) &&
-               this->FindConflict(dir))
-            {
-                // The library will be found in this directory but this is not
-                // the directory named for it.  Add an entry to make sure the
-                // desired directory comes before this one.
-                cmOrderDirectories::ConflictPair p(this->DirectoryIndex, index);
-                this->OD->ConflictGraph[i].push_back(p);
-            }
-        }
+  virtual void Report(std::ostream& e) = 0;
+
+  void FindConflicts(unsigned int index)
+  {
+    for (unsigned int i = 0; i < this->OD->OriginalDirectories.size(); ++i) {
+      // Check if this directory conflicts with the entry.
+      std::string const& dir = this->OD->OriginalDirectories[i];
+      if (!this->OD->IsSameDirectory(dir, this->Directory) &&
+          this->FindConflict(dir)) {
+        // The library will be found in this directory but this is not
+        // the directory named for it.  Add an entry to make sure the
+        // desired directory comes before this one.
+        cmOrderDirectories::ConflictPair p(this->DirectoryIndex, index);
+        this->OD->ConflictGraph[i].push_back(p);
+      }
     }
 
     void FindImplicitConflicts(std::ostringstream& w)
@@ -186,32 +191,27 @@ private:
 bool
 cmOrderDirectoriesConstraintSOName::FindConflict(std::string const& dir)
 {
-    // Determine which type of check to do.
-    if(!this->SOName.empty())
-    {
-        // We have the library soname.  Check if it will be found.
-        if(this->FileMayConflict(dir, this->SOName))
-        {
-            return true;
-        }
-    } else
-    {
-        // We do not have the soname.  Look for files in the directory
-        // that may conflict.
-        std::set<std::string> const& files =
-            (this->GlobalGenerator->GetDirectoryContent(dir, true));
+  // Determine which type of check to do.
+  if (!this->SOName.empty()) {
+    // We have the library soname.  Check if it will be found.
+    if (this->FileMayConflict(dir, this->SOName)) {
+      return true;
+    }
+  } else {
+    // We do not have the soname.  Look for files in the directory
+    // that may conflict.
+    std::set<std::string> const& files =
+      (this->GlobalGenerator->GetDirectoryContent(dir, true));
 
-        // Get the set of files that might conflict.  Since we do not
-        // know the soname just look at all files that start with the
-        // file name.  Usually the soname starts with the library name.
-        std::string                           base  = this->FileName;
-        std::set<std::string>::const_iterator first = files.lower_bound(base);
-        ++base[base.size() - 1];
-        std::set<std::string>::const_iterator last = files.upper_bound(base);
-        if(first != last)
-        {
-            return true;
-        }
+    // Get the set of files that might conflict.  Since we do not
+    // know the soname just look at all files that start with the
+    // file name.  Usually the soname starts with the library name.
+    std::string base = this->FileName;
+    std::set<std::string>::const_iterator first = files.lower_bound(base);
+    ++base.back();
+    std::set<std::string>::const_iterator last = files.upper_bound(base);
+    if (first != last) {
+      return true;
     }
     return false;
 }
@@ -368,15 +368,13 @@ cmOrderDirectories::AddLinkLibrary(std::string const& fullPath)
 void
 cmOrderDirectories::AddUserDirectories(std::vector<std::string> const& extra)
 {
-    this->UserDirectories.insert(this->UserDirectories.end(), extra.begin(),
-                                 extra.end());
+  cmAppend(this->UserDirectories, extra);
 }
 
 void
 cmOrderDirectories::AddLanguageDirectories(std::vector<std::string> const& dirs)
 {
-    this->LanguageDirectories.insert(this->LanguageDirectories.end(),
-                                     dirs.begin(), dirs.end());
+  cmAppend(this->LanguageDirectories, dirs);
 }
 
 void
@@ -509,30 +507,28 @@ cmOrderDirectories::FindConflicts()
 void
 cmOrderDirectories::FindImplicitConflicts()
 {
-    // Check for items in implicit link directories that have conflicts
-    // in the explicit directories.
-    std::ostringstream conflicts;
-    for(cmOrderDirectoriesConstraint* entry : this->ImplicitDirEntries)
-    {
-        entry->FindImplicitConflicts(conflicts);
-    }
+  // Check for items in implicit link directories that have conflicts
+  // in the explicit directories.
+  std::ostringstream conflicts;
+  for (cmOrderDirectoriesConstraint* entry : this->ImplicitDirEntries) {
+    entry->FindImplicitConflicts(conflicts);
+  }
 
-    // Skip warning if there were no conflicts.
-    std::string const text = conflicts.str();
-    if(text.empty())
-    {
-        return;
-    }
+  // Skip warning if there were no conflicts.
+  std::string const text = conflicts.str();
+  if (text.empty()) {
+    return;
+  }
 
-    // Warn about the conflicts.
-    std::ostringstream w;
-    w << "Cannot generate a safe " << this->Purpose << " for target "
-      << this->Target->GetName()
-      << " because files in some directories may conflict with "
-      << " libraries in implicit directories:\n"
-      << text << "Some of these libraries may not be found correctly.";
-    this->GlobalGenerator->GetCMakeInstance()->IssueMessage(
-        cmake::WARNING, w.str(), this->Target->GetBacktrace());
+  // Warn about the conflicts.
+  std::ostringstream w;
+  w << "Cannot generate a safe " << this->Purpose << " for target "
+    << this->Target->GetName()
+    << " because files in some directories may conflict with "
+    << " libraries in implicit directories:\n"
+    << text << "Some of these libraries may not be found correctly.";
+  this->GlobalGenerator->GetCMakeInstance()->IssueMessage(
+    MessageType::WARNING, w.str(), this->Target->GetBacktrace());
 }
 
 void
@@ -589,29 +585,10 @@ cmOrderDirectories::DiagnoseCycle()
     {
         return;
     }
-    this->CycleDiagnosed = true;
-
-    // Construct the message.
-    std::ostringstream e;
-    e << "Cannot generate a safe " << this->Purpose << " for target "
-      << this->Target->GetName()
-      << " because there is a cycle in the constraint graph:\n";
-
-    // Display the conflict graph.
-    for(unsigned int i = 0; i < this->ConflictGraph.size(); ++i)
-    {
-        ConflictList const& clist = this->ConflictGraph[i];
-        e << "  dir " << i << " is [" << this->OriginalDirectories[i] << "]\n";
-        for(ConflictPair const& j : clist)
-        {
-            e << "    dir " << j.first << " must precede it due to ";
-            this->ConstraintEntries[j.second]->Report(e);
-            e << "\n";
-        }
-    }
-    e << "Some of these libraries may not be found correctly.";
-    this->GlobalGenerator->GetCMakeInstance()->IssueMessage(
-        cmake::WARNING, e.str(), this->Target->GetBacktrace());
+  }
+  e << "Some of these libraries may not be found correctly.";
+  this->GlobalGenerator->GetCMakeInstance()->IssueMessage(
+    MessageType::WARNING, e.str(), this->Target->GetBacktrace());
 }
 
 bool

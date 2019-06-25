@@ -2,15 +2,16 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmPipeConnection.h"
 
-#include <algorithm>
+#include <utility>
 
 #include "cmServer.h"
 
-cmPipeConnection::cmPipeConnection(const std::string&          name,
+cmPipeConnection::cmPipeConnection(std::string name,
                                    cmConnectionBufferStrategy* bufferStrategy)
-: cmEventBasedConnection(bufferStrategy)
-, PipeName(name)
-{}
+  : cmEventBasedConnection(bufferStrategy)
+  , PipeName(std::move(name))
+{
+}
 
 void
 cmPipeConnection::Connect(uv_stream_t* server)

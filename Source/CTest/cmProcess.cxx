@@ -2,66 +2,22 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmProcess.h"
 
+#include "cmAlgorithms.h"
 #include "cmCTest.h"
 #include "cmCTestRunTest.h"
 #include "cmCTestTestHandler.h"
+#include "cmGetPipes.h"
 #include "cmsys/Process.h"
 
-#include <algorithm>
-#include <fcntl.h>
 #include <iostream>
 #include <signal.h>
 #include <string>
-#if !defined(_WIN32)
-#    include <unistd.h>
+#if defined(_WIN32)
+#  include "cm_kwiml.h"
 #endif
+#include <utility>
 
 #define CM_PROCESS_BUF_SIZE 65536
-
-#if defined(_WIN32) && !defined(__CYGWIN__)
-#    include <io.h>
-
-static int
-cmProcessGetPipes(int* fds)
-{
-    SECURITY_ATTRIBUTES attr;
-    HANDLE              readh, writeh;
-    attr.nLength              = sizeof(attr);
-    attr.lpSecurityDescriptor = nullptr;
-    attr.bInheritHandle       = FALSE;
-    if(!CreatePipe(&readh, &writeh, &attr, 0))
-        return uv_translate_sys_error(GetLastError());
-    fds[0] = _open_osfhandle((intptr_t) readh, 0);
-    fds[1] = _open_osfhandle((intptr_t) writeh, 0);
-    if(fds[0] == -1 || fds[1] == -1)
-    {
-        CloseHandle(readh);
-        CloseHandle(writeh);
-        return uv_translate_sys_error(GetLastError());
-    }
-    return 0;
-}
-#else
-#    include <errno.h>
-
-static int
-cmProcessGetPipes(int* fds)
-{
-    if(pipe(fds) == -1)
-    {
-        return uv_translate_sys_error(errno);
-    }
-
-    if(fcntl(fds[0], F_SETFD, FD_CLOEXEC) == -1 ||
-       fcntl(fds[1], F_SETFD, FD_CLOEXEC) == -1)
-    {
-        close(fds[0]);
-        close(fds[1]);
-        return uv_translate_sys_error(errno);
-    }
-    return 0;
-}
-#endif
 
 cmProcess::cmProcess(cmCTestRunTest& runner)
 : Runner(runner)
@@ -74,10 +30,9 @@ cmProcess::cmProcess(cmCTestRunTest& runner)
     this->StartTime = std::chrono::steady_clock::time_point();
 }
 
-cmProcess::~cmProcess() {}
+cmProcess::~cmProcess() = default;
 
-void
-cmProcess::SetCommand(const char* command)
+void cmProcess::SetCommand(std::string const& command)
 {
     this->Command = command;
 }
@@ -88,8 +43,12 @@ cmProcess::SetCommandArguments(std::vector<std::string> const& args)
     this->Arguments = args;
 }
 
-bool
-cmProcess::StartProcess(uv_loop_t& loop, std::vector<size_t>* affinity)
+void cmProcess::SetWorkingDirectory(std::string const& dir)
+{
+  this->WorkingDirectory = dir;
+}
+
+bool cmProcess::StartProcess(uv_loop_t& loop, std::vector<size_t>* affinity)
 {
     this->ProcessState = cmProcess::State::Error;
     if(this->Command.empty())
@@ -123,32 +82,31 @@ cmProcess::StartProcess(uv_loop_t& loop, std::vector<size_t>* affinity)
     pipe_writer.init(loop, 0);
     pipe_reader.init(loop, 0, this);
 
-    int fds[2] = { -1, -1 };
-    status     = cmProcessGetPipes(fds);
-    if(status != 0)
-    {
-        cmCTestLog(this->Runner.GetCTest(), ERROR_MESSAGE,
-                   "Error initializing pipe: " << uv_strerror(status)
-                                               << std::endl);
-        return false;
-    }
+  int fds[2] = { -1, -1 };
+  status = cmGetPipes(fds);
+  if (status != 0) {
+    cmCTestLog(this->Runner.GetCTest(), ERROR_MESSAGE,
+               "Error initializing pipe: " << uv_strerror(status)
+                                           << std::endl);
+    return false;
+  }
 
-    uv_pipe_open(pipe_reader, fds[0]);
-    uv_pipe_open(pipe_writer, fds[1]);
+  uv_pipe_open(pipe_reader, fds[0]);
+  uv_pipe_open(pipe_writer, fds[1]);
 
-    uv_stdio_container_t stdio[3];
-    stdio[0].flags       = UV_INHERIT_FD;
-    stdio[0].data.fd     = 0;
-    stdio[1].flags       = UV_INHERIT_STREAM;
-    stdio[1].data.stream = pipe_writer;
-    stdio[2]             = stdio[1];
+  uv_stdio_container_t stdio[3];
+  stdio[0].flags = UV_INHERIT_FD;
+  stdio[0].data.fd = 0;
+  stdio[1].flags = UV_INHERIT_STREAM;
+  stdio[1].data.stream = pipe_writer;
+  stdio[2] = stdio[1];
 
-    uv_process_options_t options = uv_process_options_t();
-    options.file                 = this->Command.data();
-    options.args                 = const_cast<char**>(this->ProcessArgs.data());
-    options.stdio_count          = 3;  // in, out and err
-    options.exit_cb              = &cmProcess::OnExitCB;
-    options.stdio                = stdio;
+  uv_process_options_t options = uv_process_options_t();
+  options.file = this->Command.data();
+  options.args = const_cast<char**>(this->ProcessArgs.data());
+  options.stdio_count = 3; // in, out and err
+  options.exit_cb = &cmProcess::OnExitCB;
+  options.stdio = stdio;
 #if !defined(CMAKE_USE_SYSTEM_LIBUV)
     std::vector<char> cpumask;
     if(affinity && !affinity->empty())
@@ -215,36 +173,23 @@ cmProcess::StartTimer()
 bool
 cmProcess::Buffer::GetLine(std::string& line)
 {
-    // Scan for the next newline.
-    for(size_type sz = this->size(); this->Last != sz; ++this->Last)
-    {
-        if((*this)[this->Last] == '\n' || (*this)[this->Last] == '\0')
-        {
-            // Extract the range first..last as a line.
-            const char* text   = &*this->begin() + this->First;
-            size_type   length = this->Last - this->First;
-            while(length && text[length - 1] == '\r')
-            {
-                length--;
-            }
-            line.assign(text, length);
+  // Scan for the next newline.
+  for (size_type sz = this->size(); this->Last != sz; ++this->Last) {
+    if ((*this)[this->Last] == '\n' || (*this)[this->Last] == '\0') {
+      // Extract the range first..last as a line.
+      const char* text = this->data() + this->First;
+      size_type length = this->Last - this->First;
+      while (length && text[length - 1] == '\r') {
+        length--;
+      }
+      line.assign(text, length);
 
-            // Start a new range for the next line.
-            ++this->Last;
-            this->First = Last;
+      // Start a new range for the next line.
+      ++this->Last;
+      this->First = Last;
 
-            // Return the line extracted.
-            return true;
-        }
-    }
-
-    // Available data have been exhausted without a newline.
-    if(this->First != 0)
-    {
-        // Move the partial line to the beginning of the buffer.
-        this->erase(this->begin(), this->begin() + this->First);
-        this->First = 0;
-        this->Last  = this->size();
+      // Return the line extracted.
+      return true;
     }
     return false;
 }
@@ -252,15 +197,14 @@ cmProcess::Buffer::GetLine(std::string& line)
 bool
 cmProcess::Buffer::GetLast(std::string& line)
 {
-    // Return the partial last line, if any.
-    if(!this->empty())
-    {
-        line.assign(&*this->begin(), this->size());
-        this->First = this->Last = 0;
-        this->clear();
-        return true;
-    }
-    return false;
+  // Return the partial last line, if any.
+  if (!this->empty()) {
+    line.assign(this->data(), this->size());
+    this->First = this->Last = 0;
+    this->clear();
+    return true;
+  }
+  return false;
 }
 
 void
@@ -273,25 +217,15 @@ cmProcess::OnReadCB(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
 void
 cmProcess::OnRead(ssize_t nread, const uv_buf_t* buf)
 {
-    std::string line;
-    if(nread > 0)
-    {
-        std::string strdata;
-        this->Conv.DecodeText(buf->base, static_cast<size_t>(nread), strdata);
-        this->Output.insert(this->Output.end(), strdata.begin(), strdata.end());
+  std::string line;
+  if (nread > 0) {
+    std::string strdata;
+    this->Conv.DecodeText(buf->base, static_cast<size_t>(nread), strdata);
+    cmAppend(this->Output, strdata);
 
-        while(this->Output.GetLine(line))
-        {
-            this->Runner.CheckOutput(line);
-            line.clear();
-        }
-
-        return;
-    }
-
-    if(nread == 0)
-    {
-        return;
+    while (this->Output.GetLine(line)) {
+      this->Runner.CheckOutput(line);
+      line.clear();
     }
 
     // The process will provide no more data.
@@ -410,6 +344,19 @@ cmProcess::OnExit(int64_t exit_status, int term_signal)
     {
         this->TotalTime = cmDuration::zero();
     }
+  }
+
+  // Record exit information.
+  this->ExitValue = exit_status;
+  this->Signal = term_signal;
+  this->TotalTime = std::chrono::steady_clock::now() - this->StartTime;
+  // Because of a processor clock scew the runtime may become slightly
+  // negative. If someone changed the system clock while the process was
+  // running this may be even more. Make sure not to report a negative
+  // duration here.
+  if (this->TotalTime <= cmDuration::zero()) {
+    this->TotalTime = cmDuration::zero();
+  }
 
     this->ProcessHandleClosed = true;
     if(this->ReadHandleClosed)
@@ -521,86 +468,86 @@ cmProcess::GetExitExceptionString()
 {
     std::string exception_str;
 #if defined(_WIN32)
-    switch(this->ExitValue)
-    {
-        case STATUS_CONTROL_C_EXIT:
-            exception_str = "User interrupt";
-            break;
-        case STATUS_FLOAT_DENORMAL_OPERAND:
-            exception_str = "Floating-point exception (denormal operand)";
-            break;
-        case STATUS_FLOAT_DIVIDE_BY_ZERO:
-            exception_str = "Divide-by-zero";
-            break;
-        case STATUS_FLOAT_INEXACT_RESULT:
-            exception_str = "Floating-point exception (inexact result)";
-            break;
-        case STATUS_FLOAT_INVALID_OPERATION:
-            exception_str = "Invalid floating-point operation";
-            break;
-        case STATUS_FLOAT_OVERFLOW:
-            exception_str = "Floating-point overflow";
-            break;
-        case STATUS_FLOAT_STACK_CHECK:
-            exception_str = "Floating-point stack check failed";
-            break;
-        case STATUS_FLOAT_UNDERFLOW:
-            exception_str = "Floating-point underflow";
-            break;
-#    ifdef STATUS_FLOAT_MULTIPLE_FAULTS
-        case STATUS_FLOAT_MULTIPLE_FAULTS:
-            exception_str = "Floating-point exception (multiple faults)";
-            break;
-#    endif
-#    ifdef STATUS_FLOAT_MULTIPLE_TRAPS
-        case STATUS_FLOAT_MULTIPLE_TRAPS:
-            exception_str = "Floating-point exception (multiple traps)";
-            break;
-#    endif
-        case STATUS_INTEGER_DIVIDE_BY_ZERO:
-            exception_str = "Integer divide-by-zero";
-            break;
-        case STATUS_INTEGER_OVERFLOW:
-            exception_str = "Integer overflow";
-            break;
+  switch (this->ExitValue) {
+    case STATUS_CONTROL_C_EXIT:
+      exception_str = "User interrupt";
+      break;
+    case STATUS_FLOAT_DENORMAL_OPERAND:
+      exception_str = "Floating-point exception (denormal operand)";
+      break;
+    case STATUS_FLOAT_DIVIDE_BY_ZERO:
+      exception_str = "Divide-by-zero";
+      break;
+    case STATUS_FLOAT_INEXACT_RESULT:
+      exception_str = "Floating-point exception (inexact result)";
+      break;
+    case STATUS_FLOAT_INVALID_OPERATION:
+      exception_str = "Invalid floating-point operation";
+      break;
+    case STATUS_FLOAT_OVERFLOW:
+      exception_str = "Floating-point overflow";
+      break;
+    case STATUS_FLOAT_STACK_CHECK:
+      exception_str = "Floating-point stack check failed";
+      break;
+    case STATUS_FLOAT_UNDERFLOW:
+      exception_str = "Floating-point underflow";
+      break;
+#  ifdef STATUS_FLOAT_MULTIPLE_FAULTS
+    case STATUS_FLOAT_MULTIPLE_FAULTS:
+      exception_str = "Floating-point exception (multiple faults)";
+      break;
+#  endif
+#  ifdef STATUS_FLOAT_MULTIPLE_TRAPS
+    case STATUS_FLOAT_MULTIPLE_TRAPS:
+      exception_str = "Floating-point exception (multiple traps)";
+      break;
+#  endif
+    case STATUS_INTEGER_DIVIDE_BY_ZERO:
+      exception_str = "Integer divide-by-zero";
+      break;
+    case STATUS_INTEGER_OVERFLOW:
+      exception_str = "Integer overflow";
+      break;
 
-        case STATUS_DATATYPE_MISALIGNMENT:
-            exception_str = "Datatype misalignment";
-            break;
-        case STATUS_ACCESS_VIOLATION:
-            exception_str = "Access violation";
-            break;
-        case STATUS_IN_PAGE_ERROR:
-            exception_str = "In-page error";
-            break;
-        case STATUS_INVALID_HANDLE:
-            exception_str = "Invalid handle";
-            break;
-        case STATUS_NONCONTINUABLE_EXCEPTION:
-            exception_str = "Noncontinuable exception";
-            break;
-        case STATUS_INVALID_DISPOSITION:
-            exception_str = "Invalid disposition";
-            break;
-        case STATUS_ARRAY_BOUNDS_EXCEEDED:
-            exception_str = "Array bounds exceeded";
-            break;
-        case STATUS_STACK_OVERFLOW:
-            exception_str = "Stack overflow";
-            break;
+    case STATUS_DATATYPE_MISALIGNMENT:
+      exception_str = "Datatype misalignment";
+      break;
+    case STATUS_ACCESS_VIOLATION:
+      exception_str = "Access violation";
+      break;
+    case STATUS_IN_PAGE_ERROR:
+      exception_str = "In-page error";
+      break;
+    case STATUS_INVALID_HANDLE:
+      exception_str = "Invalid handle";
+      break;
+    case STATUS_NONCONTINUABLE_EXCEPTION:
+      exception_str = "Noncontinuable exception";
+      break;
+    case STATUS_INVALID_DISPOSITION:
+      exception_str = "Invalid disposition";
+      break;
+    case STATUS_ARRAY_BOUNDS_EXCEEDED:
+      exception_str = "Array bounds exceeded";
+      break;
+    case STATUS_STACK_OVERFLOW:
+      exception_str = "Stack overflow";
+      break;
 
-        case STATUS_ILLEGAL_INSTRUCTION:
-            exception_str = "Illegal instruction";
-            break;
-        case STATUS_PRIVILEGED_INSTRUCTION:
-            exception_str = "Privileged instruction";
-            break;
-        case STATUS_NO_MEMORY:
-        default:
-            char buf[1024];
-            _snprintf(buf, 1024, "Exit code 0x%x\n", this->ExitValue);
-            exception_str.assign(buf);
-    }
+    case STATUS_ILLEGAL_INSTRUCTION:
+      exception_str = "Illegal instruction";
+      break;
+    case STATUS_PRIVILEGED_INSTRUCTION:
+      exception_str = "Privileged instruction";
+      break;
+    case STATUS_NO_MEMORY:
+    default:
+      char buf[1024];
+      const char* fmt = "Exit code 0x%" KWIML_INT_PRIx64 "\n";
+      _snprintf(buf, 1024, fmt, this->ExitValue);
+      exception_str.assign(buf);
+  }
 #else
     switch(this->Signal)
     {

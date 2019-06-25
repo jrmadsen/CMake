@@ -42,41 +42,41 @@ public:
 class cmLocalVisualStudio7Generator : public cmLocalVisualStudioGenerator
 {
 public:
-    ///! Set cache only and recurse to false by default.
-    cmLocalVisualStudio7Generator(cmGlobalGenerator* gg, cmMakefile* mf);
+  //! Set cache only and recurse to false by default.
+  cmLocalVisualStudio7Generator(cmGlobalGenerator* gg, cmMakefile* mf);
 
-    virtual ~cmLocalVisualStudio7Generator();
+  virtual ~cmLocalVisualStudio7Generator();
 
-    void AddHelperCommands() override;
+  void AddHelperCommands() override;
 
-    /**
-     * Generate the makefile for this directory.
-     */
-    void Generate() override;
+  /**
+   * Generate the makefile for this directory.
+   */
+  void Generate() override;
 
-    enum BuildType
-    {
-        STATIC_LIBRARY,
-        DLL,
-        EXECUTABLE,
-        WIN32_EXECUTABLE,
-        UTILITY
-    };
+  enum BuildType
+  {
+    STATIC_LIBRARY,
+    DLL,
+    EXECUTABLE,
+    WIN32_EXECUTABLE,
+    UTILITY
+  };
 
-    /**
-     * Specify the type of the build: static, dll, or executable.
-     */
-    void SetBuildType(BuildType, const std::string& name);
+  /**
+   * Specify the type of the build: static, dll, or executable.
+   */
+  void SetBuildType(BuildType, const std::string& name);
 
-    std::string GetTargetDirectory(
-        cmGeneratorTarget const* target) const override;
-    cmSourceFile* CreateVCProjBuildRule();
-    void          WriteStampFiles();
-    std::string   ComputeLongestObjectDirectory(
-          cmGeneratorTarget const*) const override;
+  std::string GetTargetDirectory(
+    cmGeneratorTarget const* target) const override;
+  cmSourceFile* CreateVCProjBuildRule();
+  void WriteStampFiles();
+  std::string ComputeLongestObjectDirectory(
+    cmGeneratorTarget const*) const override;
 
-    virtual void ReadAndStoreExternalGUID(const std::string& name,
-                                          const char*        path);
+  virtual void ReadAndStoreExternalGUID(const std::string& name,
+                                        const char* path);
 
 protected:
     void CreateSingleVCProj(const std::string& lname, cmGeneratorTarget* tgt);

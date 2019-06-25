@@ -2,10 +2,12 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmJsonObjects.h"  // IWYU pragma: keep
 
+#include "cmAlgorithms.h"
 #include "cmGeneratorExpression.h"
 #include "cmGeneratorTarget.h"
 #include "cmGlobalGenerator.h"
 #include "cmInstallGenerator.h"
+#include "cmInstallSubdirectoryGenerator.h"
 #include "cmInstallTargetGenerator.h"
 #include "cmJsonObjectDictionary.h"
 #include "cmJsonObjects.h"
@@ -13,6 +15,7 @@
 #include "cmLocalGenerator.h"
 #include "cmMakefile.h"
 #include "cmProperty.h"
+#include "cmPropertyMap.h"
 #include "cmSourceFile.h"
 #include "cmState.h"
 #include "cmStateDirectory.h"
@@ -47,12 +50,11 @@ getConfigurations(const cmake* cm)
         return configurations;
     }
 
-    makefiles[0]->GetConfigurations(configurations);
-    if(configurations.empty())
-    {
-        configurations.push_back("");
-    }
-    return configurations;
+  makefiles[0]->GetConfigurations(configurations);
+  if (configurations.empty()) {
+    configurations.emplace_back();
+  }
+  return configurations;
 }
 
 bool
@@ -282,82 +284,48 @@ static Json::Value
 DumpSourceFilesList(cmGeneratorTarget* target, const std::string& config,
                     const std::map<std::string, LanguageData>& languageDataMap)
 {
-    // Collect sourcefile groups:
+  // Collect sourcefile groups:
 
-    std::vector<cmSourceFile*> files;
-    target->GetSourceFiles(files, config);
+  std::vector<cmSourceFile*> files;
+  target->GetSourceFiles(files, config);
 
-    std::unordered_map<LanguageData, std::vector<std::string>> fileGroups;
-    for(cmSourceFile* file : files)
-    {
-        LanguageData fileData;
-        fileData.Language = file->GetLanguage();
-        if(!fileData.Language.empty())
-        {
-            const LanguageData& ld = languageDataMap.at(fileData.Language);
-            cmLocalGenerator*   lg = target->GetLocalGenerator();
-            cmGeneratorExpressionInterpreter genexInterpreter(
-                lg, config, target, fileData.Language);
+  std::unordered_map<LanguageData, std::vector<std::string>> fileGroups;
+  for (cmSourceFile* file : files) {
+    LanguageData fileData;
+    fileData.Language = file->GetLanguage();
+    if (!fileData.Language.empty()) {
+      const LanguageData& ld = languageDataMap.at(fileData.Language);
+      cmLocalGenerator* lg = target->GetLocalGenerator();
+      cmGeneratorExpressionInterpreter genexInterpreter(lg, config, target,
+                                                        fileData.Language);
 
-            std::string       compileFlags = ld.Flags;
-            const std::string COMPILE_FLAGS("COMPILE_FLAGS");
-            if(const char* cflags = file->GetProperty(COMPILE_FLAGS))
-            {
-                lg->AppendFlags(compileFlags, genexInterpreter.Evaluate(
-                                                  cflags, COMPILE_FLAGS));
-            }
-            const std::string COMPILE_OPTIONS("COMPILE_OPTIONS");
-            if(const char* coptions = file->GetProperty(COMPILE_OPTIONS))
-            {
-                lg->AppendCompileOptions(
-                    compileFlags,
-                    genexInterpreter.Evaluate(coptions, COMPILE_OPTIONS));
-            }
-            fileData.Flags = compileFlags;
+      std::string compileFlags = ld.Flags;
+      const std::string COMPILE_FLAGS("COMPILE_FLAGS");
+      if (const char* cflags = file->GetProperty(COMPILE_FLAGS)) {
+        lg->AppendFlags(compileFlags,
+                        genexInterpreter.Evaluate(cflags, COMPILE_FLAGS));
+      }
+      const std::string COMPILE_OPTIONS("COMPILE_OPTIONS");
+      if (const char* coptions = file->GetProperty(COMPILE_OPTIONS)) {
+        lg->AppendCompileOptions(
+          compileFlags, genexInterpreter.Evaluate(coptions, COMPILE_OPTIONS));
+      }
+      fileData.Flags = compileFlags;
 
-            // Add include directories from source file properties.
-            std::vector<std::string> includes;
+      // Add include directories from source file properties.
+      std::vector<std::string> includes;
 
-            const std::string INCLUDE_DIRECTORIES("INCLUDE_DIRECTORIES");
-            if(const char* cincludes = file->GetProperty(INCLUDE_DIRECTORIES))
-            {
-                const std::string& evaluatedIncludes =
-                    genexInterpreter.Evaluate(cincludes, INCLUDE_DIRECTORIES);
-                lg->AppendIncludeDirectories(includes, evaluatedIncludes,
-                                             *file);
+      const std::string INCLUDE_DIRECTORIES("INCLUDE_DIRECTORIES");
+      if (const char* cincludes = file->GetProperty(INCLUDE_DIRECTORIES)) {
+        const std::string& evaluatedIncludes =
+          genexInterpreter.Evaluate(cincludes, INCLUDE_DIRECTORIES);
+        lg->AppendIncludeDirectories(includes, evaluatedIncludes, *file);
 
-                for(const auto& include : includes)
-                {
-                    fileData.IncludePathList.push_back(std::make_pair(
-                        include, target->IsSystemIncludeDirectory(
-                                     include, config, fileData.Language)));
-                }
-            }
-
-            fileData.IncludePathList.insert(fileData.IncludePathList.end(),
-                                            ld.IncludePathList.begin(),
-                                            ld.IncludePathList.end());
-
-            const std::string     COMPILE_DEFINITIONS("COMPILE_DEFINITIONS");
-            std::set<std::string> defines;
-            if(const char* defs = file->GetProperty(COMPILE_DEFINITIONS))
-            {
-                lg->AppendDefines(defines, genexInterpreter.Evaluate(
-                                               defs, COMPILE_DEFINITIONS));
-            }
-
-            const std::string defPropName =
-                "COMPILE_DEFINITIONS_" + cmSystemTools::UpperCase(config);
-            if(const char* config_defs = file->GetProperty(defPropName))
-            {
-                lg->AppendDefines(
-                    defines, genexInterpreter.Evaluate(config_defs,
-                                                       COMPILE_DEFINITIONS));
-            }
-
-            defines.insert(ld.Defines.begin(), ld.Defines.end());
-
-            fileData.SetDefines(defines);
+        for (const auto& include : includes) {
+          fileData.IncludePathList.emplace_back(
+            include,
+            target->IsSystemIncludeDirectory(include, config,
+                                             fileData.Language));
         }
 
         fileData.IsGenerated = file->GetPropertyAsBool("GENERATED");
@@ -365,15 +333,17 @@ DumpSourceFilesList(cmGeneratorTarget* target, const std::string& config,
         groupFileList.push_back(file->GetFullPath());
     }
 
-    const std::string& baseDir = target->Makefile->GetCurrentSourceDirectory();
-    Json::Value        result  = Json::arrayValue;
-    for(auto const& it : fileGroups)
-    {
-        Json::Value group = DumpSourceFileGroup(it.first, it.second, baseDir);
-        if(!group.isNull())
-        {
-            result.append(group);
-        }
+    fileData.IsGenerated = file->GetIsGenerated();
+    std::vector<std::string>& groupFileList = fileGroups[fileData];
+    groupFileList.push_back(file->GetFullPath());
+  }
+
+  const std::string& baseDir = target->Makefile->GetCurrentSourceDirectory();
+  Json::Value result = Json::arrayValue;
+  for (auto const& it : fileGroups) {
+    Json::Value group = DumpSourceFileGroup(it.first, it.second, baseDir);
+    if (!group.isNull()) {
+      result.append(group);
     }
 
     return result;
@@ -500,24 +470,61 @@ cmDumpCTestInfo(const cmake* cm)
 static Json::Value
 DumpTarget(cmGeneratorTarget* target, const std::string& config)
 {
-    cmLocalGenerator* lg    = target->GetLocalGenerator();
-    const cmState*    state = lg->GetState();
+  cmLocalGenerator* lg = target->GetLocalGenerator();
 
-    const cmStateEnums::TargetType type     = target->GetType();
-    const std::string              typeName = state->GetTargetTypeName(type);
+  const cmStateEnums::TargetType type = target->GetType();
+  const std::string typeName = cmState::GetTargetTypeName(type);
 
-    Json::Value ttl = Json::arrayValue;
-    ttl.append("EXECUTABLE");
-    ttl.append("STATIC_LIBRARY");
-    ttl.append("SHARED_LIBRARY");
-    ttl.append("MODULE_LIBRARY");
-    ttl.append("OBJECT_LIBRARY");
-    ttl.append("UTILITY");
-    ttl.append("INTERFACE_LIBRARY");
+  Json::Value ttl = Json::arrayValue;
+  ttl.append("EXECUTABLE");
+  ttl.append("STATIC_LIBRARY");
+  ttl.append("SHARED_LIBRARY");
+  ttl.append("MODULE_LIBRARY");
+  ttl.append("OBJECT_LIBRARY");
+  ttl.append("UTILITY");
+  ttl.append("INTERFACE_LIBRARY");
 
-    if(!hasString(ttl, typeName) || target->IsImported())
-    {
-        return Json::Value();
+  if (!hasString(ttl, typeName) || target->IsImported()) {
+    return Json::Value();
+  }
+
+  Json::Value result = Json::objectValue;
+  result[kNAME_KEY] = target->GetName();
+  result[kIS_GENERATOR_PROVIDED_KEY] =
+    target->Target->GetIsGeneratorProvided();
+  result[kTYPE_KEY] = typeName;
+  result[kSOURCE_DIRECTORY_KEY] = lg->GetCurrentSourceDirectory();
+  result[kBUILD_DIRECTORY_KEY] = lg->GetCurrentBinaryDirectory();
+
+  if (type == cmStateEnums::INTERFACE_LIBRARY) {
+    return result;
+  }
+
+  result[kFULL_NAME_KEY] = target->GetFullName(config);
+
+  if (target->Target->GetHaveInstallRule()) {
+    result[kHAS_INSTALL_RULE] = true;
+
+    Json::Value installPaths = Json::arrayValue;
+    auto targetGenerators = target->Makefile->GetInstallGenerators();
+    for (auto installGenerator : targetGenerators) {
+      auto installTargetGenerator =
+        dynamic_cast<cmInstallTargetGenerator*>(installGenerator);
+      if (installTargetGenerator != nullptr &&
+          installTargetGenerator->GetTarget()->Target == target->Target) {
+        auto dest = installTargetGenerator->GetDestination(config);
+
+        std::string installPath;
+        if (!dest.empty() && cmSystemTools::FileIsFullPath(dest)) {
+          installPath = dest;
+        } else {
+          std::string installPrefix =
+            target->Makefile->GetSafeDefinition("CMAKE_INSTALL_PREFIX");
+          installPath = installPrefix + '/' + dest;
+        }
+
+        installPaths.append(installPath);
+      }
     }
 
     Json::Value result = Json::objectValue;
@@ -634,26 +641,24 @@ DumpTarget(cmGeneratorTarget* target, const std::string& config)
             result[kSYSROOT_KEY] = sysroot;
         }
     }
+  }
 
-    std::set<std::string> languages;
-    target->GetLanguages(languages, config);
-    std::map<std::string, LanguageData> languageDataMap;
+  std::set<std::string> languages;
+  target->GetLanguages(languages, config);
+  std::map<std::string, LanguageData> languageDataMap;
 
-    for(std::string const& lang : languages)
-    {
-        LanguageData& ld = languageDataMap[lang];
-        ld.Language      = lang;
-        lg->GetTargetCompileFlags(target, config, lang, ld.Flags);
-        std::set<std::string> defines;
-        lg->GetTargetDefines(target, config, lang, defines);
-        ld.SetDefines(defines);
-        std::vector<std::string> includePathList;
-        lg->GetIncludeDirectories(includePathList, target, lang, config, true);
-        for(std::string const& i : includePathList)
-        {
-            ld.IncludePathList.push_back(std::make_pair(
-                i, target->IsSystemIncludeDirectory(i, config, lang)));
-        }
+  for (std::string const& lang : languages) {
+    LanguageData& ld = languageDataMap[lang];
+    ld.Language = lang;
+    lg->GetTargetCompileFlags(target, config, lang, ld.Flags);
+    std::set<std::string> defines;
+    lg->GetTargetDefines(target, config, lang, defines);
+    ld.SetDefines(defines);
+    std::vector<std::string> includePathList;
+    lg->GetIncludeDirectories(includePathList, target, lang, config);
+    for (std::string const& i : includePathList) {
+      ld.IncludePathList.emplace_back(
+        i, target->IsSystemIncludeDirectory(i, config, lang));
     }
 
     Json::Value sourceGroupsValue =
@@ -670,23 +675,18 @@ static Json::Value
 DumpTargetsList(const std::vector<cmLocalGenerator*>& generators,
                 const std::string&                    config)
 {
-    Json::Value result = Json::arrayValue;
+  Json::Value result = Json::arrayValue;
 
-    std::vector<cmGeneratorTarget*> targetList;
-    for(auto const& lgIt : generators)
-    {
-        const auto& list = lgIt->GetGeneratorTargets();
-        targetList.insert(targetList.end(), list.begin(), list.end());
-    }
-    std::sort(targetList.begin(), targetList.end());
+  std::vector<cmGeneratorTarget*> targetList;
+  for (auto const& lgIt : generators) {
+    cmAppend(targetList, lgIt->GetGeneratorTargets());
+  }
+  std::sort(targetList.begin(), targetList.end());
 
-    for(cmGeneratorTarget* target : targetList)
-    {
-        Json::Value tmp = DumpTarget(target, config);
-        if(!tmp.isNull())
-        {
-            result.append(tmp);
-        }
+  for (cmGeneratorTarget* target : targetList) {
+    Json::Value tmp = DumpTarget(target, config);
+    if (!tmp.isNull()) {
+      result.append(tmp);
     }
 
     return result;
@@ -695,41 +695,42 @@ DumpTargetsList(const std::vector<cmLocalGenerator*>& generators,
 static Json::Value
 DumpProjectList(const cmake* cm, std::string const& config)
 {
-    Json::Value result = Json::arrayValue;
+  Json::Value result = Json::arrayValue;
 
-    auto globalGen = cm->GetGlobalGenerator();
+  auto globalGen = cm->GetGlobalGenerator();
 
-    for(auto const& projectIt : globalGen->GetProjectMap())
-    {
-        Json::Value pObj = Json::objectValue;
-        pObj[kNAME_KEY]  = projectIt.first;
+  for (auto const& projectIt : globalGen->GetProjectMap()) {
+    Json::Value pObj = Json::objectValue;
+    pObj[kNAME_KEY] = projectIt.first;
 
-        // All Projects must have at least one local generator
-        assert(!projectIt.second.empty());
-        const cmLocalGenerator* lg = projectIt.second.at(0);
+    // All Projects must have at least one local generator
+    assert(!projectIt.second.empty());
+    const cmLocalGenerator* lg = projectIt.second.at(0);
 
-        // Project structure information:
-        const cmMakefile* mf = lg->GetMakefile();
-        auto minVersion = mf->GetDefinition("CMAKE_MINIMUM_REQUIRED_VERSION");
-        pObj[kMINIMUM_CMAKE_VERSION] = minVersion ? minVersion : "";
-        pObj[kSOURCE_DIRECTORY_KEY]  = mf->GetCurrentSourceDirectory();
-        pObj[kBUILD_DIRECTORY_KEY]   = mf->GetCurrentBinaryDirectory();
-        pObj[kTARGETS_KEY] = DumpTargetsList(projectIt.second, config);
+    // Project structure information:
+    const cmMakefile* mf = lg->GetMakefile();
+    auto minVersion = mf->GetDefinition("CMAKE_MINIMUM_REQUIRED_VERSION");
+    pObj[kMINIMUM_CMAKE_VERSION] = minVersion ? minVersion : "";
+    pObj[kSOURCE_DIRECTORY_KEY] = mf->GetCurrentSourceDirectory();
+    pObj[kBUILD_DIRECTORY_KEY] = mf->GetCurrentBinaryDirectory();
+    pObj[kTARGETS_KEY] = DumpTargetsList(projectIt.second, config);
 
-        // For a project-level install rule it might be defined in any of its
-        // associated generators.
-        bool hasInstallRule = false;
-        for(const auto generator : projectIt.second)
-        {
-            hasInstallRule =
-                generator->GetMakefile()->GetInstallGenerators().empty() ==
-                false;
-
-            if(hasInstallRule)
-            {
-                break;
-            }
+    // For a project-level install rule it might be defined in any of its
+    // associated generators.
+    bool hasInstallRule = false;
+    for (const auto generator : projectIt.second) {
+      for (const auto installGen :
+           generator->GetMakefile()->GetInstallGenerators()) {
+        if (!dynamic_cast<cmInstallSubdirectoryGenerator*>(installGen)) {
+          hasInstallRule = true;
+          break;
         }
+      }
+
+      if (hasInstallRule) {
+        break;
+      }
+    }
 
         pObj[kHAS_INSTALL_RULE] = hasInstallRule;
 

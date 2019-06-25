@@ -32,7 +32,7 @@ cmCTestGIT::cmCTestGIT(cmCTest* ct, std::ostream& log)
     this->CurrentGitVersion = 0;
 }
 
-cmCTestGIT::~cmCTestGIT() {}
+cmCTestGIT::~cmCTestGIT() = default;
 
 class cmCTestGIT::OneLineParser : public cmCTestVC::LineParser
 {
@@ -164,34 +164,51 @@ cmCTestGIT::FindTopDir()
 bool
 cmCTestGIT::UpdateByFetchAndReset()
 {
-    const char* git = this->CommandLineTool.c_str();
+  const char* git = this->CommandLineTool.c_str();
 
-    // Use "git fetch" to get remote commits.
-    std::vector<char const*> git_fetch;
-    git_fetch.push_back(git);
-    git_fetch.push_back("fetch");
+  // Use "git fetch" to get remote commits.
+  std::vector<char const*> git_fetch;
+  git_fetch.push_back(git);
+  git_fetch.push_back("fetch");
 
-    // Add user-specified update options.
-    std::string opts = this->CTest->GetCTestConfiguration("UpdateOptions");
-    if(opts.empty())
-    {
-        opts = this->CTest->GetCTestConfiguration("GITUpdateOptions");
+  // Add user-specified update options.
+  std::string opts = this->CTest->GetCTestConfiguration("UpdateOptions");
+  if (opts.empty()) {
+    opts = this->CTest->GetCTestConfiguration("GITUpdateOptions");
+  }
+  std::vector<std::string> args = cmSystemTools::ParseArguments(opts);
+  for (std::string const& arg : args) {
+    git_fetch.push_back(arg.c_str());
+  }
+
+  // Sentinel argument.
+  git_fetch.push_back(nullptr);
+
+  // Fetch upstream refs.
+  OutputLogger fetch_out(this->Log, "fetch-out> ");
+  OutputLogger fetch_err(this->Log, "fetch-err> ");
+  if (!this->RunUpdateCommand(&git_fetch[0], &fetch_out, &fetch_err)) {
+    return false;
+  }
+
+  // Identify the merge head that would be used by "git pull".
+  std::string sha1;
+  {
+    std::string fetch_head = this->FindGitDir() + "/FETCH_HEAD";
+    cmsys::ifstream fin(fetch_head.c_str(), std::ios::in | std::ios::binary);
+    if (!fin) {
+      this->Log << "Unable to open " << fetch_head << "\n";
+      return false;
     }
-    std::vector<std::string> args = cmSystemTools::ParseArguments(opts.c_str());
-    for(std::string const& arg : args)
-    {
-        git_fetch.push_back(arg.c_str());
-    }
-
-    // Sentinel argument.
-    git_fetch.push_back(nullptr);
-
-    // Fetch upstream refs.
-    OutputLogger fetch_out(this->Log, "fetch-out> ");
-    OutputLogger fetch_err(this->Log, "fetch-err> ");
-    if(!this->RunUpdateCommand(&git_fetch[0], &fetch_out, &fetch_err))
-    {
-        return false;
+    std::string line;
+    while (sha1.empty() && cmSystemTools::GetLineFromStream(fin, line)) {
+      this->Log << "FETCH_HEAD> " << line << "\n";
+      if (line.find("\tnot-for-merge\t") == std::string::npos) {
+        std::string::size_type pos = line.find('\t');
+        if (pos != std::string::npos) {
+          sha1 = line.substr(0, pos);
+        }
+      }
     }
 
     // Identify the merge head that would be used by "git pull".
@@ -511,163 +528,142 @@ public:
     }
 
 private:
-    typedef cmCTestGIT::Revision Revision;
-    enum SectionType
-    {
-        SectionHeader,
-        SectionBody,
-        SectionDiff,
-        SectionCount
-    };
-    static char const SectionSep[SectionCount];
-    SectionType       Section;
-    Revision          Rev;
+  typedef cmCTestGIT::Revision Revision;
+  enum SectionType
+  {
+    SectionHeader,
+    SectionBody,
+    SectionDiff,
+    SectionCount
+  };
+  static char const SectionSep[SectionCount];
+  SectionType Section;
+  Revision Rev;
 
-    struct Person
-    {
-        std::string   Name;
-        std::string   EMail;
-        unsigned long Time;
-        long          TimeZone;
-        Person()
-        : Name()
-        , EMail()
-        , Time(0)
-        , TimeZone(0)
-        {}
-    };
+  struct Person
+  {
+    std::string Name;
+    std::string EMail;
+    unsigned long Time = 0;
+    long TimeZone = 0;
+  };
 
-    void ParsePerson(const char* str, Person& person)
-    {
-        // Person Name <person@domain.com> 1234567890 +0000
-        const char* c = str;
-        while(*c && isspace(*c))
-        {
-            ++c;
-        }
-
-        const char* name_first = c;
-        while(*c && *c != '<')
-        {
-            ++c;
-        }
-        const char* name_last = c;
-        while(name_last != name_first && isspace(*(name_last - 1)))
-        {
-            --name_last;
-        }
-        person.Name.assign(name_first, name_last - name_first);
-
-        const char* email_first = *c ? ++c : c;
-        while(*c && *c != '>')
-        {
-            ++c;
-        }
-        const char* email_last = *c ? c++ : c;
-        person.EMail.assign(email_first, email_last - email_first);
-
-        person.Time     = strtoul(c, const_cast<char**>(&c), 10);
-        person.TimeZone = strtol(c, const_cast<char**>(&c), 10);
+  void ParsePerson(const char* str, Person& person)
+  {
+    // Person Name <person@domain.com> 1234567890 +0000
+    const char* c = str;
+    while (*c && isspace(*c)) {
+      ++c;
     }
 
-    bool ProcessLine() override
-    {
-        if(this->Line.empty())
-        {
-            if(this->Section == SectionBody && this->LineEnd == '\0')
-            {
-                // Skip SectionDiff
-                this->NextSection();
-            }
-            this->NextSection();
-        } else
-        {
-            switch(this->Section)
-            {
-                case SectionHeader:
-                    this->DoHeaderLine();
-                    break;
-                case SectionBody:
-                    this->DoBodyLine();
-                    break;
-                case SectionDiff:
-                    this->DiffParser::ProcessLine();
-                    break;
-                case SectionCount:
-                    break;  // never happens
-            }
-        }
-        return true;
+    const char* name_first = c;
+    while (*c && *c != '<') {
+      ++c;
     }
-
-    void NextSection()
-    {
-        this->Section   = SectionType((this->Section + 1) % SectionCount);
-        this->Separator = SectionSep[this->Section];
-        if(this->Section == SectionHeader)
-        {
-            this->GIT->DoRevision(this->Rev, this->Changes);
-            this->Rev = Revision();
-            this->DiffReset();
-        }
+    const char* name_last = c;
+    while (name_last != name_first && isspace(*(name_last - 1))) {
+      --name_last;
     }
+    person.Name.assign(name_first, name_last - name_first);
 
-    void DoHeaderLine()
-    {
-        // Look for header fields that we need.
-        if(cmHasLiteralPrefix(this->Line, "commit "))
-        {
-            this->Rev.Rev = this->Line.c_str() + 7;
-        } else if(cmHasLiteralPrefix(this->Line, "author "))
-        {
-            Person author;
-            this->ParsePerson(this->Line.c_str() + 7, author);
-            this->Rev.Author = author.Name;
-            this->Rev.EMail  = author.EMail;
-            this->Rev.Date   = this->FormatDateTime(author);
-        } else if(cmHasLiteralPrefix(this->Line, "committer "))
-        {
-            Person committer;
-            this->ParsePerson(this->Line.c_str() + 10, committer);
-            this->Rev.Committer      = committer.Name;
-            this->Rev.CommitterEMail = committer.EMail;
-            this->Rev.CommitDate     = this->FormatDateTime(committer);
-        }
+    const char* email_first = *c ? ++c : c;
+    while (*c && *c != '>') {
+      ++c;
     }
+    const char* email_last = *c ? c++ : c;
+    person.EMail.assign(email_first, email_last - email_first);
 
-    void DoBodyLine()
-    {
-        // Commit log lines are indented by 4 spaces.
-        if(this->Line.size() >= 4)
-        {
-            this->Rev.Log += this->Line.substr(4);
-        }
-        this->Rev.Log += "\n";
+    person.Time = strtoul(c, const_cast<char**>(&c), 10);
+    person.TimeZone = strtol(c, const_cast<char**>(&c), 10);
+  }
+
+  bool ProcessLine() override
+  {
+    if (this->Line.empty()) {
+      if (this->Section == SectionBody && this->LineEnd == '\0') {
+        // Skip SectionDiff
+        this->NextSection();
+      }
+      this->NextSection();
+    } else {
+      switch (this->Section) {
+        case SectionHeader:
+          this->DoHeaderLine();
+          break;
+        case SectionBody:
+          this->DoBodyLine();
+          break;
+        case SectionDiff:
+          this->DiffParser::ProcessLine();
+          break;
+        case SectionCount:
+          break; // never happens
+      }
     }
+    return true;
+  }
 
-    std::string FormatDateTime(Person const& person)
-    {
-        // Convert the time to a human-readable format that is also easy
-        // to machine-parse: "CCYY-MM-DD hh:mm:ss".
-        time_t     seconds = static_cast<time_t>(person.Time);
-        struct tm* t       = gmtime(&seconds);
-        char       dt[1024];
-        sprintf(dt, "%04d-%02d-%02d %02d:%02d:%02d", t->tm_year + 1900,
-                t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
-        std::string out = dt;
-
-        // Add the time-zone field "+zone" or "-zone".
-        char tz[32];
-        if(person.TimeZone >= 0)
-        {
-            sprintf(tz, " +%04ld", person.TimeZone);
-        } else
-        {
-            sprintf(tz, " -%04ld", -person.TimeZone);
-        }
-        out += tz;
-        return out;
+  void NextSection()
+  {
+    this->Section = SectionType((this->Section + 1) % SectionCount);
+    this->Separator = SectionSep[this->Section];
+    if (this->Section == SectionHeader) {
+      this->GIT->DoRevision(this->Rev, this->Changes);
+      this->Rev = Revision();
+      this->DiffReset();
     }
+  }
+
+  void DoHeaderLine()
+  {
+    // Look for header fields that we need.
+    if (cmHasLiteralPrefix(this->Line, "commit ")) {
+      this->Rev.Rev = this->Line.substr(7);
+    } else if (cmHasLiteralPrefix(this->Line, "author ")) {
+      Person author;
+      this->ParsePerson(this->Line.c_str() + 7, author);
+      this->Rev.Author = author.Name;
+      this->Rev.EMail = author.EMail;
+      this->Rev.Date = this->FormatDateTime(author);
+    } else if (cmHasLiteralPrefix(this->Line, "committer ")) {
+      Person committer;
+      this->ParsePerson(this->Line.c_str() + 10, committer);
+      this->Rev.Committer = committer.Name;
+      this->Rev.CommitterEMail = committer.EMail;
+      this->Rev.CommitDate = this->FormatDateTime(committer);
+    }
+  }
+
+  void DoBodyLine()
+  {
+    // Commit log lines are indented by 4 spaces.
+    if (this->Line.size() >= 4) {
+      this->Rev.Log += this->Line.substr(4);
+    }
+    this->Rev.Log += "\n";
+  }
+
+  std::string FormatDateTime(Person const& person)
+  {
+    // Convert the time to a human-readable format that is also easy
+    // to machine-parse: "CCYY-MM-DD hh:mm:ss".
+    time_t seconds = static_cast<time_t>(person.Time);
+    struct tm* t = gmtime(&seconds);
+    char dt[1024];
+    sprintf(dt, "%04d-%02d-%02d %02d:%02d:%02d", t->tm_year + 1900,
+            t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
+    std::string out = dt;
+
+    // Add the time-zone field "+zone" or "-zone".
+    char tz[32];
+    if (person.TimeZone >= 0) {
+      sprintf(tz, " +%04ld", person.TimeZone);
+    } else {
+      sprintf(tz, " -%04ld", -person.TimeZone);
+    }
+    out += tz;
+    return out;
+  }
 };
 
 char const cmCTestGIT::CommitParser::SectionSep[SectionCount] = { '\n', '\n',
@@ -676,32 +672,32 @@ char const cmCTestGIT::CommitParser::SectionSep[SectionCount] = { '\n', '\n',
 bool
 cmCTestGIT::LoadRevisions()
 {
-    // Use 'git rev-list ... | git diff-tree ...' to get revisions.
-    std::string range           = this->OldRevision + ".." + this->NewRevision;
-    const char* git             = this->CommandLineTool.c_str();
-    const char* git_rev_list[]  = { git,           "rev-list", "--reverse",
-                                   range.c_str(), "--",       nullptr };
-    const char* git_diff_tree[] = {
-        git,  "diff-tree",    "--stdin",          "--always", "-z",
-        "-r", "--pretty=raw", "--encoding=utf-8", nullptr
-    };
-    this->Log << this->ComputeCommandLine(git_rev_list) << " | "
-              << this->ComputeCommandLine(git_diff_tree) << "\n";
+  // Use 'git rev-list ... | git diff-tree ...' to get revisions.
+  std::string range = this->OldRevision + ".." + this->NewRevision;
+  const char* git = this->CommandLineTool.c_str();
+  const char* git_rev_list[] = { git,           "rev-list", "--reverse",
+                                 range.c_str(), "--",       nullptr };
+  const char* git_diff_tree[] = {
+    git,  "diff-tree",    "--stdin",          "--always", "-z",
+    "-r", "--pretty=raw", "--encoding=utf-8", nullptr
+  };
+  this->Log << cmCTestGIT::ComputeCommandLine(git_rev_list) << " | "
+            << cmCTestGIT::ComputeCommandLine(git_diff_tree) << "\n";
 
-    cmsysProcess* cp = cmsysProcess_New();
-    cmsysProcess_AddCommand(cp, git_rev_list);
-    cmsysProcess_AddCommand(cp, git_diff_tree);
-    cmsysProcess_SetWorkingDirectory(cp, this->SourceDirectory.c_str());
+  cmsysProcess* cp = cmsysProcess_New();
+  cmsysProcess_AddCommand(cp, git_rev_list);
+  cmsysProcess_AddCommand(cp, git_diff_tree);
+  cmsysProcess_SetWorkingDirectory(cp, this->SourceDirectory.c_str());
 
-    CommitParser out(this, "dt-out> ");
-    OutputLogger err(this->Log, "dt-err> ");
-    this->RunProcess(cp, &out, &err, cmProcessOutput::UTF8);
+  CommitParser out(this, "dt-out> ");
+  OutputLogger err(this->Log, "dt-err> ");
+  cmCTestGIT::RunProcess(cp, &out, &err, cmProcessOutput::UTF8);
 
-    // Send one extra zero-byte to terminate the last record.
-    out.Process("", 1);
+  // Send one extra zero-byte to terminate the last record.
+  out.Process("", 1);
 
-    cmsysProcess_Delete(cp);
-    return true;
+  cmsysProcess_Delete(cp);
+  return true;
 }
 
 bool

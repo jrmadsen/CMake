@@ -6,6 +6,7 @@
 #include "cmsys/RegularExpression.hxx"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 class cmMakefile;
@@ -13,40 +14,24 @@ class cmMakefile;
 class cmStringReplaceHelper
 {
 public:
-    cmStringReplaceHelper(const std::string& regex,
-                          const std::string& replace_expr,
-                          cmMakefile*        makefile = nullptr);
+  cmStringReplaceHelper(const std::string& regex, std::string replace_expr,
+                        cmMakefile* makefile = nullptr);
 
     bool IsRegularExpressionValid() const
     {
         return this->RegularExpression.is_valid();
     }
-    bool IsReplaceExpressionValid() const
+    RegexReplacement(std::string s)
+      : Number(-1)
+      , Value(std::move(s))
     {
         return this->ValidReplaceExpression;
     }
-
-    bool Replace(const std::string& input, std::string& output);
-
-    const std::string& GetError() { return this->ErrorString; }
-
-private:
-    class RegexReplacement
+    RegexReplacement(int n)
+      : Number(n)
     {
-    public:
-        RegexReplacement(const char* s)
-        : Number(-1)
-        , Value(s)
-        {}
-        RegexReplacement(const std::string& s)
-        : Number(-1)
-        , Value(s)
-        {}
-        RegexReplacement(int n)
-        : Number(n)
-        , Value()
-        {}
-        RegexReplacement() {}
+    }
+    RegexReplacement() = default;
 
         int         Number;
         std::string Value;

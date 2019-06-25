@@ -57,57 +57,57 @@ class cmake;
 class cmCTestScriptHandler : public cmCTestGenericHandler
 {
 public:
-    typedef cmCTestGenericHandler Superclass;
+  typedef cmCTestGenericHandler Superclass;
 
-    /**
-     * Add a script to run, and if is should run in the current process
-     */
-    void AddConfigurationScript(const char*, bool pscope);
+  /**
+   * Add a script to run, and if is should run in the current process
+   */
+  void AddConfigurationScript(const char*, bool pscope);
 
-    /**
-     * Run a dashboard using a specified confiuration script
-     */
-    int ProcessHandler() override;
+  /**
+   * Run a dashboard using a specified confiuration script
+   */
+  int ProcessHandler() override;
 
-    /*
-     * Run a script
-     */
-    static bool RunScript(cmCTest* ctest, const char* script, bool InProcess,
-                          int* returnValue);
-    int         RunCurrentScript();
+  /*
+   * Run a script
+   */
+  static bool RunScript(cmCTest* ctest, cmMakefile* mf, const char* script,
+                        bool InProcess, int* returnValue);
+  int RunCurrentScript();
 
-    /*
-     * Empty Binary Directory
-     */
-    static bool EmptyBinaryDirectory(const char* dir);
+  /*
+   * Empty Binary Directory
+   */
+  static bool EmptyBinaryDirectory(const char* dir);
 
-    /*
-     * Write an initial CMakeCache.txt from the given contents.
-     */
-    static bool WriteInitialCache(const char* directory, const char* text);
+  /*
+   * Write an initial CMakeCache.txt from the given contents.
+   */
+  static bool WriteInitialCache(const char* directory, const char* text);
 
-    /*
-     * Some elapsed time handling functions
-     */
-    static void SleepInSeconds(unsigned int secondsToWait);
-    void        UpdateElapsedTime();
+  /*
+   * Some elapsed time handling functions
+   */
+  static void SleepInSeconds(unsigned int secondsToWait);
+  void UpdateElapsedTime();
 
-    /**
-     * Return the time remaianing that the script is allowed to run in
-     * seconds if the user has set the variable CTEST_TIME_LIMIT. If that has
-     * not been set it returns a very large value.
-     */
-    cmDuration GetRemainingTimeAllowed();
+  /**
+   * Return the time remaianing that the script is allowed to run in
+   * seconds if the user has set the variable CTEST_TIME_LIMIT. If that has
+   * not been set it returns a very large value.
+   */
+  cmDuration GetRemainingTimeAllowed();
 
-    cmCTestScriptHandler();
-    ~cmCTestScriptHandler() override;
+  cmCTestScriptHandler();
+  ~cmCTestScriptHandler() override;
 
-    void Initialize() override;
+  void Initialize() override;
 
-    void   CreateCMake();
-    cmake* GetCMake() { return this->CMake; }
+  void CreateCMake();
+  cmake* GetCMake() { return this->CMake; }
 
-    void SetRunCurrentScript(bool value);
+  void SetRunCurrentScript(bool value);
 
 private:
     // reads in a script
@@ -166,9 +166,10 @@ private:
     // what time in seconds did this script start running
     std::chrono::steady_clock::time_point ScriptStartTime;
 
-    cmMakefile*        Makefile;
-    cmGlobalGenerator* GlobalGenerator;
-    cmake*             CMake;
+  cmMakefile* Makefile;
+  cmMakefile* ParentMakefile;
+  cmGlobalGenerator* GlobalGenerator;
+  cmake* CMake;
 };
 
 #endif

@@ -67,28 +67,28 @@ cmVisualStudioGeneratorOptions::ClearTables()
 void
 cmVisualStudioGeneratorOptions::FixExceptionHandlingDefault()
 {
-    // Exception handling is on by default because the platform file has
-    // "/EHsc" in the flags.  Normally, that will override this
-    // initialization to off, but the user has the option of removing
-    // the flag to disable exception handling.  When the user does
-    // remove the flag we need to override the IDE default of on.
-    switch(this->Version)
-    {
-        case cmGlobalVisualStudioGenerator::VS10:
-        case cmGlobalVisualStudioGenerator::VS11:
-        case cmGlobalVisualStudioGenerator::VS12:
-        case cmGlobalVisualStudioGenerator::VS14:
-        case cmGlobalVisualStudioGenerator::VS15:
-            // by default VS puts <ExceptionHandling></ExceptionHandling> empty
-            // for a project, to make our projects look the same put a new line
-            // and space over for the closing </ExceptionHandling> as the
-            // default value
-            this->FlagMap["ExceptionHandling"] = "\n      ";
-            break;
-        default:
-            this->FlagMap["ExceptionHandling"] = "0";
-            break;
-    }
+  // Exception handling is on by default because the platform file has
+  // "/EHsc" in the flags.  Normally, that will override this
+  // initialization to off, but the user has the option of removing
+  // the flag to disable exception handling.  When the user does
+  // remove the flag we need to override the IDE default of on.
+  switch (this->Version) {
+    case cmGlobalVisualStudioGenerator::VS10:
+    case cmGlobalVisualStudioGenerator::VS11:
+    case cmGlobalVisualStudioGenerator::VS12:
+    case cmGlobalVisualStudioGenerator::VS14:
+    case cmGlobalVisualStudioGenerator::VS15:
+    case cmGlobalVisualStudioGenerator::VS16:
+      // by default VS puts <ExceptionHandling></ExceptionHandling> empty
+      // for a project, to make our projects look the same put a new line
+      // and space over for the closing </ExceptionHandling> as the default
+      // value
+      this->FlagMap["ExceptionHandling"] = "\n      ";
+      break;
+    default:
+      this->FlagMap["ExceptionHandling"] = "0";
+      break;
+  }
 }
 
 void
@@ -242,29 +242,9 @@ cmVisualStudioGeneratorOptions::FixCudaCodeGeneration()
         }
     }
 
-    // Now add entries for the following signatures:
-    // -gencode=<arch>,<code>
-    // -gencode=<arch>,[<code1>,<code2>]
-    // -gencode=<arch>,"<code1>,<code2>"
-    for(std::string const& e : gencode)
-    {
-        std::string entry = e;
-        cmSystemTools::ReplaceString(entry, "arch=", "");
-        cmSystemTools::ReplaceString(entry, "code=", "");
-        cmSystemTools::ReplaceString(entry, "[", "");
-        cmSystemTools::ReplaceString(entry, "]", "");
-        cmSystemTools::ReplaceString(entry, "\"", "");
-
-        std::vector<std::string> codes = cmSystemTools::tokenize(entry, ",");
-        if(codes.size() >= 2)
-        {
-            auto gencode_arch = cm::cbegin(codes);
-            for(auto ci = gencode_arch + 1; ci != cm::cend(codes); ++ci)
-            {
-                std::string code_entry = *gencode_arch + "," + *ci;
-                result.push_back(code_entry);
-            }
-        }
+    if (keyValue[1].front() == '\'' && keyValue[1].back() == '\'') {
+      keyValue[1] =
+        keyValue[1].substr(1, std::max(0, cm::isize(keyValue[1]) - 2));
     }
 }
 
@@ -419,15 +399,32 @@ cmVisualStudioGeneratorOptions::PrependInheritedString(std::string const& key)
 void
 cmVisualStudioGeneratorOptions::Reparse(std::string const& key)
 {
-    std::map<std::string, FlagValue>::iterator i = this->FlagMap.find(key);
-    if(i == this->FlagMap.end() || i->second.size() != 1)
-    {
-        return;
+  // Look for Intel Fortran flags that do not map well in the flag table.
+  if (this->CurrentTool == FortranCompiler) {
+    if (flag == "/dbglibs" || flag == "-dbglibs") {
+      this->FortranRuntimeDebug = true;
+      return;
     }
-    std::string const original = i->second[0];
-    i->second[0]               = "";
-    this->UnknownFlagField     = key;
-    this->Parse(original);
+    if (flag == "/threads" || flag == "-threads") {
+      this->FortranRuntimeMT = true;
+      return;
+    }
+    if (flag == "/libs:dll" || flag == "-libs:dll") {
+      this->FortranRuntimeDLL = true;
+      return;
+    }
+    if (flag == "/libs:static" || flag == "-libs:static") {
+      this->FortranRuntimeDLL = false;
+      return;
+    }
+  }
+
+  // This option is not known.  Store it in the output flags.
+  std::string const opts = cmOutputConverter::EscapeWindowsShellArgument(
+    flag.c_str(),
+    cmOutputConverter::Shell_Flag_AllowMakeVariables |
+      cmOutputConverter::Shell_Flag_VSIDE);
+  this->AppendFlagString(this->UnknownFlagField, opts);
 }
 
 void
@@ -487,7 +484,42 @@ cmVisualStudioGeneratorOptions::SetConfiguration(const std::string& config)
 const std::string&
 cmVisualStudioGeneratorOptions::GetConfiguration() const
 {
-    return this->Configuration;
+  if (this->Defines.empty()) {
+    return;
+  }
+  const char* tag = "PreprocessorDefinitions";
+  if (lang == "CUDA") {
+    tag = "Defines";
+  }
+
+  std::ostringstream oss;
+  const char* sep = "";
+  std::vector<std::string>::const_iterator de =
+    cmRemoveDuplicates(this->Defines);
+  for (std::string const& di : cmMakeRange(this->Defines.cbegin(), de)) {
+    // Escape the definition for the compiler.
+    std::string define;
+    if (this->Version < cmGlobalVisualStudioGenerator::VS10) {
+      define = this->LocalGenerator->EscapeForShell(di, true);
+    } else {
+      define = di;
+    }
+    // Escape this flag for the MSBuild.
+    if (this->Version >= cmGlobalVisualStudioGenerator::VS10) {
+      cmVS10EscapeForMSBuild(define);
+      if (lang == "RC") {
+        cmSystemTools::ReplaceString(define, "\"", "\\\"");
+      }
+    }
+    // Store the flag in the project file.
+    oss << sep << define;
+    sep = ";";
+  }
+  if (this->Version >= cmGlobalVisualStudioGenerator::VS10) {
+    oss << ";%(" << tag << ")";
+  }
+
+  this->OutputFlag(fout, indent, tag, oss.str());
 }
 
 void

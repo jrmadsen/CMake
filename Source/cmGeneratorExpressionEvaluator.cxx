@@ -31,37 +31,32 @@ GeneratorExpressionContent::ProcessArbitraryContent(
 {
     std::string result;
 
-    const std::vector<
-        std::vector<cmGeneratorExpressionEvaluator*>>::const_iterator pend =
-        this->ParamChildren.end();
-    for(; pit != pend; ++pit)
-    {
-        std::vector<cmGeneratorExpressionEvaluator*>::const_iterator it =
-            pit->begin();
-        const std::vector<cmGeneratorExpressionEvaluator*>::const_iterator end =
-            pit->end();
-        for(; it != end; ++it)
-        {
-            if(node->RequiresLiteralInput())
-            {
-                if((*it)->GetType() != cmGeneratorExpressionEvaluator::Text)
-                {
-                    reportError(context, this->GetOriginalExpression(),
-                                "$<" + identifier +
-                                    "> expression requires literal input.");
-                    return std::string();
-                }
-            }
-            result += (*it)->Evaluate(context, dagChecker);
-            if(context->HadError)
-            {
-                return std::string();
-            }
+std::string GeneratorExpressionContent::ProcessArbitraryContent(
+  const cmGeneratorExpressionNode* node, const std::string& identifier,
+  cmGeneratorExpressionContext* context,
+  cmGeneratorExpressionDAGChecker* dagChecker,
+  std::vector<std::vector<cmGeneratorExpressionEvaluator*>>::const_iterator
+    pit) const
+{
+  std::string result;
+
+  const std::vector<
+    std::vector<cmGeneratorExpressionEvaluator*>>::const_iterator pend =
+    this->ParamChildren.end();
+  for (; pit != pend; ++pit) {
+    for (cmGeneratorExpressionEvaluator* pExprEval : *pit) {
+      if (node->RequiresLiteralInput()) {
+        if (pExprEval->GetType() != cmGeneratorExpressionEvaluator::Text) {
+          reportError(context, this->GetOriginalExpression(),
+                      "$<" + identifier +
+                        "> expression requires literal input.");
+          return std::string();
         }
-        if((pit + 1) != pend)
-        {
-            result += ",";
-        }
+      }
+      result += pExprEval->Evaluate(context, dagChecker);
+      if (context->HadError) {
+        return std::string();
+      }
     }
     if(node->RequiresLiteralInput())
     {
@@ -77,20 +72,14 @@ GeneratorExpressionContent::Evaluate(
     cmGeneratorExpressionContext*    context,
     cmGeneratorExpressionDAGChecker* dagChecker) const
 {
-    std::string identifier;
-    {
-        std::vector<cmGeneratorExpressionEvaluator*>::const_iterator it =
-            this->IdentifierChildren.begin();
-        const std::vector<cmGeneratorExpressionEvaluator*>::const_iterator end =
-            this->IdentifierChildren.end();
-        for(; it != end; ++it)
-        {
-            identifier += (*it)->Evaluate(context, dagChecker);
-            if(context->HadError)
-            {
-                return std::string();
-            }
-        }
+  std::string identifier;
+  {
+    for (cmGeneratorExpressionEvaluator* pExprEval :
+         this->IdentifierChildren) {
+      identifier += pExprEval->Evaluate(context, dagChecker);
+      if (context->HadError) {
+        return std::string();
+      }
     }
 
     const cmGeneratorExpressionNode* node =
@@ -141,39 +130,27 @@ GeneratorExpressionContent::EvaluateParameters(
     cmGeneratorExpressionDAGChecker* dagChecker,
     std::vector<std::string>&        parameters) const
 {
-    const int numExpected = node->NumExpectedParameters();
-    {
-        std::vector<
-            std::vector<cmGeneratorExpressionEvaluator*>>::const_iterator pit =
-            this->ParamChildren.begin();
-        const std::vector<
-            std::vector<cmGeneratorExpressionEvaluator*>>::const_iterator pend =
-            this->ParamChildren.end();
-        const bool acceptsArbitraryContent =
-            node->AcceptsArbitraryContentParameter();
-        int counter = 1;
-        for(; pit != pend; ++pit, ++counter)
-        {
-            if(acceptsArbitraryContent && counter == numExpected)
-            {
-                parameters.push_back(this->ProcessArbitraryContent(
-                    node, identifier, context, dagChecker, pit));
-                return std::string();
-            }
-            std::string parameter;
-            std::vector<cmGeneratorExpressionEvaluator*>::const_iterator it =
-                pit->begin();
-            const std::vector<cmGeneratorExpressionEvaluator*>::const_iterator
-                end = pit->end();
-            for(; it != end; ++it)
-            {
-                parameter += (*it)->Evaluate(context, dagChecker);
-                if(context->HadError)
-                {
-                    return std::string();
-                }
-            }
-            parameters.push_back(std::move(parameter));
+  const int numExpected = node->NumExpectedParameters();
+  {
+    std::vector<std::vector<cmGeneratorExpressionEvaluator*>>::const_iterator
+      pit = this->ParamChildren.begin();
+    const std::vector<
+      std::vector<cmGeneratorExpressionEvaluator*>>::const_iterator pend =
+      this->ParamChildren.end();
+    const bool acceptsArbitraryContent =
+      node->AcceptsArbitraryContentParameter();
+    int counter = 1;
+    for (; pit != pend; ++pit, ++counter) {
+      if (acceptsArbitraryContent && counter == numExpected) {
+        parameters.push_back(this->ProcessArbitraryContent(
+          node, identifier, context, dagChecker, pit));
+        return std::string();
+      }
+      std::string parameter;
+      for (cmGeneratorExpressionEvaluator* pExprEval : *pit) {
+        parameter += pExprEval->Evaluate(context, dagChecker);
+        if (context->HadError) {
+          return std::string();
         }
     }
 
@@ -217,6 +194,25 @@ GeneratorExpressionContent::EvaluateParameters(
                         "> expression requires one or zero parameters.");
     }
     return std::string();
+  }
+
+  if (numExpected == cmGeneratorExpressionNode::OneOrMoreParameters &&
+      parameters.empty()) {
+    reportError(context, this->GetOriginalExpression(),
+                "$<" + identifier +
+                  "> expression requires at least one parameter.");
+  } else if (numExpected == cmGeneratorExpressionNode::TwoOrMoreParameters &&
+             parameters.size() < 2) {
+    reportError(context, this->GetOriginalExpression(),
+                "$<" + identifier +
+                  "> expression requires at least two parameters.");
+  } else if (numExpected == cmGeneratorExpressionNode::OneOrZeroParameters &&
+             parameters.size() > 1) {
+    reportError(context, this->GetOriginalExpression(),
+                "$<" + identifier +
+                  "> expression requires one or zero parameters.");
+  }
+  return std::string();
 }
 
 GeneratorExpressionContent::~GeneratorExpressionContent()

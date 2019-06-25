@@ -32,8 +32,11 @@ public:
         Property();
         ~Property();
 
-        ExpressionVectorType ValueExpressions;
-    };
+    Property(const Property&) = delete;
+    Property& operator=(const Property&) = delete;
+
+    ExpressionVectorType ValueExpressions;
+  };
 
     typedef std::map<std::string, Property> PropertyMapType;
 
@@ -41,7 +44,10 @@ public:
 
     ~cmInstalledFile();
 
-    void RemoveProperty(const std::string& prop);
+  cmInstalledFile(const cmInstalledFile&) = delete;
+  cmInstalledFile& operator=(const cmInstalledFile&) = delete;
+
+  void RemoveProperty(const std::string& prop);
 
     void SetProperty(cmMakefile const* mf, const std::string& prop,
                      const char* value);
@@ -67,9 +73,9 @@ public:
     PropertyMapType const& GetProperties() const { return this->Properties; }
 
 private:
-    std::string                    Name;
-    cmCompiledGeneratorExpression* NameExpression;
-    PropertyMapType                Properties;
+  std::string Name;
+  cmCompiledGeneratorExpression* NameExpression = nullptr;
+  PropertyMapType Properties;
 };
 
 #endif

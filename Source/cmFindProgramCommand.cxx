@@ -73,26 +73,23 @@ struct cmFindProgramHelper
         }
         return false;
     }
-    bool CheckDirectoryForName(std::string const& path, std::string const& name)
-    {
-        for(std::string const& ext : this->Extensions)
-        {
-            if(!ext.empty() && cmSystemTools::StringEndsWith(name, ext.c_str()))
-            {
-                continue;
-            }
-            this->TestNameExt = name;
-            this->TestNameExt += ext;
-            this->TestPath =
-                cmSystemTools::CollapseCombinedPath(path, this->TestNameExt);
+    return false;
+  }
+  bool CheckDirectoryForName(std::string const& path, std::string const& name)
+  {
+    for (std::string const& ext : this->Extensions) {
+      if (!ext.empty() && cmSystemTools::StringEndsWith(name, ext.c_str())) {
+        continue;
+      }
+      this->TestNameExt = name;
+      this->TestNameExt += ext;
+      this->TestPath =
+        cmSystemTools::CollapseFullPath(this->TestNameExt, path);
 
-            if(cmSystemTools::FileExists(this->TestPath, true))
-            {
-                this->BestPath = this->TestPath;
-                return true;
-            }
-        }
-        return false;
+      if (cmSystemTools::FileExists(this->TestPath, true)) {
+        this->BestPath = this->TestPath;
+        return true;
+      }
     }
 };
 

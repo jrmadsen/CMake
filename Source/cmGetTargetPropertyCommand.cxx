@@ -6,10 +6,10 @@
 
 #include "cmListFileCache.h"
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmPolicies.h"
 #include "cmTarget.h"
 #include "cmTargetPropertyComputer.h"
-#include "cmake.h"
 
 class cmExecutionStatus;
 class cmMessenger;
@@ -86,11 +86,35 @@ cmGetTargetPropertyCommand::InitialPass(std::vector<std::string> const& args,
                 return false;
             }
         }
+      }
+      if (prop_cstr) {
+        prop = prop_cstr;
+        prop_exists = true;
+      }
     }
-    if(prop_exists)
-    {
-        this->Makefile->AddDefinition(var, prop.c_str());
-        return true;
+  } else {
+    bool issueMessage = false;
+    std::ostringstream e;
+    MessageType messageType = MessageType::AUTHOR_WARNING;
+    switch (this->Makefile->GetPolicyStatus(cmPolicies::CMP0045)) {
+      case cmPolicies::WARN:
+        issueMessage = true;
+        e << cmPolicies::GetPolicyWarning(cmPolicies::CMP0045) << "\n";
+      case cmPolicies::OLD:
+        break;
+      case cmPolicies::REQUIRED_IF_USED:
+      case cmPolicies::REQUIRED_ALWAYS:
+      case cmPolicies::NEW:
+        issueMessage = true;
+        messageType = MessageType::FATAL_ERROR;
+    }
+    if (issueMessage) {
+      e << "get_target_property() called with non-existent target \""
+        << targetName << "\".";
+      this->Makefile->IssueMessage(messageType, e.str());
+      if (messageType == MessageType::FATAL_ERROR) {
+        return false;
+      }
     }
     this->Makefile->AddDefinition(var, (var + "-NOTFOUND").c_str());
     return true;

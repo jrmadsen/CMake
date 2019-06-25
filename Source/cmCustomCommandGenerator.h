@@ -15,33 +15,38 @@ class cmLocalGenerator;
 
 class cmCustomCommandGenerator
 {
-    cmCustomCommand const&   CC;
-    std::string              Config;
-    cmLocalGenerator*        LG;
-    bool                     OldStyle;
-    bool                     MakeVars;
-    cmGeneratorExpression*   GE;
-    cmCustomCommandLines     CommandLines;
-    std::vector<std::string> Depends;
-    std::string              WorkingDirectory;
+  cmCustomCommand const& CC;
+  std::string Config;
+  cmLocalGenerator* LG;
+  bool OldStyle;
+  bool MakeVars;
+  cmGeneratorExpression* GE;
+  cmCustomCommandLines CommandLines;
+  std::vector<std::vector<std::string>> EmulatorsWithArguments;
+  std::vector<std::string> Depends;
+  std::string WorkingDirectory;
 
-    const char* GetCrossCompilingEmulator(unsigned int c) const;
-    const char* GetArgv0Location(unsigned int c) const;
+  void FillEmulatorsWithArguments();
+  std::vector<std::string> GetCrossCompilingEmulator(unsigned int c) const;
+  const char* GetArgv0Location(unsigned int c) const;
 
 public:
-    cmCustomCommandGenerator(cmCustomCommand const& cc,
-                             const std::string& config, cmLocalGenerator* lg);
-    ~cmCustomCommandGenerator();
-    cmCustomCommand const& GetCC() const { return this->CC; }
-    unsigned int           GetNumberOfCommands() const;
-    std::string            GetCommand(unsigned int c) const;
-    void        AppendArguments(unsigned int c, std::string& cmd) const;
-    const char* GetComment() const;
-    std::string GetWorkingDirectory() const;
-    std::vector<std::string> const& GetOutputs() const;
-    std::vector<std::string> const& GetByproducts() const;
-    std::vector<std::string> const& GetDepends() const;
-    bool                            HasOnlyEmptyCommandLines() const;
+  cmCustomCommandGenerator(cmCustomCommand const& cc, std::string config,
+                           cmLocalGenerator* lg);
+  ~cmCustomCommandGenerator();
+  cmCustomCommandGenerator(const cmCustomCommandGenerator&) = delete;
+  cmCustomCommandGenerator& operator=(const cmCustomCommandGenerator&) =
+    delete;
+  cmCustomCommand const& GetCC() const { return this->CC; }
+  unsigned int GetNumberOfCommands() const;
+  std::string GetCommand(unsigned int c) const;
+  void AppendArguments(unsigned int c, std::string& cmd) const;
+  const char* GetComment() const;
+  std::string GetWorkingDirectory() const;
+  std::vector<std::string> const& GetOutputs() const;
+  std::vector<std::string> const& GetByproducts() const;
+  std::vector<std::string> const& GetDepends() const;
+  bool HasOnlyEmptyCommandLines() const;
 };
 
 #endif

@@ -17,7 +17,7 @@ cmCPackProductBuildGenerator::cmCPackProductBuildGenerator()
     this->componentPackageMethod = ONE_PACKAGE;
 }
 
-cmCPackProductBuildGenerator::~cmCPackProductBuildGenerator() {}
+cmCPackProductBuildGenerator::~cmCPackProductBuildGenerator() = default;
 
 int
 cmCPackProductBuildGenerator::PackageFiles()
@@ -154,29 +154,28 @@ cmCPackProductBuildGenerator::InitializeInternal()
 bool
 cmCPackProductBuildGenerator::RunProductBuild(const std::string& command)
 {
-    std::string tmpFile = this->GetOption("CPACK_TOPLEVEL_DIRECTORY");
-    tmpFile += "/ProductBuildOutput.log";
+  std::string tmpFile = this->GetOption("CPACK_TOPLEVEL_DIRECTORY");
+  tmpFile += "/ProductBuildOutput.log";
 
-    cmCPackLogger(cmCPackLog::LOG_VERBOSE, "Execute: " << command << std::endl);
-    std::string output;
-    int         retVal = 1;
-    bool        res    = cmSystemTools::RunSingleCommand(
-        command.c_str(), &output, &output, &retVal, nullptr,
-        this->GeneratorVerbose, cmDuration::zero());
-    cmCPackLogger(cmCPackLog::LOG_VERBOSE, "Done running command" << std::endl);
-    if(!res || retVal)
-    {
-        cmGeneratedFileStream ofs(tmpFile.c_str());
-        ofs << "# Run command: " << command << std::endl
-            << "# Output:" << std::endl
-            << output << std::endl;
-        cmCPackLogger(cmCPackLog::LOG_ERROR, "Problem running command: "
-                                                 << command << std::endl
-                                                 << "Please check " << tmpFile
-                                                 << " for errors" << std::endl);
-        return false;
-    }
-    return true;
+  cmCPackLogger(cmCPackLog::LOG_VERBOSE, "Execute: " << command << std::endl);
+  std::string output;
+  int retVal = 1;
+  bool res = cmSystemTools::RunSingleCommand(
+    command, &output, &output, &retVal, nullptr, this->GeneratorVerbose,
+    cmDuration::zero());
+  cmCPackLogger(cmCPackLog::LOG_VERBOSE, "Done running command" << std::endl);
+  if (!res || retVal) {
+    cmGeneratedFileStream ofs(tmpFile);
+    ofs << "# Run command: " << command << std::endl
+        << "# Output:" << std::endl
+        << output << std::endl;
+    cmCPackLogger(cmCPackLog::LOG_ERROR,
+                  "Problem running command: " << command << std::endl
+                                              << "Please check " << tmpFile
+                                              << " for errors" << std::endl);
+    return false;
+  }
+  return true;
 }
 
 bool

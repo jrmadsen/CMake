@@ -34,7 +34,7 @@ public:
             return this->Process(data, static_cast<int>(strlen(data)));
         }
 
-        virtual ~OutputParser() {}
+    virtual ~OutputParser() = default;
 
     protected:
         /** Implement in a subclass to process a chunk of data.  It should
@@ -53,14 +53,14 @@ public:
         /** Configure logging of lines as they are extracted.  */
         void SetLog(std::ostream* log, const char* prefix);
 
-    protected:
-        std::ostream* Log;
-        const char*   Prefix;
-        std::string   Line;
-        char          Separator;
-        char          LineEnd;
-        bool          IgnoreCR;
-        bool          ProcessChunk(const char* data, int length) override;
+  protected:
+    std::ostream* Log = nullptr;
+    const char* Prefix = nullptr;
+    std::string Line;
+    char Separator;
+    char LineEnd = '\0';
+    bool IgnoreCR;
+    bool ProcessChunk(const char* data, int length) override;
 
         /** Implement in a subclass to process one line of input.  It
             should return true only if it is interested in more data.  */

@@ -8,6 +8,7 @@
 #include "cmGlobalGenerator.h"
 #include "cmLocalGenerator.h"
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmOrderDirectories.h"
 #include "cmOutputConverter.h"
 #include "cmPolicies.h"
@@ -30,7 +31,7 @@ Notes about linking on various platforms:
 
 ------------------------------------------------------------------------------
 
-Linux, FreeBSD, macOS, IRIX, Sun, Windows:
+Linux, FreeBSD, macOS, Sun, Windows:
 
 Linking to libraries using the full path works fine.
 
@@ -428,15 +429,15 @@ cmComputeLinkInformation::GetDirectories() const
 std::string
 cmComputeLinkInformation::GetRPathLinkString() const
 {
-    // If there is no separate linker runtime search flag (-rpath-link)
-    // there is no reason to compute a string.
-    if(!this->OrderDependentRPath)
-    {
-        return "";
-    }
+  // If there is no separate linker runtime search flag (-rpath-link)
+  // there is no reason to compute a string.
+  if (!this->OrderDependentRPath) {
+    return "";
+  }
 
-    // Construct the linker runtime search path.
-    return cmJoin(this->OrderDependentRPath->GetOrderedDirectories(), ":");
+  // Construct the linker runtime search path. These MUST NOT contain tokens
+  // such as $ORIGIN, see https://sourceware.org/bugzilla/show_bug.cgi?id=16936
+  return cmJoin(this->OrderDependentRPath->GetOrderedDirectories(), ":");
 }
 
 std::vector<std::string> const&
@@ -469,14 +470,59 @@ cmComputeLinkInformation::Compute()
         return false;
     }
 
-    // We require a link language for the target.
-    if(this->LinkLanguage.empty())
-    {
-        cmSystemTools::Error(
-            "CMake can not determine linker language for target: ",
-            this->Target->GetName().c_str());
-        return false;
+  // We require a link language for the target.
+  if (this->LinkLanguage.empty()) {
+    cmSystemTools::Error(
+      "CMake can not determine linker language for target: " +
+      this->Target->GetName());
+    return false;
+  }
+
+  // Compute the ordered link line items.
+  cmComputeLinkDepends cld(this->Target, this->Config);
+  cld.SetOldLinkDirMode(this->OldLinkDirMode);
+  cmComputeLinkDepends::EntryVector const& linkEntries = cld.Compute();
+
+  // Add the link line items.
+  for (cmComputeLinkDepends::LinkEntry const& linkEntry : linkEntries) {
+    if (linkEntry.IsSharedDep) {
+      this->AddSharedDepItem(linkEntry.Item, linkEntry.Target);
+    } else {
+      this->AddItem(linkEntry.Item, linkEntry.Target);
     }
+  }
+
+  // Restore the target link type so the correct system runtime
+  // libraries are found.
+  const char* lss = this->Target->GetProperty("LINK_SEARCH_END_STATIC");
+  if (cmSystemTools::IsOn(lss)) {
+    this->SetCurrentLinkType(LinkStatic);
+  } else {
+    this->SetCurrentLinkType(this->StartLinkType);
+  }
+
+  // Finish listing compatibility paths.
+  if (this->OldLinkDirMode) {
+    // For CMake 2.4 bug-compatibility we need to consider the output
+    // directories of targets linked in another configuration as link
+    // directories.
+    std::set<cmGeneratorTarget const*> const& wrongItems =
+      cld.GetOldWrongConfigItems();
+    for (cmGeneratorTarget const* tgt : wrongItems) {
+      bool implib = (this->UseImportLibrary &&
+                     (tgt->GetType() == cmStateEnums::SHARED_LIBRARY));
+      cmStateEnums::ArtifactType artifact = implib
+        ? cmStateEnums::ImportLibraryArtifact
+        : cmStateEnums::RuntimeBinaryArtifact;
+      this->OldLinkDirItems.push_back(
+        tgt->GetFullPath(this->Config, artifact, true));
+    }
+  }
+
+  // Finish setting up linker search directories.
+  if (!this->FinishLinkerSearchDirectories()) {
+    return false;
+  }
 
     // Compute the ordered link line items.
     cmComputeLinkDepends cld(this->Target, this->Config);
@@ -547,10 +593,10 @@ cmComputeLinkInformation::Compute()
       "link line will ask the linker to search for these by library "
       "name."
       ;
-        /* clang-format on */
-        this->CMakeInstance->IssueMessage(cmake::AUTHOR_WARNING, w.str(),
-                                          this->Target->GetBacktrace());
-    }
+    /* clang-format on */
+    this->CMakeInstance->IssueMessage(MessageType::AUTHOR_WARNING, w.str(),
+                                      this->Target->GetBacktrace());
+  }
 
     return true;
 }
@@ -961,18 +1007,15 @@ cmComputeLinkInformation::AddLinkPrefix(const char* p)
 void
 cmComputeLinkInformation::AddLinkExtension(const char* e, LinkType type)
 {
-    if(e && *e)
-    {
-        if(type == LinkStatic)
-        {
-            this->StaticLinkExtensions.push_back(e);
-        }
-        if(type == LinkShared)
-        {
-            this->SharedLinkExtensions.push_back(e);
-        }
-        this->LinkExtensions.push_back(e);
+  if (e && *e) {
+    if (type == LinkStatic) {
+      this->StaticLinkExtensions.emplace_back(e);
     }
+    if (type == LinkShared) {
+      this->SharedLinkExtensions.emplace_back(e);
+    }
+    this->LinkExtensions.emplace_back(e);
+  }
 }
 
 std::string
@@ -1357,62 +1400,59 @@ cmComputeLinkInformation::AddUserItem(std::string const& item,
 void
 cmComputeLinkInformation::AddFrameworkItem(std::string const& item)
 {
-    // Try to separate the framework name and path.
-    if(!this->SplitFramework.find(item))
-    {
-        std::ostringstream e;
-        e << "Could not parse framework path \"" << item << "\" "
-          << "linked by target " << this->Target->GetName() << ".";
-        cmSystemTools::Error(e.str().c_str());
-        return;
-    }
+  // Try to separate the framework name and path.
+  if (!this->SplitFramework.find(item)) {
+    std::ostringstream e;
+    e << "Could not parse framework path \"" << item << "\" "
+      << "linked by target " << this->Target->GetName() << ".";
+    cmSystemTools::Error(e.str());
+    return;
+  }
 
-    std::string fw_path = this->SplitFramework.match(1);
-    std::string fw      = this->SplitFramework.match(2);
-    std::string full_fw = fw_path;
-    full_fw += "/";
-    full_fw += fw;
-    full_fw += ".framework";
-    full_fw += "/";
-    full_fw += fw;
+  std::string fw_path = this->SplitFramework.match(1);
+  std::string fw = this->SplitFramework.match(2);
+  std::string full_fw = fw_path;
+  full_fw += "/";
+  full_fw += fw;
+  full_fw += ".framework";
+  full_fw += "/";
+  full_fw += fw;
 
-    // Add the directory portion to the framework search path.
-    this->AddFrameworkPath(fw_path);
+  // Add the directory portion to the framework search path.
+  this->AddFrameworkPath(fw_path);
 
-    // add runtime information
-    this->AddLibraryRuntimeInfo(full_fw);
+  // add runtime information
+  this->AddLibraryRuntimeInfo(full_fw);
 
-    // Add the item using the -framework option.
-    this->Items.emplace_back("-framework", false);
-    cmOutputConverter converter(this->Makefile->GetStateSnapshot());
-    fw = converter.EscapeForShell(fw);
-    this->Items.emplace_back(fw, false);
+  // Add the item using the -framework option.
+  this->Items.emplace_back("-framework", false);
+  cmOutputConverter converter(this->Makefile->GetStateSnapshot());
+  fw = converter.EscapeForShell(fw);
+  this->Items.emplace_back(fw, false);
 }
 
 void
 cmComputeLinkInformation::AddDirectoryItem(std::string const& item)
 {
-    if(this->Makefile->IsOn("APPLE") &&
-       cmSystemTools::IsPathToFramework(item.c_str()))
-    {
-        this->AddFrameworkItem(item);
-    } else
-    {
-        this->DropDirectoryItem(item);
-    }
+  if (this->Makefile->IsOn("APPLE") &&
+      cmSystemTools::IsPathToFramework(item)) {
+    this->AddFrameworkItem(item);
+  } else {
+    this->DropDirectoryItem(item);
+  }
 }
 
 void
 cmComputeLinkInformation::DropDirectoryItem(std::string const& item)
 {
-    // A full path to a directory was found as a link item.  Warn the
-    // user.
-    std::ostringstream e;
-    e << "WARNING: Target \"" << this->Target->GetName()
-      << "\" requests linking to directory \"" << item << "\".  "
-      << "Targets may link only to libraries.  "
-      << "CMake is dropping the item.";
-    cmSystemTools::Message(e.str().c_str());
+  // A full path to a directory was found as a link item.  Warn the
+  // user.
+  std::ostringstream e;
+  e << "WARNING: Target \"" << this->Target->GetName()
+    << "\" requests linking to directory \"" << item << "\".  "
+    << "Targets may link only to libraries.  "
+    << "CMake is dropping the item.";
+  cmSystemTools::Message(e.str());
 }
 
 void
@@ -1525,33 +1565,30 @@ cmComputeLinkInformation::HandleBadFullItem(std::string const& item,
           << "Target \"" << this->Target->GetName() << "\" links to item\n"
           << "  " << item << "\n"
           << "which is a full-path but not a valid library file name.";
-                /* clang-format on */
-                this->CMakeInstance->IssueMessage(cmake::AUTHOR_WARNING,
-                                                  w.str(),
-                                                  this->Target->GetBacktrace());
-            }
-        }
-        case cmPolicies::OLD:
-            // OLD behavior does not warn.
-            break;
-        case cmPolicies::NEW:
-            // NEW behavior will not get here.
-            break;
-        case cmPolicies::REQUIRED_IF_USED:
-        case cmPolicies::REQUIRED_ALWAYS:
-        {
-            std::ostringstream e;
-            /* clang-format off */
+        /* clang-format on */
+        this->CMakeInstance->IssueMessage(MessageType::AUTHOR_WARNING, w.str(),
+                                          this->Target->GetBacktrace());
+      }
+    }
+    case cmPolicies::OLD:
+      // OLD behavior does not warn.
+      break;
+    case cmPolicies::NEW:
+      // NEW behavior will not get here.
+      break;
+    case cmPolicies::REQUIRED_IF_USED:
+    case cmPolicies::REQUIRED_ALWAYS: {
+      std::ostringstream e;
+      /* clang-format off */
       e << cmPolicies::GetRequiredPolicyError(cmPolicies::CMP0008) << "\n"
           << "Target \"" << this->Target->GetName() << "\" links to item\n"
           << "  " << item << "\n"
           << "which is a full-path but not a valid library file name.";
-            /* clang-format on */
-            this->CMakeInstance->IssueMessage(cmake::FATAL_ERROR, e.str(),
-                                              this->Target->GetBacktrace());
-        }
-        break;
-    }
+      /* clang-format on */
+      this->CMakeInstance->IssueMessage(MessageType::FATAL_ERROR, e.str(),
+                                        this->Target->GetBacktrace());
+    } break;
+  }
 }
 
 bool
@@ -1605,6 +1642,43 @@ cmComputeLinkInformation::FinishLinkerSearchDirectories()
         this->OrderLinkerSearchPath->AddLinkLibrary(i);
     }
     return true;
+  }
+
+  // Enforce policy constraints.
+  switch (this->Target->GetPolicyStatusCMP0003()) {
+    case cmPolicies::WARN:
+      if (!this->CMakeInstance->GetState()->GetGlobalPropertyAsBool(
+            "CMP0003-WARNING-GIVEN")) {
+        this->CMakeInstance->GetState()->SetGlobalProperty(
+          "CMP0003-WARNING-GIVEN", "1");
+        std::ostringstream w;
+        this->PrintLinkPolicyDiagnosis(w);
+        this->CMakeInstance->IssueMessage(MessageType::AUTHOR_WARNING, w.str(),
+                                          this->Target->GetBacktrace());
+      }
+    case cmPolicies::OLD:
+      // OLD behavior is to add the paths containing libraries with
+      // known full paths as link directories.
+      break;
+    case cmPolicies::NEW:
+      // Should never happen due to assignment of OldLinkDirMode
+      return true;
+    case cmPolicies::REQUIRED_IF_USED:
+    case cmPolicies::REQUIRED_ALWAYS: {
+      std::ostringstream e;
+      e << cmPolicies::GetRequiredPolicyError(cmPolicies::CMP0003) << "\n";
+      this->PrintLinkPolicyDiagnosis(e);
+      this->CMakeInstance->IssueMessage(MessageType::FATAL_ERROR, e.str(),
+                                        this->Target->GetBacktrace());
+      return false;
+    }
+  }
+
+  // Add the link directories for full path items.
+  for (std::string const& i : this->OldLinkDirItems) {
+    this->OrderLinkerSearchPath->AddLinkLibrary(i);
+  }
+  return true;
 }
 
 void
@@ -1872,38 +1946,88 @@ void
 cmComputeLinkInformation::GetRPath(std::vector<std::string>& runtimeDirs,
                                    bool                      for_install) const
 {
-    // Select whether to generate runtime search directories.
-    bool outputRuntime =
-        !this->Makefile->IsOn("CMAKE_SKIP_RPATH") && !this->RuntimeFlag.empty();
+  // Select whether to generate runtime search directories.
+  bool outputRuntime =
+    !this->Makefile->IsOn("CMAKE_SKIP_RPATH") && !this->RuntimeFlag.empty();
 
-    // Select whether to generate an rpath for the install tree or the
-    // build tree.
-    bool linking_for_install = (for_install || this->Target->GetPropertyAsBool(
-                                                   "BUILD_WITH_INSTALL_RPATH"));
-    bool use_install_rpath =
-        (outputRuntime && this->Target->HaveInstallTreeRPATH() &&
-         linking_for_install);
-    bool use_build_rpath =
-        (outputRuntime && this->Target->HaveBuildTreeRPATH(this->Config) &&
-         !linking_for_install);
-    bool use_link_rpath =
-        outputRuntime && linking_for_install &&
-        !this->Makefile->IsOn("CMAKE_SKIP_INSTALL_RPATH") &&
-        this->Target->GetPropertyAsBool("INSTALL_RPATH_USE_LINK_PATH");
+  // Select whether to generate an rpath for the install tree or the
+  // build tree.
+  bool linking_for_install =
+    (for_install ||
+     this->Target->GetPropertyAsBool("BUILD_WITH_INSTALL_RPATH"));
+  bool use_install_rpath =
+    (outputRuntime && this->Target->HaveInstallTreeRPATH() &&
+     linking_for_install);
+  bool use_build_rpath =
+    (outputRuntime && this->Target->HaveBuildTreeRPATH(this->Config) &&
+     !linking_for_install);
+  bool use_link_rpath = outputRuntime && linking_for_install &&
+    !this->Makefile->IsOn("CMAKE_SKIP_INSTALL_RPATH") &&
+    this->Target->GetPropertyAsBool("INSTALL_RPATH_USE_LINK_PATH");
 
-    // Construct the RPATH.
-    std::set<std::string> emitted;
-    if(use_install_rpath)
-    {
-        const char* install_rpath = this->Target->GetProperty("INSTALL_RPATH");
-        cmCLI_ExpandListUnique(install_rpath, runtimeDirs, emitted);
+  // Select whether to use $ORIGIN in RPATHs for artifacts in the build tree.
+  std::string const& originToken = this->Makefile->GetSafeDefinition(
+    "CMAKE_SHARED_LIBRARY_RPATH_ORIGIN_TOKEN");
+  std::string targetOutputDir = this->Target->GetDirectory(this->Config);
+  bool use_relative_build_rpath =
+    this->Target->GetPropertyAsBool("BUILD_RPATH_USE_ORIGIN") &&
+    !originToken.empty() && !targetOutputDir.empty();
+
+  // Construct the RPATH.
+  std::set<std::string> emitted;
+  if (use_install_rpath) {
+    const char* install_rpath = this->Target->GetProperty("INSTALL_RPATH");
+    cmCLI_ExpandListUnique(install_rpath, runtimeDirs, emitted);
+  }
+  if (use_build_rpath) {
+    // Add directories explicitly specified by user
+    if (const char* build_rpath = this->Target->GetProperty("BUILD_RPATH")) {
+      // This will not resolve entries to use $ORIGIN, the user is expected to
+      // do that if necessary.
+      cmCLI_ExpandListUnique(build_rpath, runtimeDirs, emitted);
     }
-    if(use_build_rpath)
-    {
-        // Add directories explicitly specified by user
-        if(const char* build_rpath = this->Target->GetProperty("BUILD_RPATH"))
-        {
-            cmCLI_ExpandListUnique(build_rpath, runtimeDirs, emitted);
+  }
+  if (use_build_rpath || use_link_rpath) {
+    std::string rootPath;
+    if (const char* sysrootLink =
+          this->Makefile->GetDefinition("CMAKE_SYSROOT_LINK")) {
+      rootPath = sysrootLink;
+    } else {
+      rootPath = this->Makefile->GetSafeDefinition("CMAKE_SYSROOT");
+    }
+    const char* stagePath =
+      this->Makefile->GetDefinition("CMAKE_STAGING_PREFIX");
+    std::string const& installPrefix =
+      this->Makefile->GetSafeDefinition("CMAKE_INSTALL_PREFIX");
+    cmSystemTools::ConvertToUnixSlashes(rootPath);
+    std::vector<std::string> const& rdirs = this->GetRuntimeSearchPath();
+    std::string const& topBinaryDir =
+      this->CMakeInstance->GetHomeOutputDirectory();
+    for (std::string const& ri : rdirs) {
+      // Put this directory in the rpath if using build-tree rpath
+      // support or if using the link path as an rpath.
+      if (use_build_rpath) {
+        std::string d = ri;
+        if (!rootPath.empty() && d.find(rootPath) == 0) {
+          d = d.substr(rootPath.size());
+        } else if (stagePath && *stagePath && d.find(stagePath) == 0) {
+          std::string suffix = d.substr(strlen(stagePath));
+          d = installPrefix;
+          d += "/";
+          d += suffix;
+          cmSystemTools::ConvertToUnixSlashes(d);
+        } else if (use_relative_build_rpath) {
+          // If expansion of the $ORIGIN token is supported and permitted per
+          // policy, use relative paths in the RPATH.
+          if (cmSystemTools::ComparePath(d, topBinaryDir) ||
+              cmSystemTools::IsSubDirectory(d, topBinaryDir)) {
+            d = cmSystemTools::RelativePath(targetOutputDir, d);
+            if (!d.empty()) {
+              d = originToken + "/" + d;
+            } else {
+              d = originToken;
+            }
+          }
         }
     }
     if(use_build_rpath || use_link_rpath)
@@ -1917,64 +2041,27 @@ cmComputeLinkInformation::GetRPath(std::vector<std::string>& runtimeDirs,
         {
             rootPath = this->Makefile->GetSafeDefinition("CMAKE_SYSROOT");
         }
-        const char* stagePath =
-            this->Makefile->GetDefinition("CMAKE_STAGING_PREFIX");
-        std::string const& installPrefix =
-            this->Makefile->GetSafeDefinition("CMAKE_INSTALL_PREFIX");
-        cmSystemTools::ConvertToUnixSlashes(rootPath);
-        std::vector<std::string> const& rdirs = this->GetRuntimeSearchPath();
-        for(std::string const& ri : rdirs)
-        {
-            // Put this directory in the rpath if using build-tree rpath
-            // support or if using the link path as an rpath.
-            if(use_build_rpath)
-            {
-                std::string d = ri;
-                if(!rootPath.empty() && d.find(rootPath) == 0)
-                {
-                    d = d.substr(rootPath.size());
-                } else if(stagePath && *stagePath && d.find(stagePath) == 0)
-                {
-                    std::string suffix = d.substr(strlen(stagePath));
-                    d                  = installPrefix;
-                    d += "/";
-                    d += suffix;
-                    cmSystemTools::ConvertToUnixSlashes(d);
-                }
-                if(emitted.insert(d).second)
-                {
-                    runtimeDirs.push_back(std::move(d));
-                }
-            } else if(use_link_rpath)
-            {
-                // Do not add any path inside the source or build tree.
-                std::string const& topSourceDir =
-                    this->CMakeInstance->GetHomeDirectory();
-                std::string const& topBinaryDir =
-                    this->CMakeInstance->GetHomeOutputDirectory();
-                if(!cmSystemTools::ComparePath(ri, topSourceDir) &&
-                   !cmSystemTools::ComparePath(ri, topBinaryDir) &&
-                   !cmSystemTools::IsSubDirectory(ri, topSourceDir) &&
-                   !cmSystemTools::IsSubDirectory(ri, topBinaryDir))
-                {
-                    std::string d = ri;
-                    if(!rootPath.empty() && d.find(rootPath) == 0)
-                    {
-                        d = d.substr(rootPath.size());
-                    } else if(stagePath && *stagePath && d.find(stagePath) == 0)
-                    {
-                        std::string suffix = d.substr(strlen(stagePath));
-                        d                  = installPrefix;
-                        d += "/";
-                        d += suffix;
-                        cmSystemTools::ConvertToUnixSlashes(d);
-                    }
-                    if(emitted.insert(d).second)
-                    {
-                        runtimeDirs.push_back(std::move(d));
-                    }
-                }
-            }
+      } else if (use_link_rpath) {
+        // Do not add any path inside the source or build tree.
+        std::string const& topSourceDir =
+          this->CMakeInstance->GetHomeDirectory();
+        if (!cmSystemTools::ComparePath(ri, topSourceDir) &&
+            !cmSystemTools::ComparePath(ri, topBinaryDir) &&
+            !cmSystemTools::IsSubDirectory(ri, topSourceDir) &&
+            !cmSystemTools::IsSubDirectory(ri, topBinaryDir)) {
+          std::string d = ri;
+          if (!rootPath.empty() && d.find(rootPath) == 0) {
+            d = d.substr(rootPath.size());
+          } else if (stagePath && *stagePath && d.find(stagePath) == 0) {
+            std::string suffix = d.substr(strlen(stagePath));
+            d = installPrefix;
+            d += "/";
+            d += suffix;
+            cmSystemTools::ConvertToUnixSlashes(d);
+          }
+          if (emitted.insert(d).second) {
+            runtimeDirs.push_back(std::move(d));
+          }
         }
     }
 

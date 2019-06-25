@@ -7,10 +7,10 @@
 #include "cmAlgorithms.h"
 #include "cmGeneratorExpression.h"
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmPolicies.h"
 #include "cmSystemTools.h"
 #include "cmTarget.h"
-#include "cmake.h"
 
 class cmExecutionStatus;
 
@@ -33,11 +33,11 @@ cmTargetSourcesCommand::HandleInterfaceContent(
 void
 cmTargetSourcesCommand::HandleMissingTarget(const std::string& name)
 {
-    std::ostringstream e;
-    e << "Cannot specify sources for target \"" << name
-      << "\" "
-         "which is not built by this project.";
-    this->Makefile->IssueMessage(cmake::FATAL_ERROR, e.str());
+  std::ostringstream e;
+  e << "Cannot specify sources for target \"" << name
+    << "\" "
+       "which is not built by this project.";
+  this->Makefile->IssueMessage(MessageType::FATAL_ERROR, e.str());
 }
 
 std::string
@@ -95,29 +95,26 @@ cmTargetSourcesCommand::ConvertToAbsoluteContent(
         return content;
     }
 
-    bool               issueMessage       = true;
-    bool               useAbsoluteContent = false;
-    std::ostringstream e;
-    switch(this->Makefile->GetPolicyStatus(cmPolicies::CMP0076))
-    {
-        case cmPolicies::WARN:
-            e << cmPolicies::GetPolicyWarning(cmPolicies::CMP0076) << "\n";
-            break;
-        case cmPolicies::OLD:
-            issueMessage = false;
-            break;
-        case cmPolicies::REQUIRED_ALWAYS:
-        case cmPolicies::REQUIRED_IF_USED:
-            this->Makefile->IssueMessage(
-                cmake::FATAL_ERROR,
-                cmPolicies::GetRequiredPolicyError(cmPolicies::CMP0076));
-            break;
-        case cmPolicies::NEW:
-        {
-            issueMessage       = false;
-            useAbsoluteContent = true;
-            break;
-        }
+  bool issueMessage = true;
+  bool useAbsoluteContent = false;
+  std::ostringstream e;
+  switch (this->Makefile->GetPolicyStatus(cmPolicies::CMP0076)) {
+    case cmPolicies::WARN:
+      e << cmPolicies::GetPolicyWarning(cmPolicies::CMP0076) << "\n";
+      break;
+    case cmPolicies::OLD:
+      issueMessage = false;
+      break;
+    case cmPolicies::REQUIRED_ALWAYS:
+    case cmPolicies::REQUIRED_IF_USED:
+      this->Makefile->IssueMessage(
+        MessageType::FATAL_ERROR,
+        cmPolicies::GetRequiredPolicyError(cmPolicies::CMP0076));
+      break;
+    case cmPolicies::NEW: {
+      issueMessage = false;
+      useAbsoluteContent = true;
+      break;
     }
 
     if(issueMessage)
@@ -134,6 +131,8 @@ cmTargetSourcesCommand::ConvertToAbsoluteContent(
         }
         this->Makefile->IssueMessage(cmake::AUTHOR_WARNING, e.str());
     }
+    this->Makefile->IssueMessage(MessageType::AUTHOR_WARNING, e.str());
+  }
 
     return useAbsoluteContent ? absoluteContent : content;
 }

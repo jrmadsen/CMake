@@ -14,6 +14,7 @@
 #include "cmGlobalGenerator.h"
 #include "cmLocalGenerator.h"
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmSourceFile.h"
 #include "cmStateTypes.h"
 #include "cmSystemTools.h"
@@ -56,7 +57,6 @@ cmExtraSublimeTextGenerator::GetFactory()
 }
 
 cmExtraSublimeTextGenerator::cmExtraSublimeTextGenerator()
-: cmExternalMakefileProjectGenerator()
 {
     this->ExcludeBuildFolder = false;
 }
@@ -101,31 +101,49 @@ cmExtraSublimeTextGenerator::CreateNewProjectFile(
     {
         return;
     }
+  } else {
+    fout << "\t{\n\t\t\t\"path\": \"./\"";
+  }
+  fout << "\n\t\t}";
+  // End of the folders section
+  fout << "\n\t]";
 
-    const std::string& sourceRootRelativeToOutput = cmSystemTools::RelativePath(
-        lgs[0]->GetBinaryDirectory(), lgs[0]->GetSourceDirectory());
-    // Write the folder entries to the project file
-    fout << "{\n";
-    fout << "\t\"folders\":\n\t[\n\t";
-    if(!sourceRootRelativeToOutput.empty())
-    {
-        fout << "\t{\n\t\t\t\"path\": \"" << sourceRootRelativeToOutput << "\"";
-        const std::string& outputRelativeToSourceRoot =
-            cmSystemTools::RelativePath(lgs[0]->GetSourceDirectory(),
-                                        lgs[0]->GetBinaryDirectory());
-        if((!outputRelativeToSourceRoot.empty()) &&
-           ((outputRelativeToSourceRoot.length() < 3) ||
-            (outputRelativeToSourceRoot.substr(0, 3) != "../")))
-        {
-            if(this->ExcludeBuildFolder)
-            {
-                fout << ",\n\t\t\t\"folder_exclude_patterns\": [\""
-                     << outputRelativeToSourceRoot << "\"]";
-            }
-        }
-    } else
-    {
-        fout << "\t{\n\t\t\t\"path\": \"./\"";
+  // Write the beginning of the build systems section to the project file
+  fout << ",\n\t\"build_systems\":\n\t[\n\t";
+
+  // Set of include directories over all targets (sublime text/sublimeclang
+  // doesn't currently support these settings per build system, only project
+  // wide
+  MapSourceFileFlags sourceFileFlags;
+  AppendAllTargets(lgs, mf, fout, sourceFileFlags);
+
+  // End of build_systems
+  fout << "\n\t]";
+  std::string systemName = mf->GetSafeDefinition("CMAKE_SYSTEM_NAME");
+  std::vector<std::string> tokens;
+  cmSystemTools::ExpandListArgument(this->EnvSettings, tokens);
+
+  if (!this->EnvSettings.empty()) {
+    fout << ",";
+    fout << "\n\t\"env\":";
+    fout << "\n\t{";
+    fout << "\n\t\t" << systemName << ":";
+    fout << "\n\t\t{";
+    for (std::string const& t : tokens) {
+      size_t const pos = t.find_first_of('=');
+
+      if (pos != std::string::npos) {
+        std::string varName = t.substr(0, pos);
+        std::string varValue = t.substr(pos + 1);
+
+        fout << "\n\t\t\t\"" << varName << "\":\"" << varValue << "\"";
+      } else {
+        std::ostringstream e;
+        e << "Could not parse Env Vars specified in "
+             "\"CMAKE_SUBLIME_TEXT_2_ENV_SETTINGS\""
+          << ", corrupted string " << t;
+        mf->IssueMessage(MessageType::FATAL_ERROR, e.str());
+      }
     }
     fout << "\n\t\t}";
     // End of the folders section
@@ -183,78 +201,65 @@ cmExtraSublimeTextGenerator::AppendAllTargets(
     const std::vector<cmLocalGenerator*>& lgs, const cmMakefile* mf,
     cmGeneratedFileStream& fout, MapSourceFileFlags& sourceFileFlags)
 {
-    std::string make = mf->GetRequiredDefinition("CMAKE_MAKE_PROGRAM");
-    std::string compiler;
-    if(!lgs.empty())
-    {
-        this->AppendTarget(fout, "all", lgs[0], nullptr, make.c_str(), mf,
-                           compiler.c_str(), sourceFileFlags, true);
-        this->AppendTarget(fout, "clean", lgs[0], nullptr, make.c_str(), mf,
-                           compiler.c_str(), sourceFileFlags, false);
-    }
+  const std::string& make = mf->GetRequiredDefinition("CMAKE_MAKE_PROGRAM");
+  std::string compiler;
+  if (!lgs.empty()) {
+    this->AppendTarget(fout, "all", lgs[0], nullptr, make.c_str(), mf,
+                       compiler.c_str(), sourceFileFlags, true);
+    this->AppendTarget(fout, "clean", lgs[0], nullptr, make.c_str(), mf,
+                       compiler.c_str(), sourceFileFlags, false);
+  }
 
-    // add all executable and library targets and some of the GLOBAL
-    // and UTILITY targets
-    for(cmLocalGenerator* lg : lgs)
-    {
-        cmMakefile*                            makefile = lg->GetMakefile();
-        const std::vector<cmGeneratorTarget*>& targets =
-            lg->GetGeneratorTargets();
-        for(cmGeneratorTarget* target : targets)
-        {
-            std::string targetName = target->GetName();
-            switch(target->GetType())
-            {
-                case cmStateEnums::GLOBAL_TARGET:
-                {
-                    // Only add the global targets from CMAKE_BINARY_DIR,
-                    // not from the subdirs
-                    if(lg->GetCurrentBinaryDirectory() ==
-                       lg->GetBinaryDirectory())
-                    {
-                        this->AppendTarget(
-                            fout, targetName, lg, nullptr, make.c_str(),
-                            makefile, compiler.c_str(), sourceFileFlags, false);
-                    }
-                }
-                break;
-                case cmStateEnums::UTILITY:
-                    // Add all utility targets, except the Nightly/Continuous/
-                    // Experimental-"sub"targets as e.g. NightlyStart
-                    if(((targetName.find("Nightly") == 0) &&
-                        (targetName != "Nightly")) ||
-                       ((targetName.find("Continuous") == 0) &&
-                        (targetName != "Continuous")) ||
-                       ((targetName.find("Experimental") == 0) &&
-                        (targetName != "Experimental")))
-                    {
-                        break;
-                    }
+  // add all executable and library targets and some of the GLOBAL
+  // and UTILITY targets
+  for (cmLocalGenerator* lg : lgs) {
+    cmMakefile* makefile = lg->GetMakefile();
+    const std::vector<cmGeneratorTarget*>& targets = lg->GetGeneratorTargets();
+    for (cmGeneratorTarget* target : targets) {
+      std::string targetName = target->GetName();
+      switch (target->GetType()) {
+        case cmStateEnums::GLOBAL_TARGET: {
+          // Only add the global targets from CMAKE_BINARY_DIR,
+          // not from the subdirs
+          if (lg->GetCurrentBinaryDirectory() == lg->GetBinaryDirectory()) {
+            this->AppendTarget(fout, targetName, lg, nullptr, make.c_str(),
+                               makefile, compiler.c_str(), sourceFileFlags,
+                               false);
+          }
+        } break;
+        case cmStateEnums::UTILITY:
+          // Add all utility targets, except the Nightly/Continuous/
+          // Experimental-"sub"targets as e.g. NightlyStart
+          if (((targetName.find("Nightly") == 0) &&
+               (targetName != "Nightly")) ||
+              ((targetName.find("Continuous") == 0) &&
+               (targetName != "Continuous")) ||
+              ((targetName.find("Experimental") == 0) &&
+               (targetName != "Experimental"))) {
+            break;
+          }
 
-                    this->AppendTarget(fout, targetName, lg, nullptr,
-                                       make.c_str(), makefile, compiler.c_str(),
-                                       sourceFileFlags, false);
-                    break;
-                case cmStateEnums::EXECUTABLE:
-                case cmStateEnums::STATIC_LIBRARY:
-                case cmStateEnums::SHARED_LIBRARY:
-                case cmStateEnums::MODULE_LIBRARY:
-                case cmStateEnums::OBJECT_LIBRARY:
-                {
-                    this->AppendTarget(fout, targetName, lg, target,
-                                       make.c_str(), makefile, compiler.c_str(),
-                                       sourceFileFlags, false);
-                    std::string fastTarget = targetName;
-                    fastTarget += "/fast";
-                    this->AppendTarget(fout, fastTarget, lg, target,
-                                       make.c_str(), makefile, compiler.c_str(),
-                                       sourceFileFlags, false);
-                }
-                break;
-                default:
-                    break;
-            }
-        }
+          this->AppendTarget(fout, targetName, lg, nullptr, make.c_str(),
+                             makefile, compiler.c_str(), sourceFileFlags,
+                             false);
+          break;
+        case cmStateEnums::EXECUTABLE:
+        case cmStateEnums::STATIC_LIBRARY:
+        case cmStateEnums::SHARED_LIBRARY:
+        case cmStateEnums::MODULE_LIBRARY:
+        case cmStateEnums::OBJECT_LIBRARY: {
+          this->AppendTarget(fout, targetName, lg, target, make.c_str(),
+                             makefile, compiler.c_str(), sourceFileFlags,
+                             false);
+          std::string fastTarget = targetName;
+          fastTarget += "/fast";
+          this->AppendTarget(fout, fastTarget, lg, target, make.c_str(),
+                             makefile, compiler.c_str(), sourceFileFlags,
+                             false);
+        } break;
+        default:
+          break;
+      }
     }
 }
 
@@ -265,57 +270,40 @@ cmExtraSublimeTextGenerator::AppendTarget(
     const cmMakefile*   makefile, const char* /*compiler*/,
     MapSourceFileFlags& sourceFileFlags, bool firstTarget)
 {
-    if(target != nullptr)
-    {
-        std::vector<cmSourceFile*> sourceFiles;
-        target->GetSourceFiles(sourceFiles,
-                               makefile->GetSafeDefinition("CMAKE_BUILD_TYPE"));
-        for(cmSourceFile* sourceFile : sourceFiles)
-        {
-            MapSourceFileFlags::iterator sourceFileFlagsIter =
-                sourceFileFlags.find(sourceFile->GetFullPath());
-            if(sourceFileFlagsIter == sourceFileFlags.end())
-            {
-                sourceFileFlagsIter =
-                    sourceFileFlags
-                        .insert(MapSourceFileFlags::value_type(
-                            sourceFile->GetFullPath(),
-                            std::vector<std::string>()))
-                        .first;
-            }
-            std::vector<std::string>& flags = sourceFileFlagsIter->second;
-            std::string               flagsString =
-                this->ComputeFlagsForObject(sourceFile, lg, target);
-            std::string definesString =
-                this->ComputeDefines(sourceFile, lg, target);
-            std::string includesString =
-                this->ComputeIncludes(sourceFile, lg, target);
-            flags.clear();
-            cmsys::RegularExpression flagRegex;
-            // Regular expression to extract compiler flags from a string
-            // https://gist.github.com/3944250
-            const char* regexString =
-                "(^|[ ])-[DIOUWfgs][^= ]+(=\\\"[^\"]+\\\"|=[^\"][^ ]+)?";
-            flagRegex.compile(regexString);
-            std::string workString =
-                flagsString + " " + definesString + " " + includesString;
-            while(flagRegex.find(workString))
-            {
-                std::string::size_type start = flagRegex.start();
-                if(workString[start] == ' ')
-                {
-                    start++;
-                }
-                flags.push_back(
-                    workString.substr(start, flagRegex.end() - start));
-                if(flagRegex.end() < workString.size())
-                {
-                    workString = workString.substr(flagRegex.end());
-                } else
-                {
-                    workString.clear();
-                }
-            }
+
+  if (target != nullptr) {
+    std::vector<cmSourceFile*> sourceFiles;
+    target->GetSourceFiles(sourceFiles,
+                           makefile->GetSafeDefinition("CMAKE_BUILD_TYPE"));
+    for (cmSourceFile* sourceFile : sourceFiles) {
+      MapSourceFileFlags::iterator sourceFileFlagsIter =
+        sourceFileFlags.find(sourceFile->GetFullPath());
+      if (sourceFileFlagsIter == sourceFileFlags.end()) {
+        sourceFileFlagsIter =
+          sourceFileFlags
+            .insert(MapSourceFileFlags::value_type(sourceFile->GetFullPath(),
+                                                   std::vector<std::string>()))
+            .first;
+      }
+      std::vector<std::string>& flags = sourceFileFlagsIter->second;
+      std::string flagsString =
+        this->ComputeFlagsForObject(sourceFile, lg, target);
+      std::string definesString = this->ComputeDefines(sourceFile, lg, target);
+      std::string includesString =
+        this->ComputeIncludes(sourceFile, lg, target);
+      flags.clear();
+      cmsys::RegularExpression flagRegex;
+      // Regular expression to extract compiler flags from a string
+      // https://gist.github.com/3944250
+      const char* regexString =
+        R"((^|[ ])-[DIOUWfgs][^= ]+(=\"[^"]+\"|=[^"][^ ]+)?)";
+      flagRegex.compile(regexString);
+      std::string workString =
+        flagsString + " " + definesString + " " + includesString;
+      while (flagRegex.find(workString)) {
+        std::string::size_type start = flagRegex.start();
+        if (workString[start] == ' ') {
+          start++;
         }
     }
 
@@ -352,38 +340,33 @@ cmExtraSublimeTextGenerator::BuildMakeCommand(const std::string& make,
                                               const char*        makefile,
                                               const std::string& target)
 {
-    std::string command = "\"";
-    command += make + "\"";
-    std::string generator = this->GlobalGenerator->GetName();
-    if(generator == "NMake Makefiles")
-    {
-        std::string makefileName = cmSystemTools::ConvertToOutputPath(makefile);
-        command += ", \"/NOLOGO\", \"/f\", \"";
-        command += makefileName + "\"";
-        command += ", \"" + target + "\"";
-    } else if(generator == "Ninja")
-    {
-        std::string makefileName = cmSystemTools::ConvertToOutputPath(makefile);
-        command += ", \"-f\", \"";
-        command += makefileName + "\"";
-        command += ", \"" + target + "\"";
-    } else
-    {
-        std::string makefileName;
-        if(generator == "MinGW Makefiles")
-        {
-            // no escaping of spaces in this case, see
-            // https://gitlab.kitware.com/cmake/cmake/issues/10014
-            makefileName = makefile;
-        } else
-        {
-            makefileName = cmSystemTools::ConvertToOutputPath(makefile);
-        }
-        command += ", \"-f\", \"";
-        command += makefileName + "\"";
-        command += ", \"" + target + "\"";
+  std::string command = "\"";
+  command += make + "\"";
+  std::string generator = this->GlobalGenerator->GetName();
+  if (generator == "NMake Makefiles") {
+    std::string makefileName = cmSystemTools::ConvertToOutputPath(makefile);
+    command += R"(, "/NOLOGO", "/f", ")";
+    command += makefileName + "\"";
+    command += ", \"" + target + "\"";
+  } else if (generator == "Ninja") {
+    std::string makefileName = cmSystemTools::ConvertToOutputPath(makefile);
+    command += R"(, "-f", ")";
+    command += makefileName + "\"";
+    command += ", \"" + target + "\"";
+  } else {
+    std::string makefileName;
+    if (generator == "MinGW Makefiles") {
+      // no escaping of spaces in this case, see
+      // https://gitlab.kitware.com/cmake/cmake/issues/10014
+      makefileName = makefile;
+    } else {
+      makefileName = cmSystemTools::ConvertToOutputPath(makefile);
     }
-    return command;
+    command += R"(, "-f", ")";
+    command += makefileName + "\"";
+    command += ", \"" + target + "\"";
+  }
+  return command;
 }
 
 // TODO: Most of the code is picked up from the Ninja generator, refactor it.
@@ -432,41 +415,33 @@ cmExtraSublimeTextGenerator::ComputeDefines(cmSourceFile*      source,
                                             cmGeneratorTarget* target)
 
 {
-    std::set<std::string> defines;
-    cmMakefile*           makefile = lg->GetMakefile();
-    const std::string&    language = source->GetLanguage();
-    const std::string& config = makefile->GetSafeDefinition("CMAKE_BUILD_TYPE");
-    cmGeneratorExpressionInterpreter genexInterpreter(lg, config, target,
-                                                      language);
+  std::set<std::string> defines;
+  cmMakefile* makefile = lg->GetMakefile();
+  const std::string& language = source->GetLanguage();
+  const std::string& config = makefile->GetSafeDefinition("CMAKE_BUILD_TYPE");
+  cmGeneratorExpressionInterpreter genexInterpreter(lg, config, target,
+                                                    language);
 
-    // Add the export symbol definition for shared library objects.
-    if(const char* exportMacro = target->GetExportMacro())
-    {
-        lg->AppendDefines(defines, exportMacro);
-    }
+  // Add preprocessor definitions for this target and configuration.
+  lg->GetTargetDefines(target, config, language, defines);
+  const std::string COMPILE_DEFINITIONS("COMPILE_DEFINITIONS");
+  if (const char* compile_defs = source->GetProperty(COMPILE_DEFINITIONS)) {
+    lg->AppendDefines(
+      defines, genexInterpreter.Evaluate(compile_defs, COMPILE_DEFINITIONS));
+  }
 
-    // Add preprocessor definitions for this target and configuration.
-    lg->AddCompileDefinitions(defines, target, config, language);
-    const std::string COMPILE_DEFINITIONS("COMPILE_DEFINITIONS");
-    if(const char* compile_defs = source->GetProperty(COMPILE_DEFINITIONS))
-    {
-        lg->AppendDefines(defines, genexInterpreter.Evaluate(
-                                       compile_defs, COMPILE_DEFINITIONS));
-    }
+  std::string defPropName = "COMPILE_DEFINITIONS_";
+  defPropName += cmSystemTools::UpperCase(config);
+  if (const char* config_compile_defs = source->GetProperty(defPropName)) {
+    lg->AppendDefines(
+      defines,
+      genexInterpreter.Evaluate(config_compile_defs, COMPILE_DEFINITIONS));
+  }
 
-    std::string defPropName = "COMPILE_DEFINITIONS_";
-    defPropName += cmSystemTools::UpperCase(config);
-    if(const char* config_compile_defs = source->GetProperty(defPropName))
-    {
-        lg->AppendDefines(defines,
-                          genexInterpreter.Evaluate(config_compile_defs,
-                                                    COMPILE_DEFINITIONS));
-    }
+  std::string definesString;
+  lg->JoinDefines(defines, definesString, language);
 
-    std::string definesString;
-    lg->JoinDefines(defines, definesString, language);
-
-    return definesString;
+  return definesString;
 }
 
 std::string

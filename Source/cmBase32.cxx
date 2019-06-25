@@ -36,9 +36,9 @@ Base32Encode5(const unsigned char src[5], char dst[8])
 
 // -- Class methods
 
-cmBase32Encoder::cmBase32Encoder() {}
+cmBase32Encoder::cmBase32Encoder() = default;
 
-cmBase32Encoder::~cmBase32Encoder() {}
+cmBase32Encoder::~cmBase32Encoder() = default;
 
 std::string
 cmBase32Encoder::encodeString(const unsigned char* input, size_t len,

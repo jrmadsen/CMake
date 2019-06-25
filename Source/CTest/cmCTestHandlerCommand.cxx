@@ -5,9 +5,9 @@
 #include "cmCTest.h"
 #include "cmCTestGenericHandler.h"
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmSystemTools.h"
 #include "cmWorkingDirectory.h"
-#include "cmake.h"
 
 #include <cstring>
 #include <sstream>
@@ -83,6 +83,9 @@ public:
             }
         }
     }
+  }
+  SaveRestoreErrorState(const SaveRestoreErrorState&) = delete;
+  SaveRestoreErrorState& operator=(const SaveRestoreErrorState&) = delete;
 
 private:
     bool InitialErrorState;
@@ -231,42 +234,23 @@ cmCTestHandlerCommand::InitialPass(std::vector<std::string> const& args,
 
     handler->SetAppendXML(this->AppendXML);
 
-    handler->PopulateCustomVectors(this->Makefile);
-    if(this->Values[ct_SUBMIT_INDEX])
-    {
-        if(!this->CTest->GetDropSiteCDash() &&
-           this->CTest->GetDartVersion() <= 1)
-        {
-            cmCTestLog(this->CTest, ERROR_MESSAGE,
-                       "Dart before version 2.0 does not support collecting "
-                       "submissions."
-                           << std::endl
-                           << "Please upgrade the server to Dart 2 or higher, "
-                              "or do not use "
-                              "SUBMIT_INDEX."
-                           << std::endl);
-        } else
-        {
-            handler->SetSubmitIndex(atoi(this->Values[ct_SUBMIT_INDEX]));
-        }
-    }
-    cmWorkingDirectory workdir(
-        this->CTest->GetCTestConfiguration("BuildDirectory"));
-    if(workdir.Failed())
-    {
-        this->SetError("failed to change directory to " +
-                       this->CTest->GetCTestConfiguration("BuildDirectory") +
-                       " : " + std::strerror(workdir.GetLastResult()));
-        if(capureCMakeError)
-        {
-            this->Makefile->AddDefinition(this->Values[ct_CAPTURE_CMAKE_ERROR],
-                                          "-1");
-            cmCTestLog(this->CTest, ERROR_MESSAGE,
-                       this->GetName() << " " << this->GetError() << "\n");
-            // return success because failure is recorded in CAPTURE_CMAKE_ERROR
-            return true;
-        }
-        return false;
+  handler->PopulateCustomVectors(this->Makefile);
+  if (this->Values[ct_SUBMIT_INDEX]) {
+    handler->SetSubmitIndex(atoi(this->Values[ct_SUBMIT_INDEX]));
+  }
+  cmWorkingDirectory workdir(
+    this->CTest->GetCTestConfiguration("BuildDirectory"));
+  if (workdir.Failed()) {
+    this->SetError("failed to change directory to " +
+                   this->CTest->GetCTestConfiguration("BuildDirectory") +
+                   " : " + std::strerror(workdir.GetLastResult()));
+    if (capureCMakeError) {
+      this->Makefile->AddDefinition(this->Values[ct_CAPTURE_CMAKE_ERROR],
+                                    "-1");
+      cmCTestLog(this->CTest, ERROR_MESSAGE,
+                 this->GetName() << " " << this->GetError() << "\n");
+      // return success because failure is recorded in CAPTURE_CMAKE_ERROR
+      return true;
     }
 
     int res = handler->ProcessHandler();
@@ -337,22 +321,15 @@ cmCTestHandlerCommand::CheckArgumentKeyword(std::string const& arg)
 bool
 cmCTestHandlerCommand::CheckArgumentValue(std::string const& arg)
 {
-    if(this->ArgumentDoing == ArgumentDoingKeyword)
-    {
-        this->ArgumentDoing = ArgumentDoingNone;
-        unsigned int k      = this->ArgumentIndex;
-        if(this->Values[k])
-        {
-            std::ostringstream e;
-            e << "Called with more than one value for " << this->Arguments[k];
-            this->Makefile->IssueMessage(cmake::FATAL_ERROR, e.str());
-            this->ArgumentDoing = ArgumentDoingError;
-            return true;
-        }
-        this->Values[k] = arg.c_str();
-        cmCTestLog(this->CTest, DEBUG,
-                   "Set " << this->Arguments[k] << " to " << arg << "\n");
-        return true;
+  if (this->ArgumentDoing == ArgumentDoingKeyword) {
+    this->ArgumentDoing = ArgumentDoingNone;
+    unsigned int k = this->ArgumentIndex;
+    if (this->Values[k]) {
+      std::ostringstream e;
+      e << "Called with more than one value for " << this->Arguments[k];
+      this->Makefile->IssueMessage(MessageType::FATAL_ERROR, e.str());
+      this->ArgumentDoing = ArgumentDoingError;
+      return true;
     }
     return false;
 }

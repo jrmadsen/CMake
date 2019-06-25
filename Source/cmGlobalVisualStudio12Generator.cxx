@@ -6,12 +6,6 @@
 #include "cmDocumentationEntry.h"
 #include "cmLocalVisualStudio10Generator.h"
 #include "cmMakefile.h"
-#include "cmVS12CLFlagTable.h"
-#include "cmVS12CSharpFlagTable.h"
-#include "cmVS12LibFlagTable.h"
-#include "cmVS12LinkFlagTable.h"
-#include "cmVS12MASMFlagTable.h"
-#include "cmVS12RCFlagTable.h"
 
 static const char vs12generatorName[] = "Visual Studio 12 2013";
 
@@ -77,9 +71,44 @@ public:
         names.push_back(vs12generatorName + std::string(" ARM"));
         names.push_back(vs12generatorName + std::string(" Win64"));
     }
+    return 0;
+  }
 
-    bool SupportsToolset() const override { return true; }
-    bool SupportsPlatform() const override { return true; }
+  void GetDocumentation(cmDocumentationEntry& entry) const override
+  {
+    entry.Name = std::string(vs12generatorName) + " [arch]";
+    entry.Brief = "Generates Visual Studio 2013 project files.  "
+                  "Optional [arch] can be \"Win64\" or \"ARM\".";
+  }
+
+  std::vector<std::string> GetGeneratorNames() const override
+  {
+    std::vector<std::string> names;
+    names.push_back(vs12generatorName);
+    return names;
+  }
+
+  std::vector<std::string> GetGeneratorNamesWithPlatform() const override
+  {
+    std::vector<std::string> names;
+    names.push_back(vs12generatorName + std::string(" ARM"));
+    names.push_back(vs12generatorName + std::string(" Win64"));
+    return names;
+  }
+
+  bool SupportsToolset() const override { return true; }
+  bool SupportsPlatform() const override { return true; }
+
+  std::vector<std::string> GetKnownPlatforms() const override
+  {
+    std::vector<std::string> platforms;
+    platforms.emplace_back("x64");
+    platforms.emplace_back("Win32");
+    platforms.emplace_back("ARM");
+    return platforms;
+  }
+
+  std::string GetDefaultPlatformName() const override { return "Win32"; }
 };
 
 cmGlobalGeneratorFactory*
@@ -89,22 +118,23 @@ cmGlobalVisualStudio12Generator::NewFactory()
 }
 
 cmGlobalVisualStudio12Generator::cmGlobalVisualStudio12Generator(
-    cmake* cm, const std::string& name, const std::string& platformName)
-: cmGlobalVisualStudio11Generator(cm, name, platformName)
+  cmake* cm, const std::string& name,
+  std::string const& platformInGeneratorName)
+  : cmGlobalVisualStudio11Generator(cm, name, platformInGeneratorName)
 {
-    std::string vc12Express;
-    this->ExpressEdition = cmSystemTools::ReadRegistryValue(
-        "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\VCExpress\\12.0\\Setup\\VC;"
-        "ProductDir",
-        vc12Express, cmSystemTools::KeyWOW64_32);
-    this->DefaultPlatformToolset = "v120";
-    this->DefaultClFlagTable     = cmVS12CLFlagTable;
-    this->DefaultCSharpFlagTable = cmVS12CSharpFlagTable;
-    this->DefaultLibFlagTable    = cmVS12LibFlagTable;
-    this->DefaultLinkFlagTable   = cmVS12LinkFlagTable;
-    this->DefaultMasmFlagTable   = cmVS12MASMFlagTable;
-    this->DefaultRcFlagTable     = cmVS12RCFlagTable;
-    this->Version                = VS12;
+  std::string vc12Express;
+  this->ExpressEdition = cmSystemTools::ReadRegistryValue(
+    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\VCExpress\\12.0\\Setup\\VC;"
+    "ProductDir",
+    vc12Express, cmSystemTools::KeyWOW64_32);
+  this->DefaultPlatformToolset = "v120";
+  this->DefaultCLFlagTableName = "v12";
+  this->DefaultCSharpFlagTableName = "v12";
+  this->DefaultLibFlagTableName = "v12";
+  this->DefaultLinkFlagTableName = "v12";
+  this->DefaultMasmFlagTableName = "v12";
+  this->DefaultRCFlagTableName = "v12";
+  this->Version = VS12;
 }
 
 bool
@@ -123,13 +153,12 @@ bool
 cmGlobalVisualStudio12Generator::ProcessGeneratorToolsetField(
     std::string const& key, std::string const& value)
 {
-    if(key == "host" && value == "x64")
-    {
-        this->GeneratorToolsetHostArchitecture = "x64";
-        return true;
-    }
-    return this->cmGlobalVisualStudio11Generator::ProcessGeneratorToolsetField(
-        key, value);
+  if (key == "host" && (value == "x64" || value == "x86")) {
+    this->GeneratorToolsetHostArchitecture = value;
+    return true;
+  }
+  return this->cmGlobalVisualStudio11Generator::ProcessGeneratorToolsetField(
+    key, value);
 }
 
 bool
@@ -155,7 +184,10 @@ cmGlobalVisualStudio12Generator::InitializeWindowsPhone(cmMakefile* mf)
         mf->IssueMessage(cmake::FATAL_ERROR, e.str());
         return false;
     }
-    return true;
+    mf->IssueMessage(MessageType::FATAL_ERROR, e.str());
+    return false;
+  }
+  return true;
 }
 
 bool
@@ -181,7 +213,10 @@ cmGlobalVisualStudio12Generator::InitializeWindowsStore(cmMakefile* mf)
         mf->IssueMessage(cmake::FATAL_ERROR, e.str());
         return false;
     }
-    return true;
+    mf->IssueMessage(MessageType::FATAL_ERROR, e.str());
+    return false;
+  }
+  return true;
 }
 
 bool
@@ -224,21 +259,7 @@ cmGlobalVisualStudio12Generator::SelectWindowsStoreToolset(
         toolset);
 }
 
-void
-cmGlobalVisualStudio12Generator::WriteSLNHeader(std::ostream& fout)
-{
-    fout << "Microsoft Visual Studio Solution File, Format Version 12.00\n";
-    if(this->ExpressEdition)
-    {
-        fout << "# Visual Studio Express 2013 for Windows Desktop\n";
-    } else
-    {
-        fout << "# Visual Studio 2013\n";
-    }
-}
-
-bool
-cmGlobalVisualStudio12Generator::IsWindowsDesktopToolsetInstalled() const
+bool cmGlobalVisualStudio12Generator::IsWindowsDesktopToolsetInstalled() const
 {
     const char desktop81Key[] = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\"
                                 "VisualStudio\\12.0\\VC\\LibraryDesktop";

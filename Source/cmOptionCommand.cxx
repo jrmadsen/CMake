@@ -6,12 +6,12 @@
 
 #include "cmAlgorithms.h"
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmPolicies.h"
 #include "cmState.h"
 #include "cmStateSnapshot.h"
 #include "cmStateTypes.h"
 #include "cmSystemTools.h"
-#include "cmake.h"
 
 class cmExecutionStatus;
 
@@ -79,20 +79,17 @@ cmOptionCommand::InitialPass(std::vector<std::string> const& args,
     this->Makefile->AddCacheDefinition(args[0], init ? "ON" : "OFF",
                                        args[1].c_str(), cmStateEnums::BOOL);
 
-    if(checkAndWarn)
-    {
-        const auto* existsAfterSet =
-            this->Makefile->GetStateSnapshot().GetDefinition(args[0]);
-        if(!existsAfterSet)
-        {
-            std::ostringstream w;
-            w << cmPolicies::GetPolicyWarning(cmPolicies::CMP0077)
-              << "\n"
-                 "For compatibility with older versions of CMake, option "
-                 "is clearing the normal variable '"
-              << args[0] << "'.";
-            this->Makefile->IssueMessage(cmake::AUTHOR_WARNING, w.str());
-        }
+  if (checkAndWarn) {
+    const auto* existsAfterSet =
+      this->Makefile->GetStateSnapshot().GetDefinition(args[0]);
+    if (!existsAfterSet) {
+      std::ostringstream w;
+      w << cmPolicies::GetPolicyWarning(cmPolicies::CMP0077)
+        << "\n"
+           "For compatibility with older versions of CMake, option "
+           "is clearing the normal variable '"
+        << args[0] << "'.";
+      this->Makefile->IssueMessage(MessageType::AUTHOR_WARNING, w.str());
     }
     return true;
 }

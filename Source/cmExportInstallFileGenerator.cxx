@@ -4,6 +4,7 @@
 
 #include "cmAlgorithms.h"
 #include "cmExportSet.h"
+#include "cmExportSetMap.h"
 #include "cmGeneratedFileStream.h"
 #include "cmGeneratorExpression.h"
 #include "cmGeneratorTarget.h"
@@ -20,8 +21,6 @@
 
 #include <sstream>
 #include <utility>
-
-class cmExportSetMap;
 
 cmExportInstallFileGenerator::cmExportInstallFileGenerator(
     cmInstallExportGenerator* iegen)
@@ -40,125 +39,82 @@ cmExportInstallFileGenerator::GetConfigImportFileGlob()
 bool
 cmExportInstallFileGenerator::GenerateMainFile(std::ostream& os)
 {
-    std::vector<cmTargetExport*> allTargets;
-    {
-        std::string expectedTargets;
-        std::string sep;
-        for(cmTargetExport* te :
-            *this->IEGen->GetExportSet()->GetTargetExports())
-        {
-            expectedTargets +=
-                sep + this->Namespace + te->Target->GetExportName();
-            sep = " ";
-            if(this->ExportedTargets.insert(te->Target).second)
-            {
-                allTargets.push_back(te);
-            } else
-            {
-                std::ostringstream e;
-                e << "install(EXPORT \""
-                  << this->IEGen->GetExportSet()->GetName() << "\" ...) "
-                  << "includes target \"" << te->Target->GetName()
-                  << "\" more than once in the export set.";
-                cmSystemTools::Error(e.str().c_str());
-                return false;
-            }
-        }
-
-        this->GenerateExpectedTargetsCode(os, expectedTargets);
+  std::vector<cmTargetExport*> allTargets;
+  {
+    std::string expectedTargets;
+    std::string sep;
+    for (cmTargetExport* te :
+         *this->IEGen->GetExportSet()->GetTargetExports()) {
+      expectedTargets += sep + this->Namespace + te->Target->GetExportName();
+      sep = " ";
+      if (this->ExportedTargets.insert(te->Target).second) {
+        allTargets.push_back(te);
+      } else {
+        std::ostringstream e;
+        e << "install(EXPORT \"" << this->IEGen->GetExportSet()->GetName()
+          << "\" ...) "
+          << "includes target \"" << te->Target->GetName()
+          << "\" more than once in the export set.";
+        cmSystemTools::Error(e.str());
+        return false;
+      }
     }
 
-    // Compute the relative import prefix for the file
-    this->GenerateImportPrefix(os);
+    this->GenerateExpectedTargetsCode(os, expectedTargets);
+  }
 
-    std::vector<std::string> missingTargets;
+  // Compute the relative import prefix for the file
+  this->GenerateImportPrefix(os);
 
-    bool require2_8_12       = false;
-    bool require3_0_0        = false;
-    bool require3_1_0        = false;
-    bool requiresConfigFiles = false;
-    // Create all the imported targets.
-    for(cmTargetExport* te : allTargets)
-    {
-        cmGeneratorTarget*       gt         = te->Target;
-        cmStateEnums::TargetType targetType = this->GetExportTargetType(te);
+  std::vector<std::string> missingTargets;
 
-        requiresConfigFiles = requiresConfigFiles ||
-                              targetType != cmStateEnums::INTERFACE_LIBRARY;
+  bool require2_8_12 = false;
+  bool require3_0_0 = false;
+  bool require3_1_0 = false;
+  bool requiresConfigFiles = false;
+  // Create all the imported targets.
+  for (cmTargetExport* te : allTargets) {
+    cmGeneratorTarget* gt = te->Target;
+    cmStateEnums::TargetType targetType = this->GetExportTargetType(te);
 
-        this->GenerateImportTargetCode(os, gt, targetType);
+    requiresConfigFiles =
+      requiresConfigFiles || targetType != cmStateEnums::INTERFACE_LIBRARY;
 
-        ImportPropertyMap properties;
+    this->GenerateImportTargetCode(os, gt, targetType);
 
-        this->PopulateIncludeDirectoriesInterface(
-            te, cmGeneratorExpression::InstallInterface, properties,
-            missingTargets);
-        this->PopulateSourcesInterface(te,
-                                       cmGeneratorExpression::InstallInterface,
-                                       properties, missingTargets);
-        this->PopulateInterfaceProperty("INTERFACE_SYSTEM_INCLUDE_DIRECTORIES",
-                                        gt,
-                                        cmGeneratorExpression::InstallInterface,
-                                        properties, missingTargets);
-        this->PopulateInterfaceProperty("INTERFACE_COMPILE_DEFINITIONS", gt,
-                                        cmGeneratorExpression::InstallInterface,
-                                        properties, missingTargets);
-        this->PopulateInterfaceProperty("INTERFACE_COMPILE_OPTIONS", gt,
-                                        cmGeneratorExpression::InstallInterface,
-                                        properties, missingTargets);
-        this->PopulateInterfaceProperty("INTERFACE_AUTOUIC_OPTIONS", gt,
-                                        cmGeneratorExpression::InstallInterface,
-                                        properties, missingTargets);
-        this->PopulateInterfaceProperty("INTERFACE_COMPILE_FEATURES", gt,
-                                        cmGeneratorExpression::InstallInterface,
-                                        properties, missingTargets);
-        this->PopulateInterfaceProperty("INTERFACE_LINK_OPTIONS", gt,
-                                        cmGeneratorExpression::InstallInterface,
-                                        properties, missingTargets);
-        this->PopulateLinkDirectoriesInterface(
-            te, cmGeneratorExpression::InstallInterface, properties,
-            missingTargets);
-        this->PopulateLinkDependsInterface(
-            te, cmGeneratorExpression::InstallInterface, properties,
-            missingTargets);
+    ImportPropertyMap properties;
 
-        std::string errorMessage;
-        if(!this->PopulateExportProperties(gt, properties, errorMessage))
-        {
-            cmSystemTools::Error(errorMessage.c_str());
-            return false;
-        }
+    this->PopulateIncludeDirectoriesInterface(
+      te, cmGeneratorExpression::InstallInterface, properties, missingTargets);
+    this->PopulateSourcesInterface(te, cmGeneratorExpression::InstallInterface,
+                                   properties, missingTargets);
+    this->PopulateInterfaceProperty("INTERFACE_SYSTEM_INCLUDE_DIRECTORIES", gt,
+                                    cmGeneratorExpression::InstallInterface,
+                                    properties, missingTargets);
+    this->PopulateInterfaceProperty("INTERFACE_COMPILE_DEFINITIONS", gt,
+                                    cmGeneratorExpression::InstallInterface,
+                                    properties, missingTargets);
+    this->PopulateInterfaceProperty("INTERFACE_COMPILE_OPTIONS", gt,
+                                    cmGeneratorExpression::InstallInterface,
+                                    properties, missingTargets);
+    this->PopulateInterfaceProperty("INTERFACE_AUTOUIC_OPTIONS", gt,
+                                    cmGeneratorExpression::InstallInterface,
+                                    properties, missingTargets);
+    this->PopulateInterfaceProperty("INTERFACE_COMPILE_FEATURES", gt,
+                                    cmGeneratorExpression::InstallInterface,
+                                    properties, missingTargets);
+    this->PopulateInterfaceProperty("INTERFACE_LINK_OPTIONS", gt,
+                                    cmGeneratorExpression::InstallInterface,
+                                    properties, missingTargets);
+    this->PopulateLinkDirectoriesInterface(
+      te, cmGeneratorExpression::InstallInterface, properties, missingTargets);
+    this->PopulateLinkDependsInterface(
+      te, cmGeneratorExpression::InstallInterface, properties, missingTargets);
 
-        const bool newCMP0022Behavior =
-            gt->GetPolicyStatusCMP0022() != cmPolicies::WARN &&
-            gt->GetPolicyStatusCMP0022() != cmPolicies::OLD;
-        if(newCMP0022Behavior)
-        {
-            if(this->PopulateInterfaceLinkLibrariesProperty(
-                   gt, cmGeneratorExpression::InstallInterface, properties,
-                   missingTargets) &&
-               !this->ExportOld)
-            {
-                require2_8_12 = true;
-            }
-        }
-        if(targetType == cmStateEnums::INTERFACE_LIBRARY)
-        {
-            require3_0_0 = true;
-        }
-        if(gt->GetProperty("INTERFACE_SOURCES"))
-        {
-            // We can only generate INTERFACE_SOURCES in CMake 3.3, but
-            // CMake 3.1 can consume them.
-            require3_1_0 = true;
-        }
-
-        this->PopulateInterfaceProperty("INTERFACE_POSITION_INDEPENDENT_CODE",
-                                        gt, properties);
-
-        this->PopulateCompatibleInterfaceProperties(gt, properties);
-
-        this->GenerateInterfaceProperties(gt, os, properties);
+    std::string errorMessage;
+    if (!this->PopulateExportProperties(gt, properties, errorMessage)) {
+      cmSystemTools::Error(errorMessage);
+      return false;
     }
 
     if(require3_1_0)
@@ -303,37 +259,33 @@ bool
 cmExportInstallFileGenerator::GenerateImportFileConfig(
     const std::string& config, std::vector<std::string>& missingTargets)
 {
-    // Skip configurations not enabled for this export.
-    if(!this->IEGen->InstallsForConfig(config))
-    {
-        return true;
-    }
+  // Skip configurations not enabled for this export.
+  if (!this->IEGen->InstallsForConfig(config)) {
+    return true;
+  }
 
-    // Construct the name of the file to generate.
-    std::string fileName = this->FileDir;
-    fileName += "/";
-    fileName += this->FileBase;
-    fileName += "-";
-    if(!config.empty())
-    {
-        fileName += cmSystemTools::LowerCase(config);
-    } else
-    {
-        fileName += "noconfig";
-    }
-    fileName += this->FileExt;
+  // Construct the name of the file to generate.
+  std::string fileName = this->FileDir;
+  fileName += "/";
+  fileName += this->FileBase;
+  fileName += "-";
+  if (!config.empty()) {
+    fileName += cmSystemTools::LowerCase(config);
+  } else {
+    fileName += "noconfig";
+  }
+  fileName += this->FileExt;
 
-    // Open the output file to generate it.
-    cmGeneratedFileStream exportFileStream(fileName, true);
-    if(!exportFileStream)
-    {
-        std::string        se = cmSystemTools::GetLastSystemError();
-        std::ostringstream e;
-        e << "cannot write to file \"" << fileName << "\": " << se;
-        cmSystemTools::Error(e.str().c_str());
-        return false;
-    }
-    std::ostream& os = exportFileStream;
+  // Open the output file to generate it.
+  cmGeneratedFileStream exportFileStream(fileName, true);
+  if (!exportFileStream) {
+    std::string se = cmSystemTools::GetLastSystemError();
+    std::ostringstream e;
+    e << "cannot write to file \"" << fileName << "\": " << se;
+    cmSystemTools::Error(e.str());
+    return false;
+  }
+  std::ostream& os = exportFileStream;
 
     // Start with the import file header.
     this->GenerateImportHeaderCode(os, config);
@@ -413,14 +365,66 @@ cmExportInstallFileGenerator::SetImportLocationProperty(
     cmInstallTargetGenerator* itgen, ImportPropertyMap& properties,
     std::set<std::string>& importedLocations)
 {
-    // Skip rules that do not match this configuration.
-    if(!(itgen && itgen->InstallsForConfig(config)))
-    {
-        return;
+  // Skip rules that do not match this configuration.
+  if (!(itgen && itgen->InstallsForConfig(config))) {
+    return;
+  }
+
+  // Get the target to be installed.
+  cmGeneratorTarget* target = itgen->GetTarget();
+
+  // Construct the installed location of the target.
+  std::string dest = itgen->GetDestination(config);
+  std::string value;
+  if (!cmSystemTools::FileIsFullPath(dest)) {
+    // The target is installed relative to the installation prefix.
+    value = "${_IMPORT_PREFIX}/";
+  }
+  value += dest;
+  value += "/";
+
+  if (itgen->IsImportLibrary()) {
+    // Construct the property name.
+    std::string prop = "IMPORTED_IMPLIB";
+    prop += suffix;
+
+    // Append the installed file name.
+    value += cmInstallTargetGenerator::GetInstallFilename(
+      target, config, cmInstallTargetGenerator::NameImplib);
+
+    // Store the property.
+    properties[prop] = value;
+    importedLocations.insert(prop);
+  } else if (itgen->GetTarget()->GetType() == cmStateEnums::OBJECT_LIBRARY) {
+    // Construct the property name.
+    std::string prop = "IMPORTED_OBJECTS";
+    prop += suffix;
+
+    // Compute all the object files inside this target and setup
+    // IMPORTED_OBJECTS as a list of object files
+    std::vector<std::string> objects;
+    itgen->GetInstallObjectNames(config, objects);
+    for (std::string& obj : objects) {
+      obj = value + obj;
     }
 
-    // Get the target to be installed.
-    cmGeneratorTarget* target = itgen->GetTarget();
+    // Store the property.
+    properties[prop] = cmJoin(objects, ";");
+    importedLocations.insert(prop);
+  } else {
+    // Construct the property name.
+    std::string prop = "IMPORTED_LOCATION";
+    prop += suffix;
+
+    // Append the installed file name.
+    if (target->IsAppBundleOnApple()) {
+      value += cmInstallTargetGenerator::GetInstallFilename(target, config);
+      value += ".app/Contents/MacOS/";
+      value += cmInstallTargetGenerator::GetInstallFilename(target, config);
+    } else {
+      value += cmInstallTargetGenerator::GetInstallFilename(
+        target, config, cmInstallTargetGenerator::NameReal);
+    }
 
     // Construct the installed location of the target.
     std::string dest = itgen->GetDestination(config);
@@ -568,20 +572,18 @@ void
 cmExportInstallFileGenerator::ComplainAboutMissingTarget(
     cmGeneratorTarget* depender, cmGeneratorTarget* dependee, int occurrences)
 {
-    std::ostringstream e;
-    e << "install(EXPORT \"" << this->IEGen->GetExportSet()->GetName()
-      << "\" ...) "
-      << "includes target \"" << depender->GetName()
-      << "\" which requires target \"" << dependee->GetName() << "\" ";
-    if(occurrences == 0)
-    {
-        e << "that is not in the export set.";
-    } else
-    {
-        e << "that is not in this export set, but " << occurrences
-          << " times in others.";
-    }
-    cmSystemTools::Error(e.str().c_str());
+  std::ostringstream e;
+  e << "install(EXPORT \"" << this->IEGen->GetExportSet()->GetName()
+    << "\" ...) "
+    << "includes target \"" << depender->GetName()
+    << "\" which requires target \"" << dependee->GetName() << "\" ";
+  if (occurrences == 0) {
+    e << "that is not in the export set.";
+  } else {
+    e << "that is not in this export set, but " << occurrences
+      << " times in others.";
+  }
+  cmSystemTools::Error(e.str());
 }
 
 std::string

@@ -12,12 +12,12 @@
 #include <vector>
 
 #include "cmCommonTargetGenerator.h"
+#include "cmGeneratorTarget.h"
 #include "cmLocalUnixMakefileGenerator3.h"
 #include "cmOSXBundleGenerator.h"
 
 class cmCustomCommandGenerator;
 class cmGeneratedFileStream;
-class cmGeneratorTarget;
 class cmGlobalUnixMakefileGenerator3;
 class cmLinkLineComputer;
 class cmOutputConverter;
@@ -159,88 +159,102 @@ protected:
                         std::string& linkLibs, bool useResponseFile,
                         std::vector<std::string>& makefile_depends);
 
-    /** Create lists of object files for linking and cleaning.  */
-    void CreateObjectLists(bool useLinkScript, bool useArchiveRules,
-                           bool useResponseFile, std::string& buildObjs,
-                           std::vector<std::string>& makefile_depends,
-                           bool                      useWatcomQuote);
+  cmLinkLineComputer* CreateLinkLineComputer(
+    cmOutputConverter* outputConverter, cmStateDirectory const& stateDir);
 
-    /** Add commands for generate def files */
-    void GenDefFile(std::vector<std::string>& real_link_commands);
+  /** Create a response file with the given set of options.  Returns
+      the relative path from the target build working directory to the
+      response file name.  */
+  std::string CreateResponseFile(const char* name, std::string const& options,
+                                 std::vector<std::string>& makefile_depends);
 
-    void AddIncludeFlags(std::string& flags, const std::string& lang) override;
+  bool CheckUseResponseFileForObjects(std::string const& l) const;
+  bool CheckUseResponseFileForLibraries(std::string const& l) const;
 
-    virtual void                    CloseFileStreams();
-    cmLocalUnixMakefileGenerator3*  LocalGenerator;
-    cmGlobalUnixMakefileGenerator3* GlobalGenerator;
+  /** Create list of flags for link libraries. */
+  void CreateLinkLibs(cmLinkLineComputer* linkLineComputer,
+                      std::string& linkLibs, bool useResponseFile,
+                      std::vector<std::string>& makefile_depends);
 
-    enum CustomCommandDriveType
-    {
-        OnBuild,
-        OnDepends,
-        OnUtility
-    };
-    CustomCommandDriveType CustomCommandDriver;
+  /** Create lists of object files for linking and cleaning.  */
+  void CreateObjectLists(bool useLinkScript, bool useArchiveRules,
+                         bool useResponseFile, std::string& buildObjs,
+                         std::vector<std::string>& makefile_depends,
+                         bool useWatcomQuote);
 
-    // the full path to the build file
-    std::string BuildFileName;
-    std::string BuildFileNameFull;
+  /** Add commands for generate def files */
+  void GenDefFile(std::vector<std::string>& real_link_commands);
 
-    // the full path to the progress file
-    std::string   ProgressFileNameFull;
-    unsigned long NumberOfProgressActions;
-    bool          NoRuleMessages;
+  void AddIncludeFlags(std::string& flags, const std::string& lang) override;
 
-    // the path to the directory the build file is in
-    std::string TargetBuildDirectory;
-    std::string TargetBuildDirectoryFull;
+  virtual void CloseFileStreams();
+  cmLocalUnixMakefileGenerator3* LocalGenerator;
+  cmGlobalUnixMakefileGenerator3* GlobalGenerator;
 
-    // the stream for the build file
-    cmGeneratedFileStream* BuildFileStream;
+  enum CustomCommandDriveType
+  {
+    OnBuild,
+    OnDepends,
+    OnUtility
+  };
+  CustomCommandDriveType CustomCommandDriver;
 
-    // the stream for the flag file
-    std::string            FlagFileNameFull;
-    cmGeneratedFileStream* FlagFileStream;
-    class StringList : public std::vector<std::string>
-    {};
-    std::map<std::string, StringList> FlagFileDepends;
+  // the full path to the build file
+  std::string BuildFileName;
+  std::string BuildFileNameFull;
 
-    // the stream for the info file
-    std::string            InfoFileNameFull;
-    cmGeneratedFileStream* InfoFileStream;
+  // the full path to the progress file
+  std::string ProgressFileNameFull;
+  unsigned long NumberOfProgressActions;
+  bool NoRuleMessages;
 
-    // files to clean
-    std::vector<std::string> CleanFiles;
+  // the path to the directory the build file is in
+  std::string TargetBuildDirectory;
+  std::string TargetBuildDirectoryFull;
 
-    // objects used by this target
-    std::vector<std::string> Objects;
-    std::vector<std::string> ExternalObjects;
+  // the stream for the build file
+  cmGeneratedFileStream* BuildFileStream;
 
-    // Set of object file names that will be built in this directory.
-    std::set<std::string> ObjectFiles;
+  // the stream for the flag file
+  std::string FlagFileNameFull;
+  cmGeneratedFileStream* FlagFileStream;
+  class StringList : public std::vector<std::string>
+  {
+  };
+  std::map<std::string, StringList> FlagFileDepends;
 
-    // Set of extra output files to be driven by the build.
-    std::set<std::string> ExtraFiles;
+  // the stream for the info file
+  std::string InfoFileNameFull;
+  cmGeneratedFileStream* InfoFileStream;
 
-    typedef std::map<std::string, std::string> MultipleOutputPairsType;
-    MultipleOutputPairsType                    MultipleOutputPairs;
-    bool WriteMakeRule(std::ostream& os, const char* comment,
-                       const std::vector<std::string>& outputs,
-                       const std::vector<std::string>& depends,
-                       const std::vector<std::string>& commands,
-                       bool                            in_help = false);
+  // files to clean
+  std::set<std::string> CleanFiles;
 
-    // Target name info.
-    std::string TargetNameOut;
-    std::string TargetNameSO;
-    std::string TargetNameReal;
-    std::string TargetNameImport;
-    std::string TargetNamePDB;
+  // objects used by this target
+  std::vector<std::string> Objects;
+  std::vector<std::string> ExternalObjects;
 
-    // macOS content info.
-    std::set<std::string>       MacContentFolders;
-    cmOSXBundleGenerator*       OSXBundleGenerator;
-    MacOSXContentGeneratorType* MacOSXContentGenerator;
+  // Set of object file names that will be built in this directory.
+  std::set<std::string> ObjectFiles;
+
+  // Set of extra output files to be driven by the build.
+  std::set<std::string> ExtraFiles;
+
+  typedef std::map<std::string, std::string> MultipleOutputPairsType;
+  MultipleOutputPairsType MultipleOutputPairs;
+  bool WriteMakeRule(std::ostream& os, const char* comment,
+                     const std::vector<std::string>& outputs,
+                     const std::vector<std::string>& depends,
+                     const std::vector<std::string>& commands,
+                     bool in_help = false);
+
+  // Target name info.
+  cmGeneratorTarget::Names TargetNames;
+
+  // macOS content info.
+  std::set<std::string> MacContentFolders;
+  std::unique_ptr<cmOSXBundleGenerator> OSXBundleGenerator;
+  MacOSXContentGeneratorType* MacOSXContentGenerator;
 };
 
 #endif

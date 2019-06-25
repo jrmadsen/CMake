@@ -8,6 +8,7 @@
 #include "cmInstalledFile.h"
 #include "cmMakefile.h"
 #include "cmProperty.h"
+#include "cmRange.h"
 #include "cmSourceFile.h"
 #include "cmState.h"
 #include "cmSystemTools.h"
@@ -28,10 +29,75 @@ bool
 cmSetPropertyCommand::InitialPass(std::vector<std::string> const& args,
                                   cmExecutionStatus&)
 {
-    if(args.size() < 2)
-    {
-        this->SetError("called with incorrect number of arguments");
-        return false;
+  if (args.size() < 2) {
+    this->SetError("called with incorrect number of arguments");
+    return false;
+  }
+
+  // Get the scope on which to set the property.
+  std::string const& scopeName = args.front();
+  cmProperty::ScopeType scope;
+  if (scopeName == "GLOBAL") {
+    scope = cmProperty::GLOBAL;
+  } else if (scopeName == "DIRECTORY") {
+    scope = cmProperty::DIRECTORY;
+  } else if (scopeName == "TARGET") {
+    scope = cmProperty::TARGET;
+  } else if (scopeName == "SOURCE") {
+    scope = cmProperty::SOURCE_FILE;
+  } else if (scopeName == "TEST") {
+    scope = cmProperty::TEST;
+  } else if (scopeName == "CACHE") {
+    scope = cmProperty::CACHE;
+  } else if (scopeName == "INSTALL") {
+    scope = cmProperty::INSTALL;
+  } else {
+    std::ostringstream e;
+    e << "given invalid scope " << scopeName << ".  "
+      << "Valid scopes are GLOBAL, DIRECTORY, "
+         "TARGET, SOURCE, TEST, CACHE, INSTALL.";
+    this->SetError(e.str());
+    return false;
+  }
+
+  // Parse the rest of the arguments up to the values.
+  enum Doing
+  {
+    DoingNone,
+    DoingNames,
+    DoingProperty,
+    DoingValues
+  };
+  Doing doing = DoingNames;
+  const char* sep = "";
+  for (std::string const& arg : cmMakeRange(args).advance(1)) {
+    if (arg == "PROPERTY") {
+      doing = DoingProperty;
+    } else if (arg == "APPEND") {
+      doing = DoingNone;
+      this->AppendMode = true;
+      this->Remove = false;
+      this->AppendAsString = false;
+    } else if (arg == "APPEND_STRING") {
+      doing = DoingNone;
+      this->AppendMode = true;
+      this->Remove = false;
+      this->AppendAsString = true;
+    } else if (doing == DoingNames) {
+      this->Names.insert(arg);
+    } else if (doing == DoingProperty) {
+      this->PropertyName = arg;
+      doing = DoingValues;
+    } else if (doing == DoingValues) {
+      this->PropertyValue += sep;
+      sep = ";";
+      this->PropertyValue += arg;
+      this->Remove = false;
+    } else {
+      std::ostringstream e;
+      e << "given invalid argument \"" << arg << "\".";
+      this->SetError(e.str());
+      return false;
     }
 
     // Get the scope on which to set the property.
@@ -374,12 +440,14 @@ cmSetPropertyCommand::HandleTestMode()
 bool
 cmSetPropertyCommand::HandleTest(cmTest* test)
 {
-    // Set or append the property.
-    std::string const& name  = this->PropertyName;
-    const char*        value = this->PropertyValue.c_str();
-    if(this->Remove)
-    {
-        value = nullptr;
+  if (this->PropertyName == "ADVANCED") {
+    if (!this->Remove && !cmSystemTools::IsOn(this->PropertyValue) &&
+        !cmSystemTools::IsOff(this->PropertyValue)) {
+      std::ostringstream e;
+      e << "given non-boolean value \"" << this->PropertyValue
+        << R"(" for CACHE property "ADVANCED".  )";
+      this->SetError(e.str());
+      return false;
     }
     if(this->AppendMode)
     {

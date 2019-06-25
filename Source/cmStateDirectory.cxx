@@ -8,8 +8,10 @@
 #include <iterator>
 #include <utility>
 
+#include "cmAlgorithms.h"
 #include "cmProperty.h"
 #include "cmPropertyMap.h"
+#include "cmRange.h"
 #include "cmState.h"
 #include "cmStatePrivate.h"
 #include "cmStateTypes.h"
@@ -44,14 +46,10 @@ cmStateDirectory::ComputeRelativePathTopSource()
 
     std::string result = snapshots.front().GetDirectory().GetCurrentSource();
 
-    for(std::vector<cmStateSnapshot>::const_iterator it = snapshots.begin() + 1;
-        it != snapshots.end(); ++it)
-    {
-        std::string currentSource = it->GetDirectory().GetCurrentSource();
-        if(cmSystemTools::IsSubDirectory(result, currentSource))
-        {
-            result = currentSource;
-        }
+  for (cmStateSnapshot const& snp : cmMakeRange(snapshots).advance(1)) {
+    std::string currentSource = snp.GetDirectory().GetCurrentSource();
+    if (cmSystemTools::IsSubDirectory(result, currentSource)) {
+      result = currentSource;
     }
     this->DirectoryState->RelativePathTopSource = result;
 }
@@ -76,14 +74,10 @@ cmStateDirectory::ComputeRelativePathTopBinary()
 
     std::string result = snapshots.front().GetDirectory().GetCurrentBinary();
 
-    for(std::vector<cmStateSnapshot>::const_iterator it = snapshots.begin() + 1;
-        it != snapshots.end(); ++it)
-    {
-        std::string currentBinary = it->GetDirectory().GetCurrentBinary();
-        if(cmSystemTools::IsSubDirectory(result, currentBinary))
-        {
-            result = currentBinary;
-        }
+  for (cmStateSnapshot const& snp : cmMakeRange(snapshots).advance(1)) {
+    std::string currentBinary = snp.GetDirectory().GetCurrentBinary();
+    if (cmSystemTools::IsSubDirectory(result, currentBinary)) {
+      result = currentBinary;
     }
 
     // The current working directory on Windows cannot be a network
@@ -158,6 +152,32 @@ void
 cmStateDirectory::SetRelativePathTopBinary(const char* dir)
 {
     this->DirectoryState->RelativePathTopBinary = dir;
+}
+
+bool cmStateDirectory::ContainsBoth(std::string const& local_path,
+                                    std::string const& remote_path) const
+{
+  auto PathEqOrSubDir = [](std::string const& a, std::string const& b) {
+    return (cmSystemTools::ComparePath(a, b) ||
+            cmSystemTools::IsSubDirectory(a, b));
+  };
+
+  bool bothInBinary = PathEqOrSubDir(local_path, GetRelativePathTopBinary()) &&
+    PathEqOrSubDir(remote_path, GetRelativePathTopBinary());
+
+  bool bothInSource = PathEqOrSubDir(local_path, GetRelativePathTopSource()) &&
+    PathEqOrSubDir(remote_path, GetRelativePathTopSource());
+
+  return bothInBinary || bothInSource;
+}
+
+std::string cmStateDirectory::ConvertToRelPathIfNotContained(
+  std::string const& local_path, std::string const& remote_path) const
+{
+  if (!this->ContainsBoth(local_path, remote_path)) {
+    return remote_path;
+  }
+  return cmSystemTools::ForceToRelativePath(local_path, remote_path);
 }
 
 cmStateDirectory::cmStateDirectory(
@@ -593,15 +613,48 @@ cmStateDirectory::AppendProperty(const std::string& prop, const char* value,
         this->AppendCompileDefinitionsEntry(value, lfbt);
         return;
     }
-    if(prop == "LINK_OPTIONS")
-    {
-        this->AppendLinkOptionsEntry(value, lfbt);
-        return;
-    }
-    if(prop == "LINK_DIRECTORIES")
-    {
-        this->AppendLinkDirectoriesEntry(value, lfbt);
-        return;
+    std::reverse(listFiles.begin(), listFiles.end());
+    output = cmJoin(listFiles, ";");
+    return output.c_str();
+  }
+  if (prop == "CACHE_VARIABLES") {
+    output = cmJoin(this->Snapshot_.State->GetCacheEntryKeys(), ";");
+    return output.c_str();
+  }
+  if (prop == "VARIABLES") {
+    std::vector<std::string> res = this->Snapshot_.ClosureKeys();
+    cmAppend(res, this->Snapshot_.State->GetCacheEntryKeys());
+    std::sort(res.begin(), res.end());
+    output = cmJoin(res, ";");
+    return output.c_str();
+  }
+  if (prop == "INCLUDE_DIRECTORIES") {
+    output = cmJoin(this->GetIncludeDirectoriesEntries(), ";");
+    return output.c_str();
+  }
+  if (prop == "COMPILE_OPTIONS") {
+    output = cmJoin(this->GetCompileOptionsEntries(), ";");
+    return output.c_str();
+  }
+  if (prop == "COMPILE_DEFINITIONS") {
+    output = cmJoin(this->GetCompileDefinitionsEntries(), ";");
+    return output.c_str();
+  }
+  if (prop == "LINK_OPTIONS") {
+    output = cmJoin(this->GetLinkOptionsEntries(), ";");
+    return output.c_str();
+  }
+  if (prop == "LINK_DIRECTORIES") {
+    output = cmJoin(this->GetLinkDirectoriesEntries(), ";");
+    return output.c_str();
+  }
+
+  const char* retVal = this->DirectoryState->Properties.GetPropertyValue(prop);
+  if (!retVal && chain) {
+    cmStateSnapshot parentSnapshot =
+      this->Snapshot_.GetBuildsystemDirectoryParent();
+    if (parentSnapshot.IsValid()) {
+      return parentSnapshot.GetDirectory().GetProperty(prop, chain);
     }
 
     this->DirectoryState->Properties.AppendProperty(prop, value, asString);

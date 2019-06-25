@@ -4,6 +4,7 @@
 
 #include <iterator>
 
+#include "cmAlgorithms.h"
 #include "cmMakefile.h"
 #include "cmTarget.h"
 
@@ -18,6 +19,9 @@ cmSetTargetPropertiesCommand::InitialPass(std::vector<std::string> const& args,
     {
         this->SetError("called with incorrect number of arguments");
         return false;
+      }
+      cmAppend(propertyPairs, j, args.end());
+      break;
     }
 
     // first collect up the list of files

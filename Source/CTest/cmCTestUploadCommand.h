@@ -5,9 +5,9 @@
 
 #include "cmConfigure.h"  // IWYU pragma: keep
 
-#include "cmCTest.h"
 #include "cmCTestHandlerCommand.h"
 
+#include <set>
 #include <string>
 
 class cmCTestGenericHandler;
@@ -22,25 +22,23 @@ class cmCommand;
 class cmCTestUploadCommand : public cmCTestHandlerCommand
 {
 public:
-    cmCTestUploadCommand() {}
+  /**
+   * This is a virtual constructor for the command.
+   */
+  cmCommand* Clone() override
+  {
+    cmCTestUploadCommand* ni = new cmCTestUploadCommand;
+    ni->CTest = this->CTest;
+    ni->CTestScriptHandler = this->CTestScriptHandler;
+    return ni;
+  }
 
-    /**
-     * This is a virtual constructor for the command.
-     */
-    cmCommand* Clone() override
-    {
-        cmCTestUploadCommand* ni = new cmCTestUploadCommand;
-        ni->CTest                = this->CTest;
-        ni->CTestScriptHandler   = this->CTestScriptHandler;
-        return ni;
-    }
+  /**
+   * The name of the command as specified in CMakeList.txt.
+   */
+  std::string GetName() const override { return "ctest_upload"; }
 
-    /**
-     * The name of the command as specified in CMakeList.txt.
-     */
-    std::string GetName() const override { return "ctest_upload"; }
-
-    typedef cmCTestHandlerCommand Superclass;
+  typedef cmCTestHandlerCommand Superclass;
 
 protected:
     cmCTestGenericHandler* InitializeHandler() override;
@@ -55,7 +53,7 @@ protected:
         ArgumentDoingLast2
     };
 
-    cmCTest::SetOfStrings Files;
+  std::set<std::string> Files;
 };
 
 #endif

@@ -37,40 +37,42 @@ public:
     {};
     struct PropertiesMap
     : public std::map<int, cmCTestTestHandler::cmCTestTestProperties*>
-    {};
+  {
+  };
 
-    cmCTestMultiProcessHandler();
-    virtual ~cmCTestMultiProcessHandler();
-    // Set the tests
-    void SetTests(TestMap& tests, PropertiesMap& properties);
-    // Set the max number of tests that can be run at the same time.
-    void         SetParallelLevel(size_t);
-    void         SetTestLoad(unsigned long load);
-    virtual void RunTests();
-    void         PrintTestList();
-    void         PrintLabels();
+  cmCTestMultiProcessHandler();
+  virtual ~cmCTestMultiProcessHandler();
+  // Set the tests
+  void SetTests(TestMap& tests, PropertiesMap& properties);
+  // Set the max number of tests that can be run at the same time.
+  void SetParallelLevel(size_t);
+  void SetTestLoad(unsigned long load);
+  virtual void RunTests();
+  void PrintOutputAsJson();
+  void PrintTestList();
+  void PrintLabels();
 
-    void SetPassFailVectors(std::vector<std::string>* passed,
-                            std::vector<std::string>* failed)
-    {
-        this->Passed = passed;
-        this->Failed = failed;
-    }
-    void SetTestResults(std::vector<cmCTestTestHandler::cmCTestTestResult>* r)
-    {
-        this->TestResults = r;
-    }
+  void SetPassFailVectors(std::vector<std::string>* passed,
+                          std::vector<std::string>* failed)
+  {
+    this->Passed = passed;
+    this->Failed = failed;
+  }
+  void SetTestResults(std::vector<cmCTestTestHandler::cmCTestTestResult>* r)
+  {
+    this->TestResults = r;
+  }
 
-    void SetCTest(cmCTest* ctest) { this->CTest = ctest; }
+  void SetCTest(cmCTest* ctest) { this->CTest = ctest; }
 
-    void SetTestHandler(cmCTestTestHandler* handler)
-    {
-        this->TestHandler = handler;
-    }
+  void SetTestHandler(cmCTestTestHandler* handler)
+  {
+    this->TestHandler = handler;
+  }
 
-    cmCTestTestHandler* GetTestHandler() { return this->TestHandler; }
+  cmCTestTestHandler* GetTestHandler() { return this->TestHandler; }
 
-    void SetQuiet(bool b) { this->Quiet = b; }
+  void SetQuiet(bool b) { this->Quiet = b; }
 
 protected:
     // Start the next test or tests as many as are allowed by

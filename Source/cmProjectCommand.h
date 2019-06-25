@@ -36,7 +36,8 @@ public:
                      cmExecutionStatus&              status) override;
 
 private:
-    void TopLevelCMakeVarCondSet(const char* name, const char* value);
+  bool IncludeByVariable(const std::string& variable);
+  void TopLevelCMakeVarCondSet(const char* name, const char* value);
 };
 
 #endif

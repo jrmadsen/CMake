@@ -2,6 +2,7 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmELF.h"
 
+#include "cmAlgorithms.h"
 #include "cm_kwiml.h"
 #include "cmsys/FStream.hxx"
 #include <map>
@@ -614,7 +615,11 @@ cmELFInternalImpl<Types>::EncodeDynamicEntries(
         result.insert(result.end(), pdyn, pdyn + sizeof(ELF_Dyn));
     }
 
-    return result;
+    char* pdyn = reinterpret_cast<char*>(&dyn);
+    cmAppend(result, pdyn, pdyn + sizeof(ELF_Dyn));
+  }
+
+  return result;
 }
 
 template <class Types>
@@ -733,60 +738,52 @@ const long cmELF::TagMipsRldMapRel = 0;
 cmELF::cmELF(const char* fname)
 : Internal(nullptr)
 {
-    // Try to open the file.
-    std::unique_ptr<cmsys::ifstream> fin(new cmsys::ifstream(fname));
+  // Try to open the file.
+  std::unique_ptr<cmsys::ifstream> fin(new cmsys::ifstream(fname));
 
-    // Quit now if the file could not be opened.
-    if(!fin.get() || !*fin)
-    {
-        this->ErrorMessage = "Error opening input file.";
-        return;
-    }
+  // Quit now if the file could not be opened.
+  if (!fin || !*fin) {
+    this->ErrorMessage = "Error opening input file.";
+    return;
+  }
 
-    // Read the ELF identification block.
-    char ident[EI_NIDENT];
-    if(!fin->read(ident, EI_NIDENT))
-    {
-        this->ErrorMessage = "Error reading ELF identification.";
-        return;
-    }
-    if(!fin->seekg(0))
-    {
-        this->ErrorMessage = "Error seeking to beginning of file.";
-        return;
-    }
+  // Read the ELF identification block.
+  char ident[EI_NIDENT];
+  if (!fin->read(ident, EI_NIDENT)) {
+    this->ErrorMessage = "Error reading ELF identification.";
+    return;
+  }
+  if (!fin->seekg(0)) {
+    this->ErrorMessage = "Error seeking to beginning of file.";
+    return;
+  }
 
-    // Verify the ELF identification.
-    if(!(ident[EI_MAG0] == ELFMAG0 && ident[EI_MAG1] == ELFMAG1 &&
-         ident[EI_MAG2] == ELFMAG2 && ident[EI_MAG3] == ELFMAG3))
-    {
-        this->ErrorMessage = "File does not have a valid ELF identification.";
-        return;
-    }
+  // Verify the ELF identification.
+  if (!(ident[EI_MAG0] == ELFMAG0 && ident[EI_MAG1] == ELFMAG1 &&
+        ident[EI_MAG2] == ELFMAG2 && ident[EI_MAG3] == ELFMAG3)) {
+    this->ErrorMessage = "File does not have a valid ELF identification.";
+    return;
+  }
 
-    // Check the byte order in which the rest of the file is encoded.
-    cmELFInternal::ByteOrderType order;
-    if(ident[EI_DATA] == ELFDATA2LSB)
-    {
-        // File is LSB.
-        order = cmELFInternal::ByteOrderLSB;
-    } else if(ident[EI_DATA] == ELFDATA2MSB)
-    {
-        // File is MSB.
-        order = cmELFInternal::ByteOrderMSB;
-    } else
-    {
-        this->ErrorMessage = "ELF file is not LSB or MSB encoded.";
-        return;
-    }
+  // Check the byte order in which the rest of the file is encoded.
+  cmELFInternal::ByteOrderType order;
+  if (ident[EI_DATA] == ELFDATA2LSB) {
+    // File is LSB.
+    order = cmELFInternal::ByteOrderLSB;
+  } else if (ident[EI_DATA] == ELFDATA2MSB) {
+    // File is MSB.
+    order = cmELFInternal::ByteOrderMSB;
+  } else {
+    this->ErrorMessage = "ELF file is not LSB or MSB encoded.";
+    return;
+  }
 
-    // Check the class of the file and construct the corresponding
-    // parser implementation.
-    if(ident[EI_CLASS] == ELFCLASS32)
-    {
-        // 32-bit ELF
-        this->Internal = new cmELFInternalImpl<cmELFTypes32>(this, fin, order);
-    }
+  // Check the class of the file and construct the corresponding
+  // parser implementation.
+  if (ident[EI_CLASS] == ELFCLASS32) {
+    // 32-bit ELF
+    this->Internal = new cmELFInternalImpl<cmELFTypes32>(this, fin, order);
+  }
 #ifndef _SCO_DS
     else if(ident[EI_CLASS] == ELFCLASS64)
     {

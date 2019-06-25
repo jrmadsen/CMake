@@ -26,19 +26,17 @@ cmCTestRunScriptCommand::InitialPass(std::vector<std::string> const& args,
         np = true;
         i++;
     }
-    int start = i;
-    // run each script
-    std::string returnVariable;
-    for(i = start; i < args.size(); ++i)
-    {
-        if(args[i] == "RETURN_VALUE")
-        {
-            ++i;
-            if(i < args.size())
-            {
-                returnVariable = args[i];
-            }
-        }
+  }
+  for (i = start; i < args.size(); ++i) {
+    if (args[i] == "RETURN_VALUE") {
+      ++i;
+    } else {
+      int ret;
+      cmCTestScriptHandler::RunScript(this->CTest, this->Makefile,
+                                      args[i].c_str(), !np, &ret);
+      std::ostringstream str;
+      str << ret;
+      this->Makefile->AddDefinition(returnVariable, str.str().c_str());
     }
     for(i = start; i < args.size(); ++i)
     {

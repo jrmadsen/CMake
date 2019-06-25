@@ -16,16 +16,17 @@ class cmOutputConverter;
 
 class cmLinkLineComputer
 {
-    CM_DISABLE_COPY(cmLinkLineComputer)
-
 public:
     cmLinkLineComputer(cmOutputConverter*      outputConverter,
                        cmStateDirectory const& stateDir);
     virtual ~cmLinkLineComputer();
 
-    void SetUseWatcomQuote(bool useWatcomQuote);
-    void SetForResponse(bool forResponse);
-    void SetRelink(bool relink);
+  cmLinkLineComputer(cmLinkLineComputer const&) = delete;
+  cmLinkLineComputer& operator=(cmLinkLineComputer const&) = delete;
+
+  void SetUseWatcomQuote(bool useWatcomQuote);
+  void SetForResponse(bool forResponse);
+  void SetRelink(bool relink);
 
     virtual std::string ConvertToLinkReference(std::string const& input) const;
 

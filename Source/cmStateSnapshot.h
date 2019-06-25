@@ -36,11 +36,12 @@ public:
 
     std::vector<cmStateSnapshot> GetChildren();
 
-    bool                       IsValid() const;
-    cmStateSnapshot            GetBuildsystemDirectoryParent() const;
-    cmStateSnapshot            GetCallStackParent() const;
-    cmStateSnapshot            GetCallStackBottom() const;
-    cmStateEnums::SnapshotType GetType() const;
+  bool IsValid() const;
+  cmStateSnapshot GetBuildsystemDirectory() const;
+  cmStateSnapshot GetBuildsystemDirectoryParent() const;
+  cmStateSnapshot GetCallStackParent() const;
+  cmStateSnapshot GetCallStackBottom() const;
+  cmStateEnums::SnapshotType GetType() const;
 
     void SetPolicy(cmPolicies::PolicyID id, cmPolicies::PolicyStatus status);
     cmPolicies::PolicyStatus GetPolicy(cmPolicies::PolicyID id,

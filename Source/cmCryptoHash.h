@@ -15,8 +15,6 @@
  */
 class cmCryptoHash
 {
-    CM_DISABLE_COPY(cmCryptoHash)
-
 public:
     enum Algo
     {
@@ -35,13 +33,16 @@ public:
     cmCryptoHash(Algo algo);
     ~cmCryptoHash();
 
-    /// @brief Returns a new hash generator of the requested type
-    /// @arg algo Hash type name. Supported hash types are
-    ///      MD5, SHA1, SHA224, SHA256, SHA384, SHA512,
-    ///      SHA3_224, SHA3_256, SHA3_384, SHA3_512
-    /// @return A valid auto pointer if algo is supported or
-    ///         an invalid/NULL pointer otherwise
-    static std::unique_ptr<cmCryptoHash> New(const char* algo);
+  cmCryptoHash(cmCryptoHash const&) = delete;
+  cmCryptoHash& operator=(cmCryptoHash const&) = delete;
+
+  /// @brief Returns a new hash generator of the requested type
+  /// @arg algo Hash type name. Supported hash types are
+  ///      MD5, SHA1, SHA224, SHA256, SHA384, SHA512,
+  ///      SHA3_224, SHA3_256, SHA3_384, SHA3_512
+  /// @return A valid auto pointer if algo is supported or
+  ///         an invalid/NULL pointer otherwise
+  static std::unique_ptr<cmCryptoHash> New(const char* algo);
 
     /// @brief Converts a hex character to its binary value (4 bits)
     /// @arg input Hex character [0-9a-fA-F].

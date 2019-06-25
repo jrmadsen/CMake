@@ -6,6 +6,7 @@
 #include "cmCTestTestHandler.h"
 #include "cmGlobalGenerator.h"
 #include "cmMakefile.h"
+#include "cmState.h"
 #include "cmSystemTools.h"
 #include "cmWorkingDirectory.h"
 #include "cmake.h"
@@ -125,30 +126,6 @@ cmCTestBuildAndTestHandler::RunCMake(std::string*        outstring,
     return 0;
 }
 
-void
-CMakeMessageCallback(const char* m, const char* /*unused*/, bool& /*unused*/,
-                     void*       s)
-{
-    std::string* out = static_cast<std::string*>(s);
-    *out += m;
-    *out += "\n";
-}
-
-void
-CMakeProgressCallback(const char* msg, float /*unused*/, void* s)
-{
-    std::string* out = static_cast<std::string*>(s);
-    *out += msg;
-    *out += "\n";
-}
-
-void
-CMakeOutputCallback(const char* m, size_t len, void* s)
-{
-    std::string* out = static_cast<std::string*>(s);
-    out->append(m, len);
-}
-
 class cmCTestBuildAndTestCaptureRAII
 {
     cmake& CM;
@@ -156,19 +133,36 @@ class cmCTestBuildAndTestCaptureRAII
 public:
     cmCTestBuildAndTestCaptureRAII(cmake& cm, std::string& s)
     : CM(cm)
-    {
-        cmSystemTools::SetMessageCallback(CMakeMessageCallback, &s);
-        cmSystemTools::SetStdoutCallback(CMakeOutputCallback, &s);
-        cmSystemTools::SetStderrCallback(CMakeOutputCallback, &s);
-        this->CM.SetProgressCallback(CMakeProgressCallback, &s);
-    }
-    ~cmCTestBuildAndTestCaptureRAII()
-    {
-        this->CM.SetProgressCallback(nullptr, nullptr);
-        cmSystemTools::SetStderrCallback(nullptr, nullptr);
-        cmSystemTools::SetStdoutCallback(nullptr, nullptr);
-        cmSystemTools::SetMessageCallback(nullptr, nullptr);
-    }
+  {
+    cmSystemTools::SetMessageCallback(
+      [&s](const std::string& msg, const char* /*unused*/) {
+        s += msg;
+        s += "\n";
+      });
+
+    cmSystemTools::SetStdoutCallback([&s](std::string const& m) { s += m; });
+    cmSystemTools::SetStderrCallback([&s](std::string const& m) { s += m; });
+
+    this->CM.SetProgressCallback([&s](const std::string& msg, float prog) {
+      if (prog < 0) {
+        s += msg;
+        s += "\n";
+      }
+    });
+  }
+
+  ~cmCTestBuildAndTestCaptureRAII()
+  {
+    this->CM.SetProgressCallback(nullptr);
+    cmSystemTools::SetStderrCallback(nullptr);
+    cmSystemTools::SetStdoutCallback(nullptr);
+    cmSystemTools::SetMessageCallback(nullptr);
+  }
+
+  cmCTestBuildAndTestCaptureRAII(const cmCTestBuildAndTestCaptureRAII&) =
+    delete;
+  cmCTestBuildAndTestCaptureRAII& operator=(
+    const cmCTestBuildAndTestCaptureRAII&) = delete;
 };
 
 int
@@ -186,13 +180,13 @@ cmCTestBuildAndTestHandler::RunCMakeAndTest(std::string* outstring)
         return 1;
     }
 
-    cmake cm(cmake::RoleProject);
-    cm.SetHomeDirectory("");
-    cm.SetHomeOutputDirectory("");
-    std::string                    cmakeOutString;
-    cmCTestBuildAndTestCaptureRAII captureRAII(cm, cmakeOutString);
-    static_cast<void>(captureRAII);
-    std::ostringstream out;
+  cmake cm(cmake::RoleProject, cmState::Project);
+  cm.SetHomeDirectory("");
+  cm.SetHomeOutputDirectory("");
+  std::string cmakeOutString;
+  cmCTestBuildAndTestCaptureRAII captureRAII(cm, cmakeOutString);
+  static_cast<void>(captureRAII);
+  std::ostringstream out;
 
     if(this->CTest->GetConfigType().empty() && !this->ConfigSample.empty())
     {
@@ -252,14 +246,18 @@ cmCTestBuildAndTestHandler::RunCMakeAndTest(std::string* outstring)
             }
         }
 
-        // Load the cache to make CMAKE_MAKE_PROGRAM available.
-        cm.LoadCache(this->BinaryDir);
-    } else
-    {
-        // do the cmake step, no timeout here since it is not a sub process
-        if(this->RunCMake(outstring, out, cmakeOutString, &cm))
-        {
-            return 1;
+  // do the build
+  if (this->BuildTargets.empty()) {
+    this->BuildTargets.emplace_back();
+  }
+  for (std::string const& tar : this->BuildTargets) {
+    cmDuration remainingTime = std::chrono::seconds(0);
+    if (this->Timeout > cmDuration::zero()) {
+      remainingTime =
+        this->Timeout - (std::chrono::steady_clock::now() - clock_start);
+      if (remainingTime <= std::chrono::seconds(0)) {
+        if (outstring) {
+          *outstring = "--build-and-test timeout exceeded. ";
         }
     }
 
@@ -296,27 +294,17 @@ cmCTestBuildAndTestHandler::RunCMakeAndTest(std::string* outstring)
             config = CMAKE_INTDIR;
         }
 #endif
-        if(!config)
-        {
-            config = "Debug";
-        }
-        int retVal = cm.GetGlobalGenerator()->Build(
-            cmake::NO_BUILD_PARALLEL_LEVEL, this->SourceDir, this->BinaryDir,
-            this->BuildProject, tar, output, this->BuildMakeProgram, config,
-            !this->BuildNoClean, false, false, remainingTime);
-        out << output;
-        // if the build failed then return
-        if(retVal)
-        {
-            if(outstring)
-            {
-                *outstring = out.str();
-            }
-            return 1;
-        }
+    if (!config) {
+      config = "Debug";
     }
-    if(outstring)
-    {
+    int retVal = cm.GetGlobalGenerator()->Build(
+      cmake::NO_BUILD_PARALLEL_LEVEL, this->SourceDir, this->BinaryDir,
+      this->BuildProject, { tar }, output, this->BuildMakeProgram, config,
+      !this->BuildNoClean, false, false, remainingTime);
+    out << output;
+    // if the build failed then return
+    if (retVal) {
+      if (outstring) {
         *outstring = out.str();
     }
 

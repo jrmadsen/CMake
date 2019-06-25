@@ -22,9 +22,12 @@ public:
     cmWorkingDirectory(std::string const& newdir);
     ~cmWorkingDirectory();
 
-    bool SetDirectory(std::string const& newdir);
-    void Pop();
-    bool Failed() const { return ResultCode != 0; }
+  cmWorkingDirectory(const cmWorkingDirectory&) = delete;
+  cmWorkingDirectory& operator=(const cmWorkingDirectory&) = delete;
+
+  bool SetDirectory(std::string const& newdir);
+  void Pop();
+  bool Failed() const { return ResultCode != 0; }
 
     /** \return 0 if the last attempt to set the working directory was
      *          successful. If it failed, the value returned will be the

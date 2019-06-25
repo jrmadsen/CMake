@@ -26,108 +26,125 @@ static const char* cmDocumentationUsage[][2] = { { nullptr,
                                                  { nullptr, nullptr } };
 
 static const char* cmDocumentationOptions[][2] = {
-    { "-C <cfg>, --build-config <cfg>", "Choose configuration to test." },
-    { "--progress", "Enable short progress output from tests." },
-    { "-V,--verbose", "Enable verbose output from tests." },
-    { "-VV,--extra-verbose", "Enable more verbose output from tests." },
-    { "--debug", "Displaying more verbose internals of CTest." },
-    { "--output-on-failure", "Output anything outputted by the test program "
-                             "if the test should fail." },
-    { "--test-output-size-passed <size>", "Limit the output for passed tests "
-                                          "to <size> bytes" },
-    { "--test-output-size-failed <size>", "Limit the output for failed tests "
-                                          "to <size> bytes" },
-    { "-F", "Enable failover." },
-    { "-j <jobs>, --parallel <jobs>", "Run the tests in parallel using the "
-                                      "given number of jobs." },
-    { "-Q,--quiet", "Make ctest quiet." },
-    { "-O <file>, --output-log <file>", "Output to log file" },
-    { "-N,--show-only", "Disable actual execution of tests." },
-    { "-L <regex>, --label-regex <regex>", "Run tests with labels matching "
-                                           "regular expression." },
-    { "-R <regex>, --tests-regex <regex>", "Run tests matching regular "
-                                           "expression." },
-    { "-E <regex>, --exclude-regex <regex>", "Exclude tests matching regular "
-                                             "expression." },
-    { "-LE <regex>, --label-exclude <regex>", "Exclude tests with labels "
-                                              "matching regular expression." },
-    { "-FA <regex>, --fixture-exclude-any <regex>", "Do not automatically "
-                                                    "add any tests for "
-                                                    "fixtures matching "
-                                                    "regular expression." },
-    { "-FS <regex>, --fixture-exclude-setup <regex>", "Do not automatically "
-                                                      "add setup tests for "
-                                                      "fixtures matching "
-                                                      "regular expression." },
-    { "-FC <regex>, --fixture-exclude-cleanup <regex>", "Do not automatically "
-                                                        "add cleanup tests for "
-                                                        "fixtures matching "
-                                                        "regular expression." },
-    { "-D <dashboard>, --dashboard <dashboard>", "Execute dashboard test" },
-    { "-D <var>:<type>=<value>", "Define a variable for script mode" },
-    { "-M <model>, --test-model <model>", "Sets the model for a dashboard" },
-    { "-T <action>, --test-action <action>", "Sets the dashboard action to "
-                                             "perform" },
-    { "--track <track>", "Specify the track to submit dashboard to" },
-    { "-S <script>, --script <script>", "Execute a dashboard for a "
-                                        "configuration" },
-    { "-SP <script>, --script-new-process <script>",
-      "Execute a dashboard for a "
-      "configuration" },
-    { "-A <file>, --add-notes <file>", "Add a notes file with submission" },
-    { "-I [Start,End,Stride,test#,test#|Test file], --tests-information",
-      "Run a specific number of tests by number." },
-    { "-U, --union", "Take the Union of -I and -R" },
-    { "--rerun-failed", "Run only the tests that failed previously" },
-    { "--repeat-until-fail <n>", "Require each test to run <n> "
-                                 "times without failing in order to pass" },
-    { "--max-width <width>", "Set the max width for a test name to output" },
-    { "--interactive-debug-mode [0|1]", "Set the interactive mode to 0 or 1." },
-    { "--no-label-summary", "Disable timing summary information for labels." },
-    { "--no-subproject-summary", "Disable timing summary information for "
-                                 "subprojects." },
-    { "--build-and-test", "Configure, build and run a test." },
-    { "--build-target", "Specify a specific target to build." },
-    { "--build-nocmake", "Run the build without running cmake first." },
-    { "--build-run-dir", "Specify directory to run programs from." },
-    { "--build-two-config", "Run CMake twice" },
-    { "--build-exe-dir", "Specify the directory for the executable." },
-    { "--build-generator", "Specify the generator to use." },
-    { "--build-generator-platform",
-      "Specify the generator-specific platform." },
-    { "--build-generator-toolset", "Specify the generator-specific toolset." },
-    { "--build-project", "Specify the name of the project to build." },
-    { "--build-makeprogram", "Specify the make program to use." },
-    { "--build-noclean", "Skip the make clean step." },
-    { "--build-config-sample",
-      "A sample executable to use to determine the configuration" },
-    { "--build-options", "Add extra options to the build step." },
+  { "-C <cfg>, --build-config <cfg>", "Choose configuration to test." },
+  { "--progress", "Enable short progress output from tests." },
+  { "-V,--verbose", "Enable verbose output from tests." },
+  { "-VV,--extra-verbose", "Enable more verbose output from tests." },
+  { "--debug", "Displaying more verbose internals of CTest." },
+  { "--output-on-failure",
+    "Output anything outputted by the test program "
+    "if the test should fail." },
+  { "--test-output-size-passed <size>",
+    "Limit the output for passed tests "
+    "to <size> bytes" },
+  { "--test-output-size-failed <size>",
+    "Limit the output for failed tests "
+    "to <size> bytes" },
+  { "-F", "Enable failover." },
+  { "-j <jobs>, --parallel <jobs>",
+    "Run the tests in parallel using the "
+    "given number of jobs." },
+  { "-Q,--quiet", "Make ctest quiet." },
+  { "-O <file>, --output-log <file>", "Output to log file" },
+  { "-N,--show-only[=format]",
+    "Disable actual execution of tests. The optional 'format' defines the "
+    "format of the test information and can be 'human' for the current text "
+    "format or 'json-v1' for json format. Defaults to 'human'." },
+  { "-L <regex>, --label-regex <regex>",
+    "Run tests with labels matching "
+    "regular expression." },
+  { "-R <regex>, --tests-regex <regex>",
+    "Run tests matching regular "
+    "expression." },
+  { "-E <regex>, --exclude-regex <regex>",
+    "Exclude tests matching regular "
+    "expression." },
+  { "-LE <regex>, --label-exclude <regex>",
+    "Exclude tests with labels "
+    "matching regular expression." },
+  { "-FA <regex>, --fixture-exclude-any <regex>",
+    "Do not automatically "
+    "add any tests for "
+    "fixtures matching "
+    "regular expression." },
+  { "-FS <regex>, --fixture-exclude-setup <regex>",
+    "Do not automatically "
+    "add setup tests for "
+    "fixtures matching "
+    "regular expression." },
+  { "-FC <regex>, --fixture-exclude-cleanup <regex>",
+    "Do not automatically "
+    "add cleanup tests for "
+    "fixtures matching "
+    "regular expression." },
+  { "-D <dashboard>, --dashboard <dashboard>", "Execute dashboard test" },
+  { "-D <var>:<type>=<value>", "Define a variable for script mode" },
+  { "-M <model>, --test-model <model>", "Sets the model for a dashboard" },
+  { "-T <action>, --test-action <action>",
+    "Sets the dashboard action to "
+    "perform" },
+  { "--track <track>", "Specify the track to submit dashboard to" },
+  { "-S <script>, --script <script>",
+    "Execute a dashboard for a "
+    "configuration" },
+  { "-SP <script>, --script-new-process <script>",
+    "Execute a dashboard for a "
+    "configuration" },
+  { "-A <file>, --add-notes <file>", "Add a notes file with submission" },
+  { "-I [Start,End,Stride,test#,test#|Test file], --tests-information",
+    "Run a specific number of tests by number." },
+  { "-U, --union", "Take the Union of -I and -R" },
+  { "--rerun-failed", "Run only the tests that failed previously" },
+  { "--repeat-until-fail <n>",
+    "Require each test to run <n> "
+    "times without failing in order to pass" },
+  { "--max-width <width>", "Set the max width for a test name to output" },
+  { "--interactive-debug-mode [0|1]", "Set the interactive mode to 0 or 1." },
+  { "--no-label-summary", "Disable timing summary information for labels." },
+  { "--no-subproject-summary",
+    "Disable timing summary information for "
+    "subprojects." },
+  { "--build-and-test", "Configure, build and run a test." },
+  { "--build-target", "Specify a specific target to build." },
+  { "--build-nocmake", "Run the build without running cmake first." },
+  { "--build-run-dir", "Specify directory to run programs from." },
+  { "--build-two-config", "Run CMake twice" },
+  { "--build-exe-dir", "Specify the directory for the executable." },
+  { "--build-generator", "Specify the generator to use." },
+  { "--build-generator-platform", "Specify the generator-specific platform." },
+  { "--build-generator-toolset", "Specify the generator-specific toolset." },
+  { "--build-project", "Specify the name of the project to build." },
+  { "--build-makeprogram", "Specify the make program to use." },
+  { "--build-noclean", "Skip the make clean step." },
+  { "--build-config-sample",
+    "A sample executable to use to determine the configuration" },
+  { "--build-options", "Add extra options to the build step." },
 
-    { "--test-command", "The test to run with the --build-and-test option." },
-    { "--test-timeout", "The time limit in seconds, internal use only." },
-    { "--test-load", "CPU load threshold for starting new parallel tests." },
-    { "--tomorrow-tag", "Nightly or experimental starts with next day tag." },
-    { "--overwrite", "Overwrite CTest configuration option." },
-    { "--extra-submit <file>[;<file>]",
-      "Submit extra files to the dashboard." },
-    { "--force-new-ctest-process",
-      "Run child CTest instances as new processes" },
-    { "--schedule-random", "Use a random order for scheduling tests" },
-    { "--submit-index",
-      "Submit individual dashboard tests with specific index" },
-    { "--timeout <seconds>", "Set a global timeout on all tests." },
-    { "--stop-time <time>",
-      "Set a time at which all tests should stop running." },
-    { "--http1.0", "Submit using HTTP 1.0." },
-    { "--no-compress-output", "Do not compress test output when submitting." },
-    { "--print-labels", "Print all available test labels." },
-    { nullptr, nullptr }
+  { "--test-command", "The test to run with the --build-and-test option." },
+  { "--test-timeout", "The time limit in seconds, internal use only." },
+  { "--test-load", "CPU load threshold for starting new parallel tests." },
+  { "--tomorrow-tag", "Nightly or experimental starts with next day tag." },
+  { "--overwrite", "Overwrite CTest configuration option." },
+  { "--extra-submit <file>[;<file>]", "Submit extra files to the dashboard." },
+  { "--force-new-ctest-process",
+    "Run child CTest instances as new processes" },
+  { "--schedule-random", "Use a random order for scheduling tests" },
+  { "--submit-index",
+    "Submit individual dashboard tests with specific index" },
+  { "--timeout <seconds>", "Set the default test timeout." },
+  { "--stop-time <time>",
+    "Set a time at which all tests should stop running." },
+  { "--http1.0", "Submit using HTTP 1.0." },
+  { "--no-compress-output", "Do not compress test output when submitting." },
+  { "--print-labels", "Print all available test labels." },
+  { nullptr, nullptr }
 };
 
 // this is a test driver program for cmCTest.
 int
 main(int argc, char const* const* argv)
 {
+  cmSystemTools::EnsureStdPipes();
 #if defined(_WIN32) && defined(CMAKE_BUILD_WITH_CMAKE)
     // Replace streambuf so we can output Unicode to console
     cmsys::ConsoleBuf::Manager consoleOut(std::cout);
@@ -160,6 +177,12 @@ main(int argc, char const* const* argv)
                        << std::endl);
         return 1;
     }
+    cmDocumentation doc;
+    doc.addCTestStandardDocSections();
+    if (doc.CheckOptions(argc, argv)) {
+      // Construct and print requested documentation.
+      cmCTestScriptHandler* ch = inst.GetScriptHandler();
+      ch->CreateCMake();
 
     // If there is a testing input file, check for documentation options
     // only if there are actually arguments.  We want running without
@@ -193,17 +216,16 @@ main(int argc, char const* const* argv)
         }
     }
 
-    // copy the args to a vector
-    std::vector<std::string> args;
-    args.reserve(argc);
-    for(int i = 0; i < argc; ++i)
-    {
-        args.push_back(argv[i]);
-    }
-    // run ctest
-    std::string output;
-    int         res = inst.Run(args, &output);
-    cmCTestLog(&inst, OUTPUT, output);
+  // copy the args to a vector
+  std::vector<std::string> args;
+  args.reserve(argc);
+  for (int i = 0; i < argc; ++i) {
+    args.emplace_back(argv[i]);
+  }
+  // run ctest
+  std::string output;
+  int res = inst.Run(args, &output);
+  cmCTestLog(&inst, OUTPUT, output);
 
     return res;
 }

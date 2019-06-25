@@ -24,18 +24,17 @@ struct cmDocumentationEntry;
 class cmGlobalWatcomWMakeGenerator : public cmGlobalUnixMakefileGenerator3
 {
 public:
-    cmGlobalWatcomWMakeGenerator(cmake* cm);
-    static cmGlobalGeneratorFactory* NewFactory()
-    {
-        return new cmGlobalGeneratorSimpleFactory<
-            cmGlobalWatcomWMakeGenerator>();
-    }
-    ///! Get the name for the generator.
-    std::string GetName() const override
-    {
-        return cmGlobalWatcomWMakeGenerator::GetActualName();
-    }
-    static std::string GetActualName() { return "Watcom WMake"; }
+  cmGlobalWatcomWMakeGenerator(cmake* cm);
+  static cmGlobalGeneratorFactory* NewFactory()
+  {
+    return new cmGlobalGeneratorSimpleFactory<cmGlobalWatcomWMakeGenerator>();
+  }
+  //! Get the name for the generator.
+  std::string GetName() const override
+  {
+    return cmGlobalWatcomWMakeGenerator::GetActualName();
+  }
+  static std::string GetActualName() { return "Watcom WMake"; }
 
     /** Get the documentation entry for this generator.  */
     static void GetDocumentation(cmDocumentationEntry& entry);
@@ -51,15 +50,12 @@ public:
     bool AllowDeleteOnError() const override { return false; }
 
 protected:
-    void GenerateBuildCommand(std::vector<std::string>& makeCommand,
-                              const std::string&        makeProgram,
-                              const std::string&        projectName,
-                              const std::string&        projectDir,
-                              const std::string&        targetName,
-                              const std::string& config, bool fast, int jobs,
-                              bool                            verbose,
-                              std::vector<std::string> const& makeOptions =
-                                  std::vector<std::string>()) override;
+  std::vector<GeneratedMakeCommand> GenerateBuildCommand(
+    const std::string& makeProgram, const std::string& projectName,
+    const std::string& projectDir, std::vector<std::string> const& targetNames,
+    const std::string& config, bool fast, int jobs, bool verbose,
+    std::vector<std::string> const& makeOptions =
+      std::vector<std::string>()) override;
 
     void PrintBuildCommandAdvice(std::ostream& os, int jobs) const override;
 };

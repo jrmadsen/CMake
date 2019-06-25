@@ -11,11 +11,11 @@
 #include <string>
 
 #include "cmGeneratedFileStream.h"
+#include "cmMessageType.h"
 #include "cmMessenger.h"
 #include "cmState.h"
 #include "cmSystemTools.h"
 #include "cmVersion.h"
-#include "cmake.h"
 
 cmCacheManager::cmCacheManager()
 {
@@ -26,13 +26,13 @@ cmCacheManager::cmCacheManager()
 void
 cmCacheManager::CleanCMakeFiles(const std::string& path)
 {
-    std::string glob = path;
-    glob += cmake::GetCMakeFilesDirectory();
-    glob += "/*.cmake";
-    cmsys::Glob globIt;
-    globIt.FindFiles(glob);
-    std::vector<std::string> files = globIt.GetFiles();
-    std::for_each(files.begin(), files.end(), cmSystemTools::RemoveFile);
+  std::string glob = path;
+  glob += "/CMakeFiles";
+  glob += "/*.cmake";
+  cmsys::Glob globIt;
+  globIt.FindFiles(glob);
+  std::vector<std::string> files = globIt.GetFiles();
+  std::for_each(files.begin(), files.end(), cmSystemTools::RemoveFile);
 }
 
 bool
@@ -80,125 +80,60 @@ cmCacheManager::LoadCache(const std::string& path, bool internal,
             }
             realbuffer++;
         }
-        // skip blank lines and comment lines
-        if(realbuffer[0] == '#' || realbuffer[0] == 0)
-        {
-            continue;
-        }
-        while(realbuffer[0] == '/' && realbuffer[1] == '/')
-        {
-            if((realbuffer[2] == '\\') && (realbuffer[3] == 'n'))
-            {
-                helpString += "\n";
-                helpString += &realbuffer[4];
-            } else
-            {
-                helpString += &realbuffer[2];
-            }
-            cmSystemTools::GetLineFromStream(fin, buffer);
-            lineno++;
-            realbuffer = buffer.c_str();
-            if(!fin)
-            {
-                continue;
-            }
-        }
-        e.SetProperty("HELPSTRING", helpString.c_str());
-        if(cmState::ParseCacheEntry(realbuffer, entryKey, e.Value, e.Type))
-        {
-            if(excludes.find(entryKey) == excludes.end())
-            {
-                // Load internal values if internal is set.
-                // If the entry is not internal to the cache being loaded
-                // or if it is in the list of internal entries to be
-                // imported, load it.
-                if(internal || (e.Type != cmStateEnums::INTERNAL) ||
-                   (includes.find(entryKey) != includes.end()))
-                {
-                    // If we are loading the cache from another project,
-                    // make all loaded entries internal so that it is
-                    // not visible in the gui
-                    if(!internal)
-                    {
-                        e.Type     = cmStateEnums::INTERNAL;
-                        helpString = "DO NOT EDIT, ";
-                        helpString += entryKey;
-                        helpString += " loaded from external file.  "
-                                      "To change this value edit this file: ";
-                        helpString += path;
-                        helpString += "/CMakeCache.txt";
-                        e.SetProperty("HELPSTRING", helpString.c_str());
-                    }
-                    if(!this->ReadPropertyEntry(entryKey, e))
-                    {
-                        e.Initialized         = true;
-                        this->Cache[entryKey] = e;
-                    }
-                }
-            }
-        } else
-        {
-            std::ostringstream error;
-            error << "Parse error in cache file " << cacheFile;
-            error << " on line " << lineno
-                  << ". Offending entry: " << realbuffer;
-            cmSystemTools::Error(error.str().c_str());
-        }
+      }
+    } else {
+      std::ostringstream error;
+      error << "Parse error in cache file " << cacheFile;
+      error << " on line " << lineno << ". Offending entry: " << realbuffer;
+      cmSystemTools::Error(error.str());
     }
-    this->CacheMajorVersion = 0;
-    this->CacheMinorVersion = 0;
-    if(const std::string* cmajor =
-           this->GetInitializedCacheValue("CMAKE_CACHE_MAJOR_VERSION"))
-    {
-        unsigned int v = 0;
-        if(sscanf(cmajor->c_str(), "%u", &v) == 1)
-        {
-            this->CacheMajorVersion = v;
-        }
-        if(const std::string* cminor =
-               this->GetInitializedCacheValue("CMAKE_CACHE_MINOR_VERSION"))
-        {
-            if(sscanf(cminor->c_str(), "%u", &v) == 1)
-            {
-                this->CacheMinorVersion = v;
-            }
-        }
-    } else
-    {
-        // CMake version not found in the list file.
-        // Set as version 0.0
-        this->AddCacheEntry("CMAKE_CACHE_MINOR_VERSION", "0",
-                            "Minor version of cmake used to create the "
-                            "current loaded cache",
-                            cmStateEnums::INTERNAL);
-        this->AddCacheEntry("CMAKE_CACHE_MAJOR_VERSION", "0",
-                            "Major version of cmake used to create the "
-                            "current loaded cache",
-                            cmStateEnums::INTERNAL);
+  }
+  this->CacheMajorVersion = 0;
+  this->CacheMinorVersion = 0;
+  if (const std::string* cmajor =
+        this->GetInitializedCacheValue("CMAKE_CACHE_MAJOR_VERSION")) {
+    unsigned int v = 0;
+    if (sscanf(cmajor->c_str(), "%u", &v) == 1) {
+      this->CacheMajorVersion = v;
     }
-    // check to make sure the cache directory has not
-    // been moved
-    const std::string* oldDir =
+    if (const std::string* cminor =
+          this->GetInitializedCacheValue("CMAKE_CACHE_MINOR_VERSION")) {
+      if (sscanf(cminor->c_str(), "%u", &v) == 1) {
+        this->CacheMinorVersion = v;
+      }
+    }
+  } else {
+    // CMake version not found in the list file.
+    // Set as version 0.0
+    this->AddCacheEntry("CMAKE_CACHE_MINOR_VERSION", "0",
+                        "Minor version of cmake used to create the "
+                        "current loaded cache",
+                        cmStateEnums::INTERNAL);
+    this->AddCacheEntry("CMAKE_CACHE_MAJOR_VERSION", "0",
+                        "Major version of cmake used to create the "
+                        "current loaded cache",
+                        cmStateEnums::INTERNAL);
+  }
+  // check to make sure the cache directory has not
+  // been moved
+  const std::string* oldDir =
+    this->GetInitializedCacheValue("CMAKE_CACHEFILE_DIR");
+  if (internal && oldDir) {
+    std::string currentcwd = path;
+    std::string oldcwd = *oldDir;
+    cmSystemTools::ConvertToUnixSlashes(currentcwd);
+    currentcwd += "/CMakeCache.txt";
+    oldcwd += "/CMakeCache.txt";
+    if (!cmSystemTools::SameFile(oldcwd, currentcwd)) {
+      const std::string* dir =
         this->GetInitializedCacheValue("CMAKE_CACHEFILE_DIR");
-    if(internal && oldDir)
-    {
-        std::string currentcwd = path;
-        std::string oldcwd     = *oldDir;
-        cmSystemTools::ConvertToUnixSlashes(currentcwd);
-        currentcwd += "/CMakeCache.txt";
-        oldcwd += "/CMakeCache.txt";
-        if(!cmSystemTools::SameFile(oldcwd, currentcwd))
-        {
-            const std::string* dir =
-                this->GetInitializedCacheValue("CMAKE_CACHEFILE_DIR");
-            std::ostringstream message;
-            message << "The current CMakeCache.txt directory " << currentcwd
-                    << " is different than the directory " << (dir ? *dir : "")
-                    << " where CMakeCache.txt was created. This may result "
-                       "in binaries being created in the wrong place. If you "
-                       "are not sure, reedit the CMakeCache.txt";
-            cmSystemTools::Error(message.str().c_str());
-        }
+      std::ostringstream message;
+      message << "The current CMakeCache.txt directory " << currentcwd
+              << " is different than the directory " << (dir ? *dir : "")
+              << " where CMakeCache.txt was created. This may result "
+                 "in binaries being created in the wrong place. If you "
+                 "are not sure, reedit the CMakeCache.txt";
+      cmSystemTools::Error(message.str());
     }
     return true;
 }
@@ -209,36 +144,65 @@ const char* cmCacheManager::PersistentProperties[] = { "ADVANCED", "MODIFIED",
 bool
 cmCacheManager::ReadPropertyEntry(std::string const& entryKey, CacheEntry& e)
 {
-    // All property entries are internal.
-    if(e.Type != cmStateEnums::INTERNAL)
-    {
-        return false;
-    }
+  // All property entries are internal.
+  if (e.Type != cmStateEnums::INTERNAL) {
+    return false;
+  }
 
-    const char* end = entryKey.c_str() + entryKey.size();
-    for(const char** p = this->PersistentProperties; *p; ++p)
-    {
-        std::string::size_type plen = strlen(*p) + 1;
-        if(entryKey.size() > plen && *(end - plen) == '-' &&
-           strcmp(end - plen + 1, *p) == 0)
-        {
-            std::string key = entryKey.substr(0, entryKey.size() - plen);
-            cmCacheManager::CacheIterator it =
-                this->GetCacheIterator(key.c_str());
-            if(it.IsAtEnd())
-            {
-                // Create an entry and store the property.
-                CacheEntry& ne = this->Cache[key];
-                ne.Type        = cmStateEnums::UNINITIALIZED;
-                ne.SetProperty(*p, e.Value.c_str());
-            } else
-            {
-                // Store this property on its entry.
-                it.SetProperty(*p, e.Value.c_str());
-            }
-            return true;
-        }
+  const char* end = entryKey.c_str() + entryKey.size();
+  for (const char** p = cmCacheManager::PersistentProperties; *p; ++p) {
+    std::string::size_type plen = strlen(*p) + 1;
+    if (entryKey.size() > plen && *(end - plen) == '-' &&
+        strcmp(end - plen + 1, *p) == 0) {
+      std::string key = entryKey.substr(0, entryKey.size() - plen);
+      cmCacheManager::CacheIterator it = this->GetCacheIterator(key.c_str());
+      if (it.IsAtEnd()) {
+        // Create an entry and store the property.
+        CacheEntry& ne = this->Cache[key];
+        ne.Type = cmStateEnums::UNINITIALIZED;
+        ne.SetProperty(*p, e.Value.c_str());
+      } else {
+        // Store this property on its entry.
+        it.SetProperty(*p, e.Value.c_str());
+      }
+      return true;
     }
+  }
+  return false;
+}
+
+void cmCacheManager::WritePropertyEntries(std::ostream& os, CacheIterator i,
+                                          cmMessenger* messenger)
+{
+  for (const char** p = cmCacheManager::PersistentProperties; *p; ++p) {
+    if (const char* value = i.GetProperty(*p)) {
+      std::string helpstring = *p;
+      helpstring += " property for variable: ";
+      helpstring += i.GetName();
+      cmCacheManager::OutputHelpString(os, helpstring);
+
+      std::string key = i.GetName();
+      key += "-";
+      key += *p;
+      cmCacheManager::OutputKey(os, key);
+      os << ":INTERNAL=";
+      cmCacheManager::OutputValue(os, value);
+      os << "\n";
+      cmCacheManager::OutputNewlineTruncationWarning(os, key, value,
+                                                     messenger);
+    }
+  }
+}
+
+bool cmCacheManager::SaveCache(const std::string& path, cmMessenger* messenger)
+{
+  std::string cacheFile = path;
+  cacheFile += "/CMakeCache.txt";
+  cmGeneratedFileStream fout(cacheFile);
+  fout.SetCopyIfDifferent(true);
+  if (!fout) {
+    cmSystemTools::Error("Unable to open cache file for save. " + cacheFile);
+    cmSystemTools::ReportLastSystemError("");
     return false;
 }
 
@@ -335,121 +299,129 @@ cmCacheManager::SaveCache(const std::string& path, cmMessenger* messenger)
        << "# TYPE is a hint to GUIs for the type of VALUE, DO NOT EDIT "
        "TYPE!." << std::endl
        << "# VALUE is the current value for the KEY.\n\n";
-    /* clang-format on */
+  /* clang-format on */
 
-    fout << "########################\n";
-    fout << "# EXTERNAL cache entries\n";
-    fout << "########################\n";
-    fout << "\n";
+  fout << "########################\n";
+  fout << "# EXTERNAL cache entries\n";
+  fout << "########################\n";
+  fout << "\n";
 
-    for(auto const& i : this->Cache)
-    {
-        CacheEntry const&            ce = i.second;
-        cmStateEnums::CacheEntryType t  = ce.Type;
-        if(!ce.Initialized)
-        {
-            /*
-              // This should be added in, but is not for now.
-            cmSystemTools::Error("Cache entry \"", (*i).first.c_str(),
-                                 "\" is uninitialized");
-            */
-        } else if(t != cmStateEnums::INTERNAL)
-        {
-            // Format is key:type=value
-            if(const char* help = ce.GetProperty("HELPSTRING"))
-            {
-                cmCacheManager::OutputHelpString(fout, help);
-            } else
-            {
-                cmCacheManager::OutputHelpString(fout, "Missing description");
-            }
-            this->OutputKey(fout, i.first);
-            fout << ":" << cmState::CacheEntryTypeToString(t) << "=";
-            this->OutputValue(fout, ce.Value);
-            fout << "\n";
-            cmCacheManager::OutputNewlineTruncationWarning(fout, i.first,
-                                                           ce.Value, messenger);
-            fout << "\n";
-        }
+  for (auto const& i : this->Cache) {
+    CacheEntry const& ce = i.second;
+    cmStateEnums::CacheEntryType t = ce.Type;
+    if (!ce.Initialized) {
+      /*
+        // This should be added in, but is not for now.
+      cmSystemTools::Error("Cache entry \"" + i.first + "\" is uninitialized");
+      */
+    } else if (t != cmStateEnums::INTERNAL) {
+      // Format is key:type=value
+      if (const char* help = ce.GetProperty("HELPSTRING")) {
+        cmCacheManager::OutputHelpString(fout, help);
+      } else {
+        cmCacheManager::OutputHelpString(fout, "Missing description");
+      }
+      cmCacheManager::OutputKey(fout, i.first);
+      fout << ":" << cmState::CacheEntryTypeToString(t) << "=";
+      cmCacheManager::OutputValue(fout, ce.Value);
+      fout << "\n";
+      cmCacheManager::OutputNewlineTruncationWarning(fout, i.first, ce.Value,
+                                                     messenger);
+      fout << "\n";
+    }
+  }
+
+  fout << "\n";
+  fout << "########################\n";
+  fout << "# INTERNAL cache entries\n";
+  fout << "########################\n";
+  fout << "\n";
+
+  for (cmCacheManager::CacheIterator i = this->NewIterator(); !i.IsAtEnd();
+       i.Next()) {
+    if (!i.Initialized()) {
+      continue;
     }
 
-    fout << "\n";
-    fout << "########################\n";
-    fout << "# INTERNAL cache entries\n";
-    fout << "########################\n";
-    fout << "\n";
-
-    for(cmCacheManager::CacheIterator i = this->NewIterator(); !i.IsAtEnd();
-        i.Next())
-    {
-        if(!i.Initialized())
-        {
-            continue;
-        }
-
-        cmStateEnums::CacheEntryType t = i.GetType();
-        this->WritePropertyEntries(fout, i, messenger);
-        if(t == cmStateEnums::INTERNAL)
-        {
-            // Format is key:type=value
-            if(const char* help = i.GetProperty("HELPSTRING"))
-            {
-                this->OutputHelpString(fout, help);
-            }
-            this->OutputKey(fout, i.GetName());
-            fout << ":" << cmState::CacheEntryTypeToString(t) << "=";
-            this->OutputValue(fout, i.GetValue());
-            fout << "\n";
-            cmCacheManager::OutputNewlineTruncationWarning(
-                fout, i.GetName(), i.GetValue(), messenger);
-        }
+    cmStateEnums::CacheEntryType t = i.GetType();
+    this->WritePropertyEntries(fout, i, messenger);
+    if (t == cmStateEnums::INTERNAL) {
+      // Format is key:type=value
+      if (const char* help = i.GetProperty("HELPSTRING")) {
+        cmCacheManager::OutputHelpString(fout, help);
+      }
+      cmCacheManager::OutputKey(fout, i.GetName());
+      fout << ":" << cmState::CacheEntryTypeToString(t) << "=";
+      cmCacheManager::OutputValue(fout, i.GetValue());
+      fout << "\n";
+      cmCacheManager::OutputNewlineTruncationWarning(fout, i.GetName(),
+                                                     i.GetValue(), messenger);
     }
-    fout << "\n";
-    fout.Close();
-    std::string checkCacheFile = path;
-    checkCacheFile += cmake::GetCMakeFilesDirectory();
-    cmSystemTools::MakeDirectory(checkCacheFile);
-    checkCacheFile += "/cmake.check_cache";
-    cmsys::ofstream checkCache(checkCacheFile.c_str());
-    if(!checkCache)
-    {
-        cmSystemTools::Error("Unable to open check cache file for write. ",
-                             checkCacheFile.c_str());
-        return false;
-    }
-    checkCache << "# This file is generated by cmake for dependency checking "
-                  "of the CMakeCache.txt file\n";
-    return true;
+  }
+  fout << "\n";
+  fout.Close();
+  std::string checkCacheFile = path;
+  checkCacheFile += "/CMakeFiles";
+  cmSystemTools::MakeDirectory(checkCacheFile);
+  checkCacheFile += "/cmake.check_cache";
+  cmsys::ofstream checkCache(checkCacheFile.c_str());
+  if (!checkCache) {
+    cmSystemTools::Error("Unable to open check cache file for write. " +
+                         checkCacheFile);
+    return false;
+  }
+  checkCache << "# This file is generated by cmake for dependency checking "
+                "of the CMakeCache.txt file\n";
+  return true;
 }
 
-bool
-cmCacheManager::DeleteCache(const std::string& path)
+bool cmCacheManager::DeleteCache(const std::string& path)
 {
-    std::string cacheFile = path;
-    cmSystemTools::ConvertToUnixSlashes(cacheFile);
-    std::string cmakeFiles = cacheFile;
-    cacheFile += "/CMakeCache.txt";
-    if(cmSystemTools::FileExists(cacheFile))
-    {
-        cmSystemTools::RemoveFile(cacheFile);
-        // now remove the files in the CMakeFiles directory
-        // this cleans up language cache files
-        cmakeFiles += cmake::GetCMakeFilesDirectory();
-        if(cmSystemTools::FileIsDirectory(cmakeFiles))
-        {
-            cmSystemTools::RemoveADirectory(cmakeFiles);
-        }
+  std::string cacheFile = path;
+  cmSystemTools::ConvertToUnixSlashes(cacheFile);
+  std::string cmakeFiles = cacheFile;
+  cacheFile += "/CMakeCache.txt";
+  if (cmSystemTools::FileExists(cacheFile)) {
+    cmSystemTools::RemoveFile(cacheFile);
+    // now remove the files in the CMakeFiles directory
+    // this cleans up language cache files
+    cmakeFiles += "/CMakeFiles";
+    if (cmSystemTools::FileIsDirectory(cmakeFiles)) {
+      cmSystemTools::RemoveADirectory(cmakeFiles);
     }
-    return true;
+  }
+  return true;
+}
+
+void cmCacheManager::OutputKey(std::ostream& fout, std::string const& key)
+{
+  // support : in key name by double quoting
+  const char* q =
+    (key.find(':') != std::string::npos || key.find("//") == 0) ? "\"" : "";
+  fout << q << key << q;
+}
+
+void cmCacheManager::OutputValue(std::ostream& fout, std::string const& value)
+{
+  // look for and truncate newlines
+  std::string::size_type newline = value.find('\n');
+  if (newline != std::string::npos) {
+    std::string truncated = value.substr(0, newline);
+    OutputValueNoNewlines(fout, truncated);
+  } else {
+    OutputValueNoNewlines(fout, value);
+  }
 }
 
 void
 cmCacheManager::OutputKey(std::ostream& fout, std::string const& key)
 {
-    // support : in key name by double quoting
-    const char* q =
-        (key.find(':') != std::string::npos || key.find("//") == 0) ? "\"" : "";
-    fout << q << key << q;
+  // if value has trailing space or tab, enclose it in single quotes
+  if (!value.empty() && (value.back() == ' ' || value.back() == '\t')) {
+    fout << '\'' << value << '\'';
+  } else {
+    fout << value;
+  }
 }
 
 void
@@ -471,14 +443,35 @@ void
 cmCacheManager::OutputValueNoNewlines(std::ostream&      fout,
                                       std::string const& value)
 {
-    // if value has trailing space or tab, enclose it in single quotes
-    if(!value.empty() &&
-       (value[value.size() - 1] == ' ' || value[value.size() - 1] == '\t'))
-    {
-        fout << '\'' << value << '\'';
-    } else
-    {
-        fout << value;
+  std::string::size_type end = message.size();
+  std::string oneLine;
+  std::string::size_type pos = 0;
+  for (std::string::size_type i = 0; i <= end; i++) {
+    if ((i == end) || (message[i] == '\n') ||
+        ((i - pos >= 60) && (message[i] == ' ') && wrapSpaces)) {
+      fout << "# ";
+      if (message[pos] == '\n') {
+        pos++;
+        fout << "\\n";
+      }
+      oneLine = message.substr(pos, i - pos);
+      fout << oneLine << "\n";
+      pos = i;
+    }
+  }
+}
+
+void cmCacheManager::OutputNewlineTruncationWarning(std::ostream& fout,
+                                                    std::string const& key,
+                                                    std::string const& value,
+                                                    cmMessenger* messenger)
+{
+  if (value.find('\n') != std::string::npos) {
+    if (messenger) {
+      std::string message = "Value of ";
+      message += key;
+      message += " contained a newline; truncating";
+      messenger->IssueMessage(MessageType::WARNING, message);
     }
 }
 

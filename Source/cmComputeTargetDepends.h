@@ -6,6 +6,7 @@
 #include "cmConfigure.h"  // IWYU pragma: keep
 
 #include "cmGraphAdjacencyList.h"
+#include "cmListFileCache.h"
 
 #include <map>
 #include <set>
@@ -41,25 +42,26 @@ public:
                                 cmTargetDependSet&       deps);
 
 private:
-    void CollectTargets();
-    void CollectDepends();
-    void CollectTargetDepends(int depender_index);
-    void AddTargetDepend(int depender_index, cmLinkItem const& dependee_name,
-                         bool linking);
-    void AddTargetDepend(int depender_index, cmGeneratorTarget const* dependee,
-                         bool linking);
-    bool ComputeFinalDepends(cmComputeComponentGraph const& ccg);
-    void AddInterfaceDepends(int                   depender_index,
-                             cmLinkItem const&     dependee_name,
-                             const std::string&    config,
-                             std::set<cmLinkItem>& emitted);
-    void AddInterfaceDepends(int                      depender_index,
-                             cmGeneratorTarget const* dependee,
-                             const std::string&       config,
-                             std::set<cmLinkItem>&    emitted);
-    cmGlobalGenerator* GlobalGenerator;
-    bool               DebugMode;
-    bool               NoCycles;
+  void CollectTargets();
+  void CollectDepends();
+  void CollectTargetDepends(int depender_index);
+  void AddTargetDepend(int depender_index, cmLinkItem const& dependee_name,
+                       bool linking);
+  void AddTargetDepend(int depender_index, cmGeneratorTarget const* dependee,
+                       cmListFileBacktrace const& dependee_backtrace,
+                       bool linking);
+  bool ComputeFinalDepends(cmComputeComponentGraph const& ccg);
+  void AddInterfaceDepends(int depender_index, cmLinkItem const& dependee_name,
+                           const std::string& config,
+                           std::set<cmLinkItem>& emitted);
+  void AddInterfaceDepends(int depender_index,
+                           cmGeneratorTarget const* dependee,
+                           cmListFileBacktrace const& dependee_backtrace,
+                           const std::string& config,
+                           std::set<cmLinkItem>& emitted);
+  cmGlobalGenerator* GlobalGenerator;
+  bool DebugMode;
+  bool NoCycles;
 
     // Collect all targets.
     std::vector<cmGeneratorTarget const*>   Targets;

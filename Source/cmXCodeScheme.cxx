@@ -5,24 +5,20 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <utility>
 
 #include "cmGeneratedFileStream.h"
 #include "cmGeneratorTarget.h"
 #include "cmXMLSafe.h"
 
-cmXCodeScheme::cmXCodeScheme(cmXCodeObject* xcObj, const TestObjects& tests,
+cmXCodeScheme::cmXCodeScheme(cmXCodeObject* xcObj, TestObjects tests,
                              const std::vector<std::string>& configList,
-                             unsigned int                    xcVersion)
-: Target(xcObj)
-, Tests(tests)
-, TargetName(xcObj->GetTarget()->GetName())
-, ConfigList(configList)
-, XcodeVersion(xcVersion)
-{}
-
-void
-cmXCodeScheme::WriteXCodeSharedScheme(const std::string& xcProjDir,
-                                      const std::string& container)
+                             unsigned int xcVersion)
+  : Target(xcObj)
+  , Tests(std::move(tests))
+  , TargetName(xcObj->GetTarget()->GetName())
+  , ConfigList(configList)
+  , XcodeVersion(xcVersion)
 {
     // Create shared scheme sub-directory tree
     //
@@ -42,7 +38,27 @@ cmXCodeScheme::WriteXCodeSharedScheme(const std::string& xcProjDir,
         return;
     }
 
-    WriteXCodeXCScheme(fout, container);
+void cmXCodeScheme::WriteXCodeSharedScheme(const std::string& xcProjDir,
+                                           const std::string& container)
+{
+  // Create shared scheme sub-directory tree
+  //
+  std::string xcodeSchemeDir = xcProjDir;
+  xcodeSchemeDir += "/xcshareddata/xcschemes";
+  cmSystemTools::MakeDirectory(xcodeSchemeDir.c_str());
+
+  std::string xcodeSchemeFile = xcodeSchemeDir;
+  xcodeSchemeFile += "/";
+  xcodeSchemeFile += this->TargetName;
+  xcodeSchemeFile += ".xcscheme";
+
+  cmGeneratedFileStream fout(xcodeSchemeFile);
+  fout.SetCopyIfDifferent(true);
+  if (!fout) {
+    return;
+  }
+
+  WriteXCodeXCScheme(fout, container);
 }
 
 void
@@ -97,7 +113,62 @@ cmXCodeScheme::WriteTestAction(cmXMLWriter&       xout,
                                const std::string& configuration,
                                const std::string& container)
 {
-    xout.StartElement("TestAction");
+  xout.StartElement("LaunchAction");
+  xout.BreakAttributes();
+  xout.Attribute("buildConfiguration", configuration);
+  xout.Attribute("selectedDebuggerIdentifier",
+                 "Xcode.DebuggerFoundation.Debugger.LLDB");
+  xout.Attribute("selectedLauncherIdentifier",
+                 "Xcode.DebuggerFoundation.Launcher.LLDB");
+  xout.Attribute("launchStyle", "0");
+  xout.Attribute("useCustomWorkingDirectory", "NO");
+  xout.Attribute("ignoresPersistentStateOnLaunch", "NO");
+  xout.Attribute("debugDocumentVersioning", "YES");
+  xout.Attribute("debugServiceExtension", "internal");
+  xout.Attribute("allowLocationSimulation", "YES");
+
+  // Diagnostics tab begin
+
+  bool useAddressSanitizer = WriteLaunchActionAttribute(
+    xout, "enableAddressSanitizer",
+    "XCODE_SCHEME_ADDRESS_SANITIZER"); // not allowed with
+                                       // enableThreadSanitizer=YES
+  WriteLaunchActionAttribute(
+    xout, "enableASanStackUseAfterReturn",
+    "XCODE_SCHEME_ADDRESS_SANITIZER_USE_AFTER_RETURN");
+
+  bool useThreadSanitizer = false;
+  if (!useAddressSanitizer) {
+    useThreadSanitizer = WriteLaunchActionAttribute(
+      xout, "enableThreadSanitizer",
+      "XCODE_SCHEME_THREAD_SANITIZER"); // not allowed with
+                                        // enableAddressSanitizer=YES
+  }
+
+  WriteLaunchActionAttribute(xout, "stopOnEveryThreadSanitizerIssue",
+                             "XCODE_SCHEME_THREAD_SANITIZER_STOP");
+
+  WriteLaunchActionAttribute(xout, "enableUBSanitizer",
+                             "XCODE_SCHEME_UNDEFINED_BEHAVIOUR_SANITIZER");
+  WriteLaunchActionAttribute(
+    xout, "stopOnEveryUBSanitizerIssue",
+    "XCODE_SCHEME_UNDEFINED_BEHAVIOUR_SANITIZER_STOP");
+
+  WriteLaunchActionAttribute(
+    xout, "disableMainThreadChecker",
+    "XCODE_SCHEME_DISABLE_MAIN_THREAD_CHECKER"); // negative enabled!
+  WriteLaunchActionAttribute(xout, "stopOnEveryMainThreadCheckerIssue",
+                             "XCODE_SCHEME_MAIN_THREAD_CHECKER_STOP");
+
+  if (this->Target->GetTarget()->GetPropertyAsBool(
+        "XCODE_SCHEME_DEBUG_AS_ROOT")) {
+    xout.Attribute("debugAsWhichUser", "root");
+  }
+
+  // Diagnostics tab end
+
+  if (IsExecutable(this->Target)) {
+    xout.StartElement("BuildableProductRunnable");
     xout.BreakAttributes();
     xout.Attribute("buildConfiguration", configuration);
     xout.Attribute("selectedDebuggerIdentifier",
@@ -198,7 +269,9 @@ cmXCodeScheme::WriteLaunchAction(cmXMLWriter&       xout,
 
     WriteBuildableReference(xout, this->Target, container);
 
-    xout.EndElement();  // MacroExpansion
+      for (auto const& argument : arguments) {
+        xout.StartElement("CommandLineArgument");
+        xout.BreakAttributes();
 
     // Info tab begin
 

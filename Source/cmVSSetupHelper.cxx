@@ -58,11 +58,12 @@ VSInstanceInfo::GetInstallLocation() const
     return loc;
 }
 
-cmVSSetupAPIHelper::cmVSSetupAPIHelper()
-: setupConfig(NULL)
-, setupConfig2(NULL)
-, setupHelper(NULL)
-, initializationFailure(false)
+cmVSSetupAPIHelper::cmVSSetupAPIHelper(unsigned int version)
+  : Version(version)
+  , setupConfig(NULL)
+  , setupConfig2(NULL)
+  , setupHelper(NULL)
+  , initializationFailure(false)
 {
     comInitialized = CoInitializeEx(NULL, 0);
     if(SUCCEEDED(comInitialized))
@@ -92,8 +93,7 @@ cmVSSetupAPIHelper::SetVSInstance(std::string const& vsInstallLocation)
     return this->EnumerateAndChooseVSInstance();
 }
 
-bool
-cmVSSetupAPIHelper::IsVS2017Installed()
+bool cmVSSetupAPIHelper::IsVSInstalled()
 {
     return this->EnumerateAndChooseVSInstance();
 }
@@ -170,11 +170,22 @@ cmVSSetupAPIHelper::GetVSInstanceInfo(SmartCOMPtr<ISetupInstance2> pInstance,
     {
         return false;
     }
+  }
 
-    InstanceState state;
-    if(FAILED(pInstance->GetState(&state)))
-    {
-        return false;
+  // Check if a compiler is installed with this instance.
+  {
+    std::string const vcRoot = vsInstanceInfo.GetInstallLocation();
+    std::string vcToolsVersionFile =
+      vcRoot + "/VC/Auxiliary/Build/Microsoft.VCToolsVersion.default.txt";
+    std::string vcToolsVersion;
+    cmsys::ifstream fin(vcToolsVersionFile.c_str());
+    if (!fin || !cmSystemTools::GetLineFromStream(fin, vcToolsVersion)) {
+      return false;
+    }
+    vcToolsVersion = cmSystemTools::TrimWhitespace(vcToolsVersion);
+    std::string const vcToolsDir = vcRoot + "/VC/Tools/MSVC/" + vcToolsVersion;
+    if (!cmSystemTools::FileIsDirectory(vcToolsDir)) {
+      return false;
     }
 
     ULONGLONG ullVersion = 0;
@@ -303,48 +314,97 @@ cmVSSetupAPIHelper::GetVCToolsetVersion(std::string& vsToolsetVersion)
     return isInstalled && !vsToolsetVersion.empty();
 }
 
-bool
-cmVSSetupAPIHelper::EnumerateAndChooseVSInstance()
+bool cmVSSetupAPIHelper::IsEWDKEnabled()
 {
-    bool isVSInstanceExists = false;
-    if(chosenInstanceInfo.VSInstallLocation.compare(L"") != 0)
-    {
-        return true;
+  std::string envEnterpriseWDK, envDisableRegistryUse;
+  cmSystemTools::GetEnv("EnterpriseWDK", envEnterpriseWDK);
+  cmSystemTools::GetEnv("DisableRegistryUse", envDisableRegistryUse);
+  if (!cmSystemTools::Strucmp(envEnterpriseWDK.c_str(), "True") &&
+      !cmSystemTools::Strucmp(envDisableRegistryUse.c_str(), "True")) {
+    return true;
+  }
+
+  return false;
+}
+
+bool cmVSSetupAPIHelper::EnumerateAndChooseVSInstance()
+{
+  bool isVSInstanceExists = false;
+  if (chosenInstanceInfo.VSInstallLocation.compare(L"") != 0) {
+    return true;
+  }
+
+  if (this->IsEWDKEnabled()) {
+    std::string envWindowsSdkDir81, envVSVersion, envVsInstallDir;
+
+    cmSystemTools::GetEnv("WindowsSdkDir_81", envWindowsSdkDir81);
+    cmSystemTools::GetEnv("VisualStudioVersion", envVSVersion);
+    cmSystemTools::GetEnv("VSINSTALLDIR", envVsInstallDir);
+    if (envVSVersion.empty() || envVsInstallDir.empty())
+      return false;
+
+    chosenInstanceInfo.VSInstallLocation =
+      std::wstring(envVsInstallDir.begin(), envVsInstallDir.end());
+    chosenInstanceInfo.Version =
+      std::wstring(envVSVersion.begin(), envVSVersion.end());
+    chosenInstanceInfo.VCToolsetVersion = envVSVersion;
+    chosenInstanceInfo.ullVersion = std::stoi(envVSVersion);
+    chosenInstanceInfo.IsWin10SDKInstalled = true;
+    chosenInstanceInfo.IsWin81SDKInstalled = !envWindowsSdkDir81.empty();
+    return true;
+  }
+
+  if (initializationFailure || setupConfig == NULL || setupConfig2 == NULL ||
+      setupHelper == NULL)
+    return false;
+
+  std::string envVSCommonToolsDir;
+  std::string envVSCommonToolsDirEnvName =
+    "VS" + std::to_string(this->Version) + "0COMNTOOLS";
+
+  if (cmSystemTools::GetEnv(envVSCommonToolsDirEnvName.c_str(),
+                            envVSCommonToolsDir)) {
+    cmSystemTools::ConvertToUnixSlashes(envVSCommonToolsDir);
+  }
+
+  std::vector<VSInstanceInfo> vecVSInstances;
+  SmartCOMPtr<IEnumSetupInstances> enumInstances = NULL;
+  if (FAILED(
+        setupConfig2->EnumInstances((IEnumSetupInstances**)&enumInstances)) ||
+      !enumInstances) {
+    return false;
+  }
+
+  std::wstring const wantVersion = std::to_wstring(this->Version) + L'.';
+
+  SmartCOMPtr<ISetupInstance> instance;
+  while (SUCCEEDED(enumInstances->Next(1, &instance, NULL)) && instance) {
+    SmartCOMPtr<ISetupInstance2> instance2 = NULL;
+    if (FAILED(
+          instance->QueryInterface(IID_ISetupInstance2, (void**)&instance2)) ||
+        !instance2) {
+      instance = NULL;
+      continue;
     }
 
-    if(initializationFailure || setupConfig == NULL || setupConfig2 == NULL ||
-       setupHelper == NULL)
-        return false;
+    VSInstanceInfo instanceInfo;
+    bool isInstalled = GetVSInstanceInfo(instance2, instanceInfo);
+    instance = instance2 = NULL;
 
-    std::string envVSCommonToolsDir;
+    if (isInstalled) {
+      // We are looking for a specific major version.
+      if (instanceInfo.Version.size() < wantVersion.size() ||
+          instanceInfo.Version.substr(0, wantVersion.size()) != wantVersion) {
+        continue;
+      }
 
-    // FIXME: When we support VS versions beyond 2017, the version
-    // to choose will be passed in by the caller.  We need to map that
-    // to a per-version name of this environment variable.
-    if(cmSystemTools::GetEnv("VS150COMNTOOLS", envVSCommonToolsDir))
-    {
-        cmSystemTools::ConvertToUnixSlashes(envVSCommonToolsDir);
-    }
-
-    std::vector<VSInstanceInfo>      vecVSInstances;
-    SmartCOMPtr<IEnumSetupInstances> enumInstances = NULL;
-    if(FAILED(setupConfig2->EnumInstances(
-           (IEnumSetupInstances**) &enumInstances)) ||
-       !enumInstances)
-    {
-        return false;
-    }
-
-    SmartCOMPtr<ISetupInstance> instance;
-    while(SUCCEEDED(enumInstances->Next(1, &instance, NULL)) && instance)
-    {
-        SmartCOMPtr<ISetupInstance2> instance2 = NULL;
-        if(FAILED(instance->QueryInterface(IID_ISetupInstance2,
-                                           (void**) &instance2)) ||
-           !instance2)
-        {
-            instance = NULL;
-            continue;
+      if (!this->SpecifiedVSInstallLocation.empty()) {
+        // We are looking for a specific instance.
+        std::string currentVSLocation = instanceInfo.GetInstallLocation();
+        if (cmSystemTools::ComparePath(currentVSLocation,
+                                       this->SpecifiedVSInstallLocation)) {
+          chosenInstanceInfo = instanceInfo;
+          return true;
         }
 
         VSInstanceInfo instanceInfo;
